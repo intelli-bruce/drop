@@ -10,7 +10,7 @@
 |------|------|
 | 제품명 | Throw |
 | 구성요소 | iOS/Android (Flutter), Desktop (Electron), Supabase Backend |
-| 핵심 가치 | 블록 기반 노트 + 실시간 동기화 |
+| 핵심 가치 | Markdown 노트 + 실시간 동기화 |
 | 목표 사용자 | 빠른 기록 + 멀티 디바이스 사용자 |
 | 제품 원칙 | 빠름 · 단순 · 오프라인 우선 |
 
@@ -24,7 +24,7 @@
 | Language | Dart | TypeScript |
 | State | Riverpod | Zustand |
 | Local DB | Isar | better-sqlite3 |
-| Editor | WebView + TipTap | TipTap |
+| Editor | WebView + CodeMirror 6 | CodeMirror 6 + Vim |
 | Audio/STT | record + Whisper API | - |
 
 **Backend**: Supabase (PostgreSQL + Realtime + Storage)
@@ -36,24 +36,11 @@
 ```sql
 CREATE TABLE notes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    content TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     source TEXT NOT NULL CHECK (source IN ('mobile', 'desktop', 'web')),
-    device_id TEXT,
     is_deleted BOOLEAN DEFAULT FALSE
-);
-
-CREATE TABLE note_blocks (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    note_id UUID NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
-    parent_id UUID REFERENCES note_blocks(id) ON DELETE CASCADE,
-    type TEXT NOT NULL CHECK (type IN ('text', 'image', 'audio', 'video')),
-    content TEXT,
-    storage_path TEXT,
-    position INTEGER NOT NULL DEFAULT 0,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    version INTEGER NOT NULL DEFAULT 1
 );
 
 CREATE TABLE tags (
@@ -75,39 +62,41 @@ CREATE TABLE note_tags (
 
 ### Mobile
 - 텍스트/음성 노트 (Whisper STT)
-- 이미지, 오디오 첨부
-- 블록 편집, 태그
+- 이미지, 오디오, 비디오 첨부
+- Markdown 편집, 태그
 - 오프라인 → 온라인 동기화
 
 ### Desktop
 - 날짜별 노트 피드 (무한 스크롤)
-- TipTap 블록 에디터
-- 이미지 붙여넣기 (Cmd+V)
+- CodeMirror 6 에디터 (Vim 모드, 인라인 미디어)
+- 이미지/비디오 붙여넣기 (Cmd+V)
 - 태그 필터, 검색
-- 키보드 내비게이션 (j/k, Enter)
+- Vim 키바인딩
 
 ---
 
 ## 5. MVP Scope (v1.0)
 
 ### Phase 1: Desktop
-- [ ] Electron + React + TipTap 세팅
+- [ ] Electron + React + CodeMirror 6 세팅
 - [ ] 로컬 SQLite + 노트 CRUD
-- [ ] 블록 에디터 (텍스트, 이미지)
+- [ ] Markdown 에디터 (Vim 모드, 인라인 미디어)
 - [ ] Supabase 동기화
 
 ### Phase 2: Mobile
 - [ ] Flutter + Isar 세팅
 - [ ] 노트 목록/상세 화면
 - [ ] 음성 녹음 + Whisper STT
+- [ ] 이미지, 비디오 첨부
 - [ ] Supabase 동기화
 
 ### Phase 3: Polish
 - [ ] 태그, 검색
 - [ ] 오프라인 테스트
 
-### v2 (제외)
-- 사용자 인증, 비디오, Apple Watch, AI 기능
+### v2
+- 사용자 인증
+- iOS/Android 위젯
 
 ---
 
@@ -122,4 +111,4 @@ CREATE TABLE note_tags (
 
 ---
 
-*Last Updated: 2024-12-21*
+*Last Updated: 2025-12-21*
