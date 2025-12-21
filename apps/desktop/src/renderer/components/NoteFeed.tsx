@@ -2,8 +2,51 @@ import { useRef, useState, useCallback, useEffect, DragEvent, ClipboardEvent } f
 import { useNotesStore } from '../stores/notes'
 import { NoteCard, NoteCardHandle } from './NoteCard'
 
-const INSTAGRAM_URL_REGEX =
-  /https?:\/\/(?:www\.)?instagram\.com\/(?:p|reel|reels)\/[A-Za-z0-9_-]+\/?/g
+const INSTAGRAM_HOSTS = new Set(['instagram.com', 'instagr.am'])
+const INSTAGRAM_PATH_TYPES = new Set(['p', 'reel', 'reels', 'tv'])
+
+function normalizeInstagramUrl(raw: string): string | null {
+  try {
+    const url = new URL(raw.startsWith('http') ? raw : `https://${raw}`)
+    const hostname = url.hostname.replace(/^www\./, '')
+    if (!INSTAGRAM_HOSTS.has(hostname)) return null
+
+    const parts = url.pathname.split('/').filter(Boolean)
+    if (parts.length < 2) return null
+
+    let type = parts[0]
+    let shortcode = parts[1]
+
+    if (type === 'share') {
+      if (parts.length < 3) return null
+      type = parts[1]
+      shortcode = parts[2]
+    }
+
+    if (type === 'reels') type = 'reel'
+    if (!INSTAGRAM_PATH_TYPES.has(type)) return null
+
+    return `https://www.instagram.com/${type}/${shortcode}/`
+  } catch {
+    return null
+  }
+}
+
+function extractInstagramUrls(text: string): string[] {
+  const urlMatches =
+    text.match(/https?:\/\/[^\s]+/g) ??
+    text.match(/(?:www\.)?(?:instagram\.com|instagr\.am)\/[^\s]+/g) ??
+    []
+  const urls: string[] = []
+
+  for (const match of urlMatches) {
+    const cleaned = match.replace(/[)\]}>,.;'"]+$/g, '')
+    const normalized = normalizeInstagramUrl(cleaned)
+    if (normalized) urls.push(normalized)
+  }
+
+  return Array.from(new Set(urls))
+}
 
 export function NoteFeed() {
   const { notes, createNote, deleteNote, addAttachment, updateNote, createNoteWithInstagram } =
@@ -153,8 +196,15 @@ export function NoteFeed() {
   // 피드에서 붙여넣기 -> 새 노트 생성
   const handlePaste = useCallback(
     async (e: ClipboardEvent) => {
+      console.info('[paste] start', {
+        hasClipboard: Boolean(e.clipboardData),
+        activeElement: document.activeElement?.tagName,
+      })
       const items = e.clipboardData?.items
-      if (!items) return
+      if (!items) {
+        console.warn('[paste] no clipboard items')
+        return
+      }
 
       // 파일/이미지 처리
       for (const item of items) {
@@ -163,6 +213,11 @@ export function NoteFeed() {
           if (!file) continue
 
           e.preventDefault()
+          console.info('[paste] file detected', {
+            name: file.name,
+            type: file.type,
+            size: file.size,
+          })
           await createNoteWithFile(file)
           return
         }
@@ -172,9 +227,14 @@ export function NoteFeed() {
       const text = e.clipboardData?.getData('text/plain')
       if (text) {
         e.preventDefault()
+        console.info('[paste] text detected', { length: text.length })
+        console.info('[paste] text contains instagram', {
+          hasInstagram: text.includes('instagram.com') || text.includes('instagr.am'),
+        })
 
-        const instagramUrls = text.match(INSTAGRAM_URL_REGEX)
-        if (instagramUrls && instagramUrls.length > 0) {
+        const instagramUrls = extractInstagramUrls(text)
+        if (instagramUrls.length > 0) {
+          console.info('[paste] instagram urls', instagramUrls)
           for (const url of instagramUrls) {
             const note = await createNoteWithInstagram(url)
             if (note) {
@@ -186,6 +246,7 @@ export function NoteFeed() {
           return
         }
 
+        console.info('[paste] plain text -> create note')
         const note = await createNote()
         await updateNote(note.id, text)
         setTimeout(() => {
