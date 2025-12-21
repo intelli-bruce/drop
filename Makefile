@@ -1,4 +1,4 @@
-.PHONY: install rebuild dev build test clean
+.PHONY: install rebuild dev dev-local dev-remote build build-local build-remote test clean
 
 # 의존성 설치
 install:
@@ -15,13 +15,29 @@ rebuild:
 # 설치 + 재빌드 (최초 세팅)
 setup: install rebuild
 
-# 개발 서버 실행
+# 개발 서버 실행 (로컬 Supabase)
 dev:
 	pnpm dev
+
+# 개발 서버 실행 (로컬 Supabase)
+dev-local:
+	pnpm dev:local
+
+# 개발 서버 실행 (리모트 Supabase)
+dev-remote:
+	pnpm dev:remote
 
 # 프로덕션 빌드
 build:
 	pnpm build
+
+# 빌드 (로컬 Supabase 설정)
+build-local:
+	pnpm build:local
+
+# 빌드 (리모트 Supabase 설정)
+build-remote:
+	pnpm build:remote
 
 # 테스트 실행
 test:

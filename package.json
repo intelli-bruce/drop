@@ -5,7 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm --filter @throw/desktop dev",
+    "dev:local": "pnpm --filter @throw/desktop dev:local",
+    "dev:remote": "pnpm --filter @throw/desktop dev:remote",
     "build": "pnpm --filter @throw/desktop build",
+    "build:local": "pnpm --filter @throw/desktop build:local",
+    "build:remote": "pnpm --filter @throw/desktop build:remote",
     "test": "vitest",
     "lint": "eslint .",
     "format": "prettier --write ."
