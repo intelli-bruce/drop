@@ -104,7 +104,7 @@ CREATE TABLE note_tags (
 - [x] Electron + React + Lexical 세팅
 - [x] Supabase 연동 (SSoT)
 - [x] 노트 CRUD + Realtime 동기화
-- [ ] 첨부파일 업로드 (Storage)
+- [x] 첨부파일 업로드 (Storage)
 
 ### Phase 2: Mobile
 - [ ] Flutter 세팅
