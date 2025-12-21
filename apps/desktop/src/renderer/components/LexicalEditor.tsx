@@ -1,9 +1,4 @@
-import {
-  forwardRef,
-  useImperativeHandle,
-  useEffect,
-  useCallback,
-} from 'react'
+import { forwardRef, useImperativeHandle, useEffect, useCallback } from 'react'
 import { LexicalComposer } from '@lexical/react/LexicalComposer'
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
@@ -21,17 +16,7 @@ import {
   $convertToMarkdownString,
   TRANSFORMERS,
 } from '@lexical/markdown'
-import {
-  EditorState,
-  $getRoot,
-  COMMAND_PRIORITY_HIGH,
-  PASTE_COMMAND,
-} from 'lexical'
-import type { CreateAttachmentInput } from '@throw/shared'
-
-// 대용량 텍스트 임계값: 10줄 이상 또는 500자 이상
-const LARGE_TEXT_THRESHOLD_LINES = 10
-const LARGE_TEXT_THRESHOLD_CHARS = 500
+import { EditorState, $getRoot, COMMAND_PRIORITY_HIGH, PASTE_COMMAND } from 'lexical'
 
 export interface LexicalEditorHandle {
   focus: () => void
@@ -41,7 +26,7 @@ interface Props {
   initialContent: string
   onChange: (content: string) => void
   onEscape: () => void
-  onAddAttachment: (input: CreateAttachmentInput) => void
+  onAddFile: (file: File) => void
 }
 
 const theme = {
@@ -122,11 +107,7 @@ function InitialContentPlugin({ content }: { content: string }) {
   return null
 }
 
-function AttachmentPastePlugin({
-  onAddAttachment,
-}: {
-  onAddAttachment: (input: CreateAttachmentInput) => void
-}) {
+function FilePastePlugin({ onAddFile }: { onAddFile: (file: File) => void }) {
   const [editor] = useLexicalComposerContext()
 
   useEffect(() => {
@@ -143,54 +124,7 @@ function AttachmentPastePlugin({
             if (!file) continue
 
             event.preventDefault()
-
-            const reader = new FileReader()
-            reader.onload = () => {
-              const base64 = reader.result as string
-
-              if (item.type.startsWith('image/')) {
-                onAddAttachment({
-                  type: 'image',
-                  data: base64,
-                  title: file.name,
-                  mimeType: file.type,
-                  size: file.size,
-                })
-              } else {
-                onAddAttachment({
-                  type: 'file',
-                  data: base64,
-                  title: file.name,
-                  mimeType: file.type,
-                  size: file.size,
-                })
-              }
-            }
-            reader.readAsDataURL(file)
-            return true
-          }
-        }
-
-        // 대용량 텍스트 처리
-        const text = event.clipboardData?.getData('text/plain')
-        if (text) {
-          const lineCount = text.split('\n').length
-          const isLargeText =
-            lineCount >= LARGE_TEXT_THRESHOLD_LINES ||
-            text.length >= LARGE_TEXT_THRESHOLD_CHARS
-
-          if (isLargeText) {
-            event.preventDefault()
-
-            // 첫 줄을 제목으로 사용
-            const firstLine = text.split('\n')[0].slice(0, 50)
-            const title = firstLine || `붙여넣기 (${lineCount}줄)`
-
-            onAddAttachment({
-              type: 'text-block',
-              data: text,
-              title,
-            })
+            onAddFile(file)
             return true
           }
         }
@@ -199,13 +133,13 @@ function AttachmentPastePlugin({
       },
       COMMAND_PRIORITY_HIGH
     )
-  }, [editor, onAddAttachment])
+  }, [editor, onAddFile])
 
   return null
 }
 
 export const LexicalEditor = forwardRef<LexicalEditorHandle, Props>(
-  ({ initialContent, onChange, onEscape, onAddAttachment }, ref) => {
+  ({ initialContent, onChange, onEscape, onAddFile }, ref) => {
     const editorRef = { current: null as { focus: () => void } | null }
 
     useImperativeHandle(ref, () => ({
@@ -246,7 +180,7 @@ export const LexicalEditor = forwardRef<LexicalEditorHandle, Props>(
           <HistoryPlugin />
           <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
           <OnChangePlugin onChange={handleChange} />
-          <AttachmentPastePlugin onAddAttachment={onAddAttachment} />
+          <FilePastePlugin onAddFile={onAddFile} />
           <EscapePlugin onEscape={onEscape} />
           <FocusPlugin editorRef={editorRef} />
           <InitialContentPlugin content={initialContent} />

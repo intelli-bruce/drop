@@ -1,24 +1,14 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type {
-  Note,
-  Attachment,
-  CreateNoteInput,
-  UpdateNoteInput,
-  CreateAttachmentInput,
-} from '@throw/shared'
+
+// Supabase를 renderer에서 직접 사용하므로 IPC 불필요
+// 필요시 여기에 Electron 전용 API 추가 (파일 시스템 접근 등)
 
 const api = {
-  notes: {
-    findAll: (): Promise<Note[]> => ipcRenderer.invoke('notes:findAll'),
-    findById: (id: string): Promise<Note | null> => ipcRenderer.invoke('notes:findById', id),
-    create: (input: CreateNoteInput): Promise<Note> => ipcRenderer.invoke('notes:create', input),
-    update: (id: string, input: UpdateNoteInput): Promise<Note | null> =>
-      ipcRenderer.invoke('notes:update', id, input),
-    delete: (id: string): Promise<boolean> => ipcRenderer.invoke('notes:delete', id),
-    addAttachment: (noteId: string, input: CreateAttachmentInput): Promise<Attachment | null> =>
-      ipcRenderer.invoke('notes:addAttachment', noteId, input),
-    removeAttachment: (attachmentId: string): Promise<boolean> =>
-      ipcRenderer.invoke('notes:removeAttachment', attachmentId),
+  // 추후 필요한 Electron 전용 기능 추가
+  platform: process.platform,
+  instagram: {
+    ensureLogin: (): Promise<boolean> => ipcRenderer.invoke('instagram:ensureLogin'),
+    fetchPost: (url: string) => ipcRenderer.invoke('instagram:fetchPost', url),
   },
 }
 

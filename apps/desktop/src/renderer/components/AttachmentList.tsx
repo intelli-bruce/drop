@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { FileIcon, defaultStyles } from 'react-file-icon'
 import type { Attachment } from '@throw/shared'
+import { getAttachmentUrl } from '../lib/supabase'
 
 interface Props {
   attachments: Attachment[]
@@ -41,60 +42,53 @@ function ImageAttachment({
   onRemove: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
+  const url = getAttachmentUrl(attachment.storagePath)
 
   return (
     <div className="attachment-card attachment-image">
       <button className="attachment-remove" onClick={onRemove}>×</button>
-      <div
-        className="attachment-thumbnail"
-        onClick={() => setExpanded(!expanded)}
-      >
-        <img src={attachment.data} alt={attachment.title || '이미지'} />
+      <div className="attachment-thumbnail" onClick={() => setExpanded(!expanded)}>
+        <img src={url} alt={attachment.filename || '이미지'} />
       </div>
       {expanded && (
         <div className="attachment-modal" onClick={() => setExpanded(false)}>
-          <img src={attachment.data} alt={attachment.title || '이미지'} />
+          <img src={url} alt={attachment.filename || '이미지'} />
         </div>
       )}
     </div>
   )
 }
 
-function TextBlockAttachment({
+function VideoAttachment({
   attachment,
   onRemove,
 }: {
   attachment: Attachment
   onRemove: () => void
 }) {
-  const [expanded, setExpanded] = useState(false)
-  const lineCount = attachment.data.split('\n').length
-  const charCount = attachment.data.length
-  const preview = attachment.data.split('\n').slice(0, 3).join('\n')
+  const url = getAttachmentUrl(attachment.storagePath)
 
   return (
-    <div className="attachment-card attachment-text-block">
+    <div className="attachment-card attachment-video">
       <button className="attachment-remove" onClick={onRemove}>×</button>
-      <div
-        className="attachment-text-preview"
-        onClick={() => setExpanded(!expanded)}
-      >
-        <div className="attachment-text-header">
-          <div className="attachment-text-icon">
-            <FileIcon extension="txt" {...defaultStyles.txt} />
-          </div>
-          <span className="attachment-text-meta">{lineCount}줄 · {charCount}자</span>
-        </div>
-        <pre className="attachment-text-snippet">{preview}</pre>
-        {!expanded && lineCount > 3 && (
-          <div className="attachment-text-fade" />
-        )}
-      </div>
-      {expanded && (
-        <div className="attachment-text-full">
-          <pre>{attachment.data}</pre>
-        </div>
-      )}
+      <video className="attachment-video-player" controls src={url} />
+    </div>
+  )
+}
+
+function AudioAttachment({
+  attachment,
+  onRemove,
+}: {
+  attachment: Attachment
+  onRemove: () => void
+}) {
+  const url = getAttachmentUrl(attachment.storagePath)
+
+  return (
+    <div className="attachment-card attachment-audio">
+      <button className="attachment-remove" onClick={onRemove}>×</button>
+      <audio className="attachment-audio-player" controls src={url} />
     </div>
   )
 }
@@ -106,14 +100,16 @@ function FileAttachment({
   attachment: Attachment
   onRemove: () => void
 }) {
+  const url = getAttachmentUrl(attachment.storagePath)
+
   const handleDownload = () => {
     const link = document.createElement('a')
-    link.href = attachment.data
-    link.download = attachment.title || 'download'
+    link.href = url
+    link.download = attachment.filename || 'download'
     link.click()
   }
 
-  const ext = getExtension(attachment.title, attachment.mimeType)
+  const ext = getExtension(attachment.filename, attachment.mimeType)
   const styles = defaultStyles[ext as keyof typeof defaultStyles] || {}
 
   return (
@@ -124,7 +120,7 @@ function FileAttachment({
           <FileIcon extension={ext} {...styles} />
         </div>
         <div className="attachment-file-info">
-          <span className="attachment-file-name">{attachment.title || '파일'}</span>
+          <span className="attachment-file-name">{attachment.filename || '파일'}</span>
           <span className="attachment-file-size">{formatFileSize(attachment.size)}</span>
         </div>
       </div>
@@ -147,9 +143,17 @@ export function AttachmentList({ attachments, onRemove }: Props) {
                 onRemove={() => onRemove(attachment.id)}
               />
             )
-          case 'text-block':
+          case 'video':
             return (
-              <TextBlockAttachment
+              <VideoAttachment
+                key={attachment.id}
+                attachment={attachment}
+                onRemove={() => onRemove(attachment.id)}
+              />
+            )
+          case 'audio':
+            return (
+              <AudioAttachment
                 key={attachment.id}
                 attachment={attachment}
                 onRemove={() => onRemove(attachment.id)}

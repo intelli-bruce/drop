@@ -1,13 +1,13 @@
 import { useRef, useState, useCallback, useEffect, DragEvent, ClipboardEvent } from 'react'
 import { useNotesStore } from '../stores/notes'
 import { NoteCard, NoteCardHandle } from './NoteCard'
-import type { CreateAttachmentInput } from '@throw/shared'
 
-const LARGE_TEXT_THRESHOLD_LINES = 10
-const LARGE_TEXT_THRESHOLD_CHARS = 500
+const INSTAGRAM_URL_REGEX =
+  /https?:\/\/(?:www\.)?instagram\.com\/(?:p|reel|reels)\/[A-Za-z0-9_-]+\/?/g
 
 export function NoteFeed() {
-  const { notes, createNote, addAttachment, updateNote } = useNotesStore()
+  const { notes, createNote, deleteNote, addAttachment, updateNote, createNoteWithInstagram } =
+    useNotesStore()
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const cardRefs = useRef<Map<string, NoteCardHandle>>(new Map())
@@ -55,9 +55,21 @@ export function NoteFeed() {
           cardRefs.current.get(note.id)?.focus()
           setFocusedIndex(null)
         }
+      } else if ((e.key === 'Delete' || e.key === 'Backspace') && focusedIndex !== null) {
+        e.preventDefault()
+        const note = flatNotes[focusedIndex]
+        if (note && window.confirm('이 노트를 삭제하시겠습니까?')) {
+          deleteNote(note.id)
+          if (flatNotes.length > 1) {
+            const nextIndex = focusedIndex >= flatNotes.length - 1 ? focusedIndex - 1 : focusedIndex
+            setFocusedIndex(nextIndex)
+          } else {
+            setFocusedIndex(null)
+          }
+        }
       }
     },
-    [focusedIndex, flatNotes]
+    [focusedIndex, flatNotes, deleteNote]
   )
 
   const groupByDate = (notes: typeof flatNotes) => {
@@ -127,10 +139,10 @@ export function NoteFeed() {
   }, [])
 
   // 새 노트 생성 + 첨부물 추가 헬퍼
-  const createNoteWithAttachment = useCallback(
-    async (attachment: CreateAttachmentInput) => {
+  const createNoteWithFile = useCallback(
+    async (file: File) => {
       const note = await createNote()
-      await addAttachment(note.id, attachment)
+      await addAttachment(note.id, file)
       setTimeout(() => {
         cardRefs.current.get(note.id)?.focus()
       }, 50)
@@ -151,62 +163,37 @@ export function NoteFeed() {
           if (!file) continue
 
           e.preventDefault()
-
-          const reader = new FileReader()
-          reader.onload = () => {
-            const base64 = reader.result as string
-
-            if (item.type.startsWith('image/')) {
-              createNoteWithAttachment({
-                type: 'image',
-                data: base64,
-                title: file.name,
-                mimeType: file.type,
-                size: file.size,
-              })
-            } else {
-              createNoteWithAttachment({
-                type: 'file',
-                data: base64,
-                title: file.name,
-                mimeType: file.type,
-                size: file.size,
-              })
-            }
-          }
-          reader.readAsDataURL(file)
+          await createNoteWithFile(file)
           return
         }
       }
 
-      // 텍스트 처리
+      // 텍스트 처리 - 새 노트 본문으로
       const text = e.clipboardData?.getData('text/plain')
       if (text) {
         e.preventDefault()
-        const lineCount = text.split('\n').length
-        const isLargeText =
-          lineCount >= LARGE_TEXT_THRESHOLD_LINES ||
-          text.length >= LARGE_TEXT_THRESHOLD_CHARS
 
-        if (isLargeText) {
-          const firstLine = text.split('\n')[0].slice(0, 50)
-          const title = firstLine || `붙여넣기 (${lineCount}줄)`
-          createNoteWithAttachment({
-            type: 'text-block',
-            data: text,
-            title,
-          })
-        } else {
-          // 짧은 텍스트는 본문으로
-          const note = await createNote()
-          await updateNote(note.id, text)
-          setTimeout(() => {
-            cardRefs.current.get(note.id)?.focus()
-          }, 50)
+        const instagramUrls = text.match(INSTAGRAM_URL_REGEX)
+        if (instagramUrls && instagramUrls.length > 0) {
+          for (const url of instagramUrls) {
+            const note = await createNoteWithInstagram(url)
+            if (note) {
+              setTimeout(() => {
+                cardRefs.current.get(note.id)?.focus()
+              }, 50)
+            }
+          }
+          return
         }
+
+        const note = await createNote()
+        await updateNote(note.id, text)
+        setTimeout(() => {
+          cardRefs.current.get(note.id)?.focus()
+        }, 50)
       }
     },
-    [createNote, createNoteWithAttachment, updateNote]
+    [createNote, createNoteWithFile, createNoteWithInstagram, updateNote]
   )
 
   // 피드에 드래그 앤 드롭 -> 새 노트 생성
@@ -223,39 +210,17 @@ export function NoteFeed() {
   }, [])
 
   const handleDrop = useCallback(
-    (e: DragEvent) => {
+    async (e: DragEvent) => {
       e.preventDefault()
       e.stopPropagation()
       setIsDragOver(false)
 
       const files = Array.from(e.dataTransfer.files)
-      files.forEach((file) => {
-        const reader = new FileReader()
-        reader.onload = () => {
-          const base64 = reader.result as string
-
-          if (file.type.startsWith('image/')) {
-            createNoteWithAttachment({
-              type: 'image',
-              data: base64,
-              title: file.name,
-              mimeType: file.type,
-              size: file.size,
-            })
-          } else {
-            createNoteWithAttachment({
-              type: 'file',
-              data: base64,
-              title: file.name,
-              mimeType: file.type,
-              size: file.size,
-            })
-          }
-        }
-        reader.readAsDataURL(file)
-      })
+      for (const file of files) {
+        await createNoteWithFile(file)
+      }
     },
-    [createNoteWithAttachment]
+    [createNoteWithFile]
   )
 
   return (

@@ -2,7 +2,7 @@ import { useRef, useCallback, forwardRef, useImperativeHandle, useState, DragEve
 import { LexicalEditor, LexicalEditorHandle } from './LexicalEditor'
 import { AttachmentList } from './AttachmentList'
 import { useNotesStore } from '../stores/notes'
-import type { Note, CreateAttachmentInput } from '@throw/shared'
+import type { Note } from '@throw/shared'
 
 interface Props {
   note: Note
@@ -31,9 +31,9 @@ export const NoteCard = forwardRef<NoteCardHandle, Props>(
       [note.id, updateNote]
     )
 
-    const handleAddAttachment = useCallback(
-      (input: CreateAttachmentInput) => {
-        addAttachment(note.id, input)
+    const handleAddFile = useCallback(
+      (file: File) => {
+        addAttachment(note.id, file)
       },
       [note.id, addAttachment]
     )
@@ -65,32 +65,10 @@ export const NoteCard = forwardRef<NoteCardHandle, Props>(
 
         const files = Array.from(e.dataTransfer.files)
         files.forEach((file) => {
-          const reader = new FileReader()
-          reader.onload = () => {
-            const base64 = reader.result as string
-
-            if (file.type.startsWith('image/')) {
-              handleAddAttachment({
-                type: 'image',
-                data: base64,
-                title: file.name,
-                mimeType: file.type,
-                size: file.size,
-              })
-            } else {
-              handleAddAttachment({
-                type: 'file',
-                data: base64,
-                title: file.name,
-                mimeType: file.type,
-                size: file.size,
-              })
-            }
-          }
-          reader.readAsDataURL(file)
+          handleAddFile(file)
         })
       },
-      [handleAddAttachment]
+      [handleAddFile]
     )
 
     const formatTime = (date: Date) => {
@@ -109,7 +87,14 @@ export const NoteCard = forwardRef<NoteCardHandle, Props>(
       >
         <div className="note-card-header">
           <span className="note-time">{formatTime(note.createdAt)}</span>
-          <button className="delete-btn" onClick={() => deleteNote(note.id)}>
+          <button
+            className="delete-btn"
+            onClick={() => {
+              if (window.confirm('이 노트를 삭제하시겠습니까?')) {
+                deleteNote(note.id)
+              }
+            }}
+          >
             ×
           </button>
         </div>
@@ -120,13 +105,10 @@ export const NoteCard = forwardRef<NoteCardHandle, Props>(
             initialContent={note.content}
             onChange={handleChange}
             onEscape={onEscapeFromNormal}
-            onAddAttachment={handleAddAttachment}
+            onAddFile={handleAddFile}
           />
         </div>
-        <AttachmentList
-          attachments={note.attachments}
-          onRemove={handleRemoveAttachment}
-        />
+        <AttachmentList attachments={note.attachments} onRemove={handleRemoveAttachment} />
       </div>
     )
   }
