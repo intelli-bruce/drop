@@ -1,0 +1,259 @@
+import {
+  forwardRef,
+  useImperativeHandle,
+  useEffect,
+  useCallback,
+} from 'react'
+import { LexicalComposer } from '@lexical/react/LexicalComposer'
+import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
+import { ContentEditable } from '@lexical/react/LexicalContentEditable'
+import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'
+import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin'
+import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin'
+import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
+import { HeadingNode, QuoteNode } from '@lexical/rich-text'
+import { ListNode, ListItemNode } from '@lexical/list'
+import { CodeNode } from '@lexical/code'
+import { LinkNode } from '@lexical/link'
+import {
+  $convertFromMarkdownString,
+  $convertToMarkdownString,
+  TRANSFORMERS,
+} from '@lexical/markdown'
+import {
+  EditorState,
+  $getRoot,
+  COMMAND_PRIORITY_HIGH,
+  PASTE_COMMAND,
+} from 'lexical'
+import type { CreateAttachmentInput } from '@throw/shared'
+
+// 대용량 텍스트 임계값: 10줄 이상 또는 500자 이상
+const LARGE_TEXT_THRESHOLD_LINES = 10
+const LARGE_TEXT_THRESHOLD_CHARS = 500
+
+export interface LexicalEditorHandle {
+  focus: () => void
+}
+
+interface Props {
+  initialContent: string
+  onChange: (content: string) => void
+  onEscape: () => void
+  onAddAttachment: (input: CreateAttachmentInput) => void
+}
+
+const theme = {
+  paragraph: 'lexical-paragraph',
+  text: {
+    bold: 'lexical-bold',
+    italic: 'lexical-italic',
+    strikethrough: 'lexical-strikethrough',
+    underline: 'lexical-underline',
+    code: 'lexical-code',
+  },
+  heading: {
+    h1: 'lexical-h1',
+    h2: 'lexical-h2',
+    h3: 'lexical-h3',
+  },
+  list: {
+    ul: 'lexical-ul',
+    ol: 'lexical-ol',
+    listitem: 'lexical-li',
+  },
+  quote: 'lexical-quote',
+  code: 'lexical-code-block',
+  link: 'lexical-link',
+}
+
+function EscapePlugin({ onEscape }: { onEscape: () => void }) {
+  const [editor] = useLexicalComposerContext()
+
+  useEffect(() => {
+    const rootElement = editor.getRootElement()
+    if (!rootElement) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        rootElement.blur()
+        onEscape()
+      }
+    }
+
+    rootElement.addEventListener('keydown', handleKeyDown)
+    return () => rootElement.removeEventListener('keydown', handleKeyDown)
+  }, [editor, onEscape])
+
+  return null
+}
+
+function FocusPlugin({
+  editorRef,
+}: {
+  editorRef: React.MutableRefObject<{ focus: () => void } | null>
+}) {
+  const [editor] = useLexicalComposerContext()
+
+  useEffect(() => {
+    editorRef.current = {
+      focus: () => editor.focus(),
+    }
+    return () => {
+      editorRef.current = null
+    }
+  }, [editor, editorRef])
+
+  return null
+}
+
+function InitialContentPlugin({ content }: { content: string }) {
+  const [editor] = useLexicalComposerContext()
+
+  useEffect(() => {
+    if (!content) return
+    editor.update(() => {
+      $convertFromMarkdownString(content, TRANSFORMERS)
+    })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  return null
+}
+
+function AttachmentPastePlugin({
+  onAddAttachment,
+}: {
+  onAddAttachment: (input: CreateAttachmentInput) => void
+}) {
+  const [editor] = useLexicalComposerContext()
+
+  useEffect(() => {
+    return editor.registerCommand(
+      PASTE_COMMAND,
+      (event: ClipboardEvent) => {
+        const items = event.clipboardData?.items
+        if (!items) return false
+
+        // 파일 처리 (이미지 포함)
+        for (const item of items) {
+          if (item.kind === 'file') {
+            const file = item.getAsFile()
+            if (!file) continue
+
+            event.preventDefault()
+
+            const reader = new FileReader()
+            reader.onload = () => {
+              const base64 = reader.result as string
+
+              if (item.type.startsWith('image/')) {
+                onAddAttachment({
+                  type: 'image',
+                  data: base64,
+                  title: file.name,
+                  mimeType: file.type,
+                  size: file.size,
+                })
+              } else {
+                onAddAttachment({
+                  type: 'file',
+                  data: base64,
+                  title: file.name,
+                  mimeType: file.type,
+                  size: file.size,
+                })
+              }
+            }
+            reader.readAsDataURL(file)
+            return true
+          }
+        }
+
+        // 대용량 텍스트 처리
+        const text = event.clipboardData?.getData('text/plain')
+        if (text) {
+          const lineCount = text.split('\n').length
+          const isLargeText =
+            lineCount >= LARGE_TEXT_THRESHOLD_LINES ||
+            text.length >= LARGE_TEXT_THRESHOLD_CHARS
+
+          if (isLargeText) {
+            event.preventDefault()
+
+            // 첫 줄을 제목으로 사용
+            const firstLine = text.split('\n')[0].slice(0, 50)
+            const title = firstLine || `붙여넣기 (${lineCount}줄)`
+
+            onAddAttachment({
+              type: 'text-block',
+              data: text,
+              title,
+            })
+            return true
+          }
+        }
+
+        return false
+      },
+      COMMAND_PRIORITY_HIGH
+    )
+  }, [editor, onAddAttachment])
+
+  return null
+}
+
+export const LexicalEditor = forwardRef<LexicalEditorHandle, Props>(
+  ({ initialContent, onChange, onEscape, onAddAttachment }, ref) => {
+    const editorRef = { current: null as { focus: () => void } | null }
+
+    useImperativeHandle(ref, () => ({
+      focus: () => editorRef.current?.focus(),
+    }))
+
+    const handleChange = useCallback(
+      (editorState: EditorState) => {
+        editorState.read(() => {
+          const root = $getRoot()
+          if (root.getTextContent().length === 0 && root.getChildrenSize() <= 1) {
+            onChange('')
+            return
+          }
+
+          const markdown = $convertToMarkdownString(TRANSFORMERS)
+          onChange(markdown)
+        })
+      },
+      [onChange]
+    )
+
+    const initialConfig = {
+      namespace: 'NoteEditor',
+      theme,
+      onError: (error: Error) => console.error(error),
+      nodes: [HeadingNode, QuoteNode, ListNode, ListItemNode, CodeNode, LinkNode],
+    }
+
+    return (
+      <LexicalComposer initialConfig={initialConfig}>
+        <div className="lexical-container">
+          <RichTextPlugin
+            contentEditable={<ContentEditable className="lexical-content" />}
+            placeholder={<div className="lexical-placeholder">메모 작성...</div>}
+            ErrorBoundary={LexicalErrorBoundary}
+          />
+          <HistoryPlugin />
+          <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
+          <OnChangePlugin onChange={handleChange} />
+          <AttachmentPastePlugin onAddAttachment={onAddAttachment} />
+          <EscapePlugin onEscape={onEscape} />
+          <FocusPlugin editorRef={editorRef} />
+          <InitialContentPlugin content={initialContent} />
+        </div>
+      </LexicalComposer>
+    )
+  }
+)
+
+LexicalEditor.displayName = 'LexicalEditor'

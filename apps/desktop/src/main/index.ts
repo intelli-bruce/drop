@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { createDatabase, NotesRepository } from '@throw/database'
-import type { CreateNoteInput, UpdateNoteInput } from '@throw/shared'
+import type { CreateNoteInput, UpdateNoteInput, CreateAttachmentInput } from '@throw/shared'
 
 const dbPath = join(app.getPath('userData'), 'throw.db')
 let db: ReturnType<typeof createDatabase>
@@ -46,6 +46,14 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle('notes:delete', (_event, id: string) => {
     return notesRepo.softDelete(id)
+  })
+
+  ipcMain.handle('notes:addAttachment', (_event, noteId: string, input: CreateAttachmentInput) => {
+    return notesRepo.addAttachment(noteId, input)
+  })
+
+  ipcMain.handle('notes:removeAttachment', (_event, attachmentId: string) => {
+    return notesRepo.removeAttachment(attachmentId)
   })
 }
 

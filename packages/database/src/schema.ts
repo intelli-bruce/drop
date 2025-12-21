@@ -11,6 +11,17 @@ export function initializeSchema(db: Database): void {
       is_deleted INTEGER DEFAULT 0
     );
 
+    CREATE TABLE IF NOT EXISTS attachments (
+      id TEXT PRIMARY KEY,
+      note_id TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+      type TEXT NOT NULL CHECK (type IN ('image', 'text-block', 'file')),
+      data TEXT NOT NULL,
+      title TEXT,
+      mime_type TEXT,
+      size INTEGER,
+      created_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS tags (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL UNIQUE,
@@ -22,5 +33,7 @@ export function initializeSchema(db: Database): void {
       tag_id TEXT NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
       PRIMARY KEY (note_id, tag_id)
     );
+
+    CREATE INDEX IF NOT EXISTS idx_attachments_note_id ON attachments(note_id);
   `)
 }

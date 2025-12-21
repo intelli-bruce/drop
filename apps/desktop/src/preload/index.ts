@@ -1,5 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { Note, CreateNoteInput, UpdateNoteInput } from '@throw/shared'
+import type {
+  Note,
+  Attachment,
+  CreateNoteInput,
+  UpdateNoteInput,
+  CreateAttachmentInput,
+} from '@throw/shared'
 
 const api = {
   notes: {
@@ -9,6 +15,10 @@ const api = {
     update: (id: string, input: UpdateNoteInput): Promise<Note | null> =>
       ipcRenderer.invoke('notes:update', id, input),
     delete: (id: string): Promise<boolean> => ipcRenderer.invoke('notes:delete', id),
+    addAttachment: (noteId: string, input: CreateAttachmentInput): Promise<Attachment | null> =>
+      ipcRenderer.invoke('notes:addAttachment', noteId, input),
+    removeAttachment: (attachmentId: string): Promise<boolean> =>
+      ipcRenderer.invoke('notes:removeAttachment', attachmentId),
   },
 }
 

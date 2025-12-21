@@ -1,12 +1,8 @@
-import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react'
-import { EditorView, basicSetup } from 'codemirror'
-import { EditorState } from '@codemirror/state'
-import { markdown } from '@codemirror/lang-markdown'
-import { vim, getCM } from '@replit/codemirror-vim'
-import { oneDark } from '@codemirror/theme-one-dark'
-import { livePreview, livePreviewTheme } from '../lib/livePreview'
+import { useRef, useCallback, forwardRef, useImperativeHandle, useState, DragEvent } from 'react'
+import { LexicalEditor, LexicalEditorHandle } from './LexicalEditor'
+import { AttachmentList } from './AttachmentList'
 import { useNotesStore } from '../stores/notes'
-import type { Note } from '@throw/shared'
+import type { Note, CreateAttachmentInput } from '@throw/shared'
 
 interface Props {
   note: Note
@@ -20,83 +16,82 @@ export interface NoteCardHandle {
 
 export const NoteCard = forwardRef<NoteCardHandle, Props>(
   ({ note, isFocused, onEscapeFromNormal }, ref) => {
-    const editorRef = useRef<HTMLDivElement>(null)
-    const viewRef = useRef<EditorView | null>(null)
-    const noteIdRef = useRef(note.id)
-    const onEscapeRef = useRef(onEscapeFromNormal)
-    const { updateNote, deleteNote } = useNotesStore()
-
-    noteIdRef.current = note.id
-    onEscapeRef.current = onEscapeFromNormal
+    const editorRef = useRef<LexicalEditorHandle>(null)
+    const [isDragOver, setIsDragOver] = useState(false)
+    const { updateNote, deleteNote, addAttachment, removeAttachment } = useNotesStore()
 
     useImperativeHandle(ref, () => ({
-      focus: () => {
-        viewRef.current?.focus()
-      },
+      focus: () => editorRef.current?.focus(),
     }))
 
-    useEffect(() => {
-      if (!editorRef.current) return
+    const handleChange = useCallback(
+      (content: string) => {
+        updateNote(note.id, content)
+      },
+      [note.id, updateNote]
+    )
 
-      const state = EditorState.create({
-        doc: note.content,
-        extensions: [
-          vim(),
-          basicSetup,
-          markdown(),
-          livePreview,
-          livePreviewTheme,
-          oneDark,
-          EditorView.updateListener.of((update) => {
-            if (update.docChanged) {
-              updateNote(noteIdRef.current, update.state.doc.toString())
+    const handleAddAttachment = useCallback(
+      (input: CreateAttachmentInput) => {
+        addAttachment(note.id, input)
+      },
+      [note.id, addAttachment]
+    )
+
+    const handleRemoveAttachment = useCallback(
+      (attachmentId: string) => {
+        removeAttachment(note.id, attachmentId)
+      },
+      [note.id, removeAttachment]
+    )
+
+    const handleDragOver = useCallback((e: DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      setIsDragOver(true)
+    }, [])
+
+    const handleDragLeave = useCallback((e: DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      setIsDragOver(false)
+    }, [])
+
+    const handleDrop = useCallback(
+      (e: DragEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setIsDragOver(false)
+
+        const files = Array.from(e.dataTransfer.files)
+        files.forEach((file) => {
+          const reader = new FileReader()
+          reader.onload = () => {
+            const base64 = reader.result as string
+
+            if (file.type.startsWith('image/')) {
+              handleAddAttachment({
+                type: 'image',
+                data: base64,
+                title: file.name,
+                mimeType: file.type,
+                size: file.size,
+              })
+            } else {
+              handleAddAttachment({
+                type: 'file',
+                data: base64,
+                title: file.name,
+                mimeType: file.type,
+                size: file.size,
+              })
             }
-          }),
-          EditorView.theme({
-            '&': { minHeight: '60px' },
-            '.cm-scroller': { overflow: 'auto' },
-            '.cm-line': { padding: '0 4px' },
-          }),
-        ],
-      })
-
-      const view = new EditorView({
-        state,
-        parent: editorRef.current,
-      })
-      viewRef.current = view
-
-      // ESC in normal mode -> blur and notify parent
-      let wasNormalMode = false
-
-      const checkModeBeforeEsc = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') {
-          const cm = getCM(view)
-          const vimState = cm?.state?.vim
-          wasNormalMode = !!(vimState && !vimState.insertMode && !vimState.visualMode)
-        }
-      }
-
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape' && wasNormalMode) {
-          e.preventDefault()
-          e.stopPropagation()
-          view.contentDOM.blur()
-          onEscapeRef.current()
-        }
-      }
-
-      view.contentDOM.addEventListener('keydown', checkModeBeforeEsc, true)
-      view.contentDOM.addEventListener('keydown', handleKeyDown)
-
-      return () => {
-        view.contentDOM.removeEventListener('keydown', checkModeBeforeEsc, true)
-        view.contentDOM.removeEventListener('keydown', handleKeyDown)
-        view.destroy()
-        viewRef.current = null
-      }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [note.id])
+          }
+          reader.readAsDataURL(file)
+        })
+      },
+      [handleAddAttachment]
+    )
 
     const formatTime = (date: Date) => {
       return new Intl.DateTimeFormat('ko-KR', {
@@ -106,14 +101,32 @@ export const NoteCard = forwardRef<NoteCardHandle, Props>(
     }
 
     return (
-      <div className={`note-card ${isFocused ? 'focused' : ''}`}>
+      <div
+        className={`note-card ${isFocused ? 'focused' : ''} ${isDragOver ? 'drag-over' : ''}`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
         <div className="note-card-header">
           <span className="note-time">{formatTime(note.createdAt)}</span>
           <button className="delete-btn" onClick={() => deleteNote(note.id)}>
             ×
           </button>
         </div>
-        <div ref={editorRef} className="note-editor" />
+        <div className="note-editor">
+          <LexicalEditor
+            key={note.id}
+            ref={editorRef}
+            initialContent={note.content}
+            onChange={handleChange}
+            onEscape={onEscapeFromNormal}
+            onAddAttachment={handleAddAttachment}
+          />
+        </div>
+        <AttachmentList
+          attachments={note.attachments}
+          onRemove={handleRemoveAttachment}
+        />
       </div>
     )
   }

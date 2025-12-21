@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Note } from '@throw/shared'
+import type { Note, Attachment, CreateAttachmentInput } from '@throw/shared'
 
 interface NotesState {
   notes: Note[]
@@ -11,6 +11,8 @@ interface NotesState {
   updateNote: (id: string, content: string) => Promise<void>
   deleteNote: (id: string) => Promise<void>
   selectNote: (id: string | null) => void
+  addAttachment: (noteId: string, input: CreateAttachmentInput) => Promise<Attachment | null>
+  removeAttachment: (noteId: string, attachmentId: string) => Promise<void>
 }
 
 export const useNotesStore = create<NotesState>((set, get) => ({
@@ -59,5 +61,28 @@ export const useNotesStore = create<NotesState>((set, get) => ({
 
   selectNote: (id) => {
     set({ selectedNoteId: id })
+  },
+
+  addAttachment: async (noteId, input) => {
+    const attachment = await window.api.notes.addAttachment(noteId, input)
+    if (attachment) {
+      set((state) => ({
+        notes: state.notes.map((n) =>
+          n.id === noteId ? { ...n, attachments: [...n.attachments, attachment] } : n
+        ),
+      }))
+    }
+    return attachment
+  },
+
+  removeAttachment: async (noteId, attachmentId) => {
+    await window.api.notes.removeAttachment(attachmentId)
+    set((state) => ({
+      notes: state.notes.map((n) =>
+        n.id === noteId
+          ? { ...n, attachments: n.attachments.filter((a) => a.id !== attachmentId) }
+          : n
+      ),
+    }))
   },
 }))
