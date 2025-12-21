@@ -317,6 +317,16 @@ body {
   object-fit: cover;
 }
 
+.attachment-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
 .attachment-modal {
   position: fixed;
   top: 0;
@@ -536,4 +546,32 @@ body {
 
 .attachment-instagram-hint:hover {
   text-decoration: underline;
+}
+
+.attachment-instagram-dialog {
+  width: min(560px, 90vw);
+  max-height: 80vh;
+  background: #0f0f12;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  overflow: auto;
+  cursor: default;
+}
+
+.attachment-instagram-dialog-header {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.attachment-instagram-json {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
 }
