@@ -2,7 +2,7 @@
 
 export type NoteSource = 'mobile' | 'desktop' | 'web'
 
-export type AttachmentType = 'image' | 'audio' | 'video' | 'file'
+export type AttachmentType = 'image' | 'audio' | 'video' | 'file' | 'instagram'
 
 // Database row types (snake_case - Supabase 컬럼명과 일치)
 export interface NoteRow {
@@ -22,6 +22,11 @@ export interface AttachmentRow {
   filename: string | null
   mime_type: string | null
   size: number | null
+  metadata: Record<string, unknown> | null
+  original_url: string | null
+  author_name: string | null
+  author_url: string | null
+  caption: string | null
   created_at: string
 }
 
@@ -55,6 +60,11 @@ export interface Attachment {
   filename?: string
   mimeType?: string
   size?: number
+  metadata?: Record<string, unknown>
+  originalUrl?: string
+  authorName?: string
+  authorUrl?: string
+  caption?: string
   createdAt: Date
 }
 
@@ -81,6 +91,11 @@ export interface CreateAttachmentInput {
   filename?: string
   mimeType?: string
   size?: number
+  metadata?: Record<string, unknown>
+  originalUrl?: string
+  authorName?: string
+  authorUrl?: string
+  caption?: string
 }
 
 // Row <-> App type 변환 함수
@@ -105,6 +120,11 @@ export function attachmentRowToAttachment(row: AttachmentRow): Attachment {
     filename: row.filename ?? undefined,
     mimeType: row.mime_type ?? undefined,
     size: row.size ?? undefined,
+    metadata: row.metadata ?? undefined,
+    originalUrl: row.original_url ?? undefined,
+    authorName: row.author_name ?? undefined,
+    authorUrl: row.author_url ?? undefined,
+    caption: row.caption ?? undefined,
     createdAt: new Date(row.created_at),
   }
 }
