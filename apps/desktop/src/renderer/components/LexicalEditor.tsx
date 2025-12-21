@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useEffect, useCallback } from 'react'
+import { forwardRef, useImperativeHandle, useEffect, useCallback, useRef } from 'react'
 import { LexicalComposer } from '@lexical/react/LexicalComposer'
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
@@ -96,13 +96,23 @@ function FocusPlugin({
 
 function InitialContentPlugin({ content }: { content: string }) {
   const [editor] = useLexicalComposerContext()
+  const lastAppliedRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (!content) return
+
     editor.update(() => {
+      const root = $getRoot()
+      const hasUserContent = root.getTextContent().length > 0
+      const isDuplicate = lastAppliedRef.current === content
+
+      if (hasUserContent && !isDuplicate) return
+
+      root.clear()
       $convertFromMarkdownString(content, TRANSFORMERS)
+      lastAppliedRef.current = content
     })
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [content, editor])
 
   return null
 }
