@@ -28,3 +28,19 @@ export function getAttachmentUrl(storagePath: string): string {
   const { data } = supabase.storage.from('attachments').getPublicUrl(storagePath)
   return data.publicUrl
 }
+
+export async function getSignedAttachmentUrl(
+  storagePath: string,
+  expiresInSeconds = 60 * 60
+): Promise<string | null> {
+  const { data, error } = await supabase.storage
+    .from('attachments')
+    .createSignedUrl(storagePath, expiresInSeconds)
+
+  if (error) {
+    console.error('[attachments] signed url error', error)
+    return null
+  }
+
+  return data?.signedUrl ?? null
+}

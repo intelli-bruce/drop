@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { FileIcon, defaultStyles } from 'react-file-icon'
 import type { Attachment } from '@throw/shared'
-import { getAttachmentUrl } from '../lib/supabase'
+import { getAttachmentUrl, getSignedAttachmentUrl } from '../lib/supabase'
 
 interface Props {
   attachments: Attachment[]
@@ -34,6 +34,31 @@ function getExtension(filename?: string, mimeType?: string): string {
   return 'file'
 }
 
+function useAttachmentUrl(storagePath: string) {
+  const [url, setUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    const load = async () => {
+      const signed = await getSignedAttachmentUrl(storagePath)
+      if (cancelled) return
+      if (signed) {
+        setUrl(signed)
+        return
+      }
+      setUrl(getAttachmentUrl(storagePath))
+    }
+
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [storagePath])
+
+  return url
+}
+
 function ImageAttachment({
   attachment,
   onRemove,
@@ -42,19 +67,30 @@ function ImageAttachment({
   onRemove: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
-  const url = getAttachmentUrl(attachment.storagePath)
+  const url = useAttachmentUrl(attachment.storagePath)
+  const handleError = () => {
+    console.error('[attachments] image load failed', {
+      attachmentId: attachment.id,
+      storagePath: attachment.storagePath,
+      url,
+    })
+  }
 
   return (
     <div className="attachment-card attachment-image">
       <button className="attachment-remove" onClick={onRemove}>×</button>
       <div className="attachment-thumbnail" onClick={() => setExpanded(!expanded)}>
-        <img src={url} alt={attachment.filename || '이미지'} />
+        {url ? (
+          <img src={url} alt={attachment.filename || '이미지'} onError={handleError} />
+        ) : (
+          <span className="attachment-placeholder">로딩 중</span>
+        )}
       </div>
-      {expanded && (
+      {expanded && url ? (
         <div className="attachment-modal" onClick={() => setExpanded(false)}>
-          <img src={url} alt={attachment.filename || '이미지'} />
+          <img src={url} alt={attachment.filename || '이미지'} onError={handleError} />
         </div>
-      )}
+      ) : null}
     </div>
   )
 }
@@ -66,12 +102,12 @@ function VideoAttachment({
   attachment: Attachment
   onRemove: () => void
 }) {
-  const url = getAttachmentUrl(attachment.storagePath)
+  const url = useAttachmentUrl(attachment.storagePath)
 
   return (
     <div className="attachment-card attachment-video">
       <button className="attachment-remove" onClick={onRemove}>×</button>
-      <video className="attachment-video-player" controls src={url} />
+      {url ? <video className="attachment-video-player" controls src={url} /> : null}
     </div>
   )
 }
@@ -83,12 +119,12 @@ function AudioAttachment({
   attachment: Attachment
   onRemove: () => void
 }) {
-  const url = getAttachmentUrl(attachment.storagePath)
+  const url = useAttachmentUrl(attachment.storagePath)
 
   return (
     <div className="attachment-card attachment-audio">
       <button className="attachment-remove" onClick={onRemove}>×</button>
-      <audio className="attachment-audio-player" controls src={url} />
+      {url ? <audio className="attachment-audio-player" controls src={url} /> : null}
     </div>
   )
 }
@@ -100,9 +136,10 @@ function FileAttachment({
   attachment: Attachment
   onRemove: () => void
 }) {
-  const url = getAttachmentUrl(attachment.storagePath)
+  const url = useAttachmentUrl(attachment.storagePath)
 
   const handleDownload = () => {
+    if (!url) return
     const link = document.createElement('a')
     link.href = url
     link.download = attachment.filename || 'download'
@@ -124,6 +161,93 @@ function FileAttachment({
           <span className="attachment-file-size">{formatFileSize(attachment.size)}</span>
         </div>
       </div>
+    </div>
+  )
+}
+
+function InstagramAttachment({
+  attachment,
+  onRemove,
+}: {
+  attachment: Attachment
+  onRemove: () => void
+}) {
+  const url = useAttachmentUrl(attachment.storagePath)
+  const [expanded, setExpanded] = useState(false)
+  const caption = attachment.caption?.trim()
+  const authorName = attachment.authorName?.trim()
+  const originalUrl = attachment.originalUrl
+  const authorUrl = attachment.authorUrl
+  const metadata = {
+    originalUrl,
+    authorName,
+    authorUrl,
+    caption,
+    ...(attachment.metadata ?? {}),
+  }
+  const metadataText = JSON.stringify(metadata, null, 2)
+
+  const openUrl = (target?: string) => {
+    if (!target) return
+    window.open(target, '_blank')
+  }
+
+  return (
+    <div className="attachment-card attachment-instagram">
+      <button className="attachment-remove" onClick={onRemove}>×</button>
+      <div className="attachment-instagram-content" onClick={() => setExpanded(true)}>
+        <div className="attachment-instagram-thumbnail">
+          {url ? (
+            <img src={url} alt={attachment.filename || 'Instagram'} />
+          ) : (
+            <span className="attachment-placeholder">로딩 중</span>
+          )}
+        </div>
+        <div className="attachment-instagram-info">
+          <div className="attachment-instagram-header">
+            <span className="attachment-instagram-icon" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm0 2.5A2.5 2.5 0 0 0 4.5 7v10A2.5 2.5 0 0 0 7 19.5h10a2.5 2.5 0 0 0 2.5-2.5V7A2.5 2.5 0 0 0 17 4.5H7zm10.5 1.75a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5zM12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6z" />
+              </svg>
+            </span>
+            <span className="attachment-instagram-label">Instagram</span>
+          </div>
+          {authorName ? (
+            <span
+              className="attachment-instagram-author"
+              onClick={(event) => {
+                event.stopPropagation()
+                openUrl(authorUrl ?? originalUrl)
+              }}
+            >
+              @{authorName}
+            </span>
+          ) : null}
+          {caption ? <p className="attachment-instagram-caption">{caption}</p> : null}
+          {originalUrl ? (
+            <span
+              className="attachment-instagram-hint"
+              onClick={(event) => {
+                event.stopPropagation()
+                openUrl(originalUrl)
+              }}
+            >
+              원본 보기
+            </span>
+          ) : null}
+        </div>
+      </div>
+      {expanded ? (
+        <div className="attachment-modal" onClick={() => setExpanded(false)}>
+          <div
+            className="attachment-instagram-dialog"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="attachment-instagram-dialog-header">Instagram 파싱 데이터</div>
+            <pre className="attachment-instagram-json">{metadataText}</pre>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -162,6 +286,14 @@ export function AttachmentList({ attachments, onRemove }: Props) {
           case 'file':
             return (
               <FileAttachment
+                key={attachment.id}
+                attachment={attachment}
+                onRemove={() => onRemove(attachment.id)}
+              />
+            )
+          case 'instagram':
+            return (
+              <InstagramAttachment
                 key={attachment.id}
                 attachment={attachment}
                 onRemove={() => onRemove(attachment.id)}
