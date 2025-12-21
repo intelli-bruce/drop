@@ -46,6 +46,7 @@ export interface Note {
   id: string
   content: string
   attachments: Attachment[]
+  tags: Tag[]
   createdAt: Date
   updatedAt: Date
   source: NoteSource
@@ -99,11 +100,24 @@ export interface CreateAttachmentInput {
 }
 
 // Row <-> App type 변환 함수
-export function noteRowToNote(row: NoteRow, attachments: Attachment[] = []): Note {
+export function tagRowToTag(row: TagRow): Tag {
+  return {
+    id: row.id,
+    name: row.name,
+    createdAt: new Date(row.created_at),
+  }
+}
+
+export function noteRowToNote(
+  row: NoteRow,
+  attachments: Attachment[] = [],
+  tags: Tag[] = []
+): Note {
   return {
     id: row.id,
     content: row.content ?? '',
     attachments,
+    tags,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
     source: row.source,

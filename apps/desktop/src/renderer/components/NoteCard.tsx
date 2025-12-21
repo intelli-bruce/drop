@@ -1,6 +1,8 @@
 import { useRef, useCallback, forwardRef, useImperativeHandle, useState, DragEvent } from 'react'
 import { LexicalEditor, LexicalEditorHandle } from './LexicalEditor'
 import { AttachmentList } from './AttachmentList'
+import { TagList } from './TagList'
+import { TagInput, TagInputHandle } from './TagInput'
 import { useNotesStore } from '../stores/notes'
 import type { Note } from '@throw/shared'
 
@@ -12,16 +14,19 @@ interface Props {
 
 export interface NoteCardHandle {
   focus: () => void
+  openTagList: () => void
 }
 
 export const NoteCard = forwardRef<NoteCardHandle, Props>(
   ({ note, isFocused, onEscapeFromNormal }, ref) => {
     const editorRef = useRef<LexicalEditorHandle>(null)
+    const tagInputRef = useRef<TagInputHandle>(null)
     const [isDragOver, setIsDragOver] = useState(false)
     const { updateNote, deleteNote, addAttachment, removeAttachment } = useNotesStore()
 
     useImperativeHandle(ref, () => ({
       focus: () => editorRef.current?.focus(),
+      openTagList: () => tagInputRef.current?.openList(),
     }))
 
     const handleChange = useCallback(
@@ -81,6 +86,7 @@ export const NoteCard = forwardRef<NoteCardHandle, Props>(
     return (
       <div
         className={`note-card ${isFocused ? 'focused' : ''} ${isDragOver ? 'drag-over' : ''}`}
+        data-note-id={note.id}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -109,6 +115,14 @@ export const NoteCard = forwardRef<NoteCardHandle, Props>(
           />
         </div>
         <AttachmentList attachments={note.attachments} onRemove={handleRemoveAttachment} />
+        <div className="note-tags-section">
+          <TagList noteId={note.id} tags={note.tags} />
+          <TagInput
+            ref={tagInputRef}
+            noteId={note.id}
+            existingTagNames={note.tags.map((t) => t.name)}
+          />
+        </div>
       </div>
     )
   }

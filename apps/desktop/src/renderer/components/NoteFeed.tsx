@@ -1,9 +1,26 @@
 import { useRef, useState, useCallback, useEffect, DragEvent, ClipboardEvent } from 'react'
 import { useNotesStore } from '../stores/notes'
 import { NoteCard, NoteCardHandle } from './NoteCard'
+import { isCreateNoteShortcut } from '../shortcuts/noteGlobal'
+import { resolveNoteFeedShortcut } from '../shortcuts/noteFeed'
+import { isOpenTagListShortcut } from '../shortcuts/tagList'
 
 const INSTAGRAM_HOSTS = new Set(['instagram.com', 'instagr.am'])
 const INSTAGRAM_PATH_TYPES = new Set(['p', 'reel', 'reels', 'tv'])
+
+function isTextInputTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false
+  if (target.isContentEditable) return true
+  const tagName = target.tagName
+  if (tagName === 'INPUT' || tagName === 'TEXTAREA') return true
+  return Boolean(target.closest('[contenteditable="true"]'))
+}
+
+function getClosestNoteId(target: EventTarget | null): string | null {
+  if (!(target instanceof HTMLElement)) return null
+  const noteElement = target.closest<HTMLElement>('[data-note-id]')
+  return noteElement?.dataset.noteId ?? null
+}
 
 function normalizeInstagramUrl(raw: string): string | null {
   try {
@@ -49,14 +66,25 @@ function extractInstagramUrls(text: string): string[] {
 }
 
 export function NoteFeed() {
-  const { notes, createNote, deleteNote, addAttachment, updateNote, createNoteWithInstagram } =
-    useNotesStore()
+  const {
+    notes,
+    createNote,
+    deleteNote,
+    addAttachment,
+    updateNote,
+    createNoteWithInstagram,
+    filterTag,
+    setFilterTag,
+  } = useNotesStore()
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const cardRefs = useRef<Map<string, NoteCardHandle>>(new Map())
   const feedRef = useRef<HTMLDivElement>(null)
 
-  const flatNotes = notes
+  // 태그 필터링 적용
+  const flatNotes = filterTag
+    ? notes.filter((note) => note.tags.some((t) => t.name === filterTag))
+    : notes
 
   const handleEscapeFromNormal = useCallback((index: number) => {
     setFocusedIndex(index)
@@ -66,16 +94,18 @@ export function NoteFeed() {
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (flatNotes.length === 0) return
+      if (isTextInputTarget(e.target)) return
 
-      // ESC로 포커스 해제
-      if (e.key === 'Escape') {
+      const action = resolveNoteFeedShortcut(e)
+      if (!action) return
+
+      if (action === 'clearFocus') {
         e.preventDefault()
         setFocusedIndex(null)
         return
       }
 
-      // j/k 또는 방향키로 포커스 생성 및 이동
-      if (e.key === 'ArrowDown' || e.key === 'j') {
+      if (action === 'focusNext') {
         e.preventDefault()
         if (focusedIndex === null) {
           setFocusedIndex(0)
@@ -83,7 +113,10 @@ export function NoteFeed() {
           const nextIndex = Math.min(focusedIndex + 1, flatNotes.length - 1)
           setFocusedIndex(nextIndex)
         }
-      } else if (e.key === 'ArrowUp' || e.key === 'k') {
+        return
+      }
+
+      if (action === 'focusPrev') {
         e.preventDefault()
         if (focusedIndex === null) {
           setFocusedIndex(flatNotes.length - 1)
@@ -91,14 +124,22 @@ export function NoteFeed() {
           const prevIndex = Math.max(focusedIndex - 1, 0)
           setFocusedIndex(prevIndex)
         }
-      } else if (e.key === 'Enter' && focusedIndex !== null) {
+        return
+      }
+
+      if (action === 'openFocused') {
+        if (focusedIndex === null) return
         e.preventDefault()
         const note = flatNotes[focusedIndex]
         if (note) {
           cardRefs.current.get(note.id)?.focus()
           setFocusedIndex(null)
         }
-      } else if ((e.key === 'Delete' || e.key === 'Backspace') && focusedIndex !== null) {
+        return
+      }
+
+      if (action === 'deleteFocused') {
+        if (focusedIndex === null) return
         e.preventDefault()
         const note = flatNotes[focusedIndex]
         if (note && window.confirm('이 노트를 삭제하시겠습니까?')) {
@@ -166,15 +207,30 @@ export function NoteFeed() {
   // Cmd+N 단축키로 새 노트 생성
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
-        e.preventDefault()
-        handleCreateNote()
-      }
+      if (!isCreateNoteShortcut(e)) return
+      e.preventDefault()
+      handleCreateNote()
     }
 
     window.addEventListener('keydown', handleGlobalKeyDown)
     return () => window.removeEventListener('keydown', handleGlobalKeyDown)
   }, [handleCreateNote])
+
+  // Cmd+Shift+T 단축키로 태그 목록 열기
+  useEffect(() => {
+    const handleTagListKeyDown = (e: KeyboardEvent) => {
+      if (!isOpenTagListShortcut(e)) return
+      const fallbackNoteId = focusedIndex !== null ? flatNotes[focusedIndex]?.id : null
+      const noteId = getClosestNoteId(document.activeElement) ?? fallbackNoteId
+      if (!noteId) return
+      e.preventDefault()
+      e.stopPropagation()
+      cardRefs.current.get(noteId)?.openTagList()
+    }
+
+    window.addEventListener('keydown', handleTagListKeyDown)
+    return () => window.removeEventListener('keydown', handleTagListKeyDown)
+  }, [flatNotes, focusedIndex])
 
   // 초기 포커스
   useEffect(() => {
@@ -299,6 +355,12 @@ export function NoteFeed() {
         <button className="new-note-btn" onClick={handleCreateNote}>
           + 새 노트
         </button>
+        {filterTag && (
+          <div className="filter-indicator">
+            <span>#{filterTag}</span>
+            <button onClick={() => setFilterTag(null)}>&times;</button>
+          </div>
+        )}
       </div>
       <div className="feed-content">
         {grouped.map(({ date, notes: dateNotes }) => (

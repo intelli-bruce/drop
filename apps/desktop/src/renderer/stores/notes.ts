@@ -1,13 +1,16 @@
 import { create } from 'zustand'
 import { supabase, uploadAttachment } from '../lib/supabase'
-import type { Note, Attachment, AttachmentType, NoteRow, AttachmentRow } from '@throw/shared'
+import type { Note, Attachment, AttachmentType, NoteRow, AttachmentRow, Tag, TagRow } from '@throw/shared'
 
 interface NotesState {
   notes: Note[]
   selectedNoteId: string | null
   isLoading: boolean
+  allTags: Tag[]
+  filterTag: string | null
 
   loadNotes: () => Promise<void>
+  loadTags: () => Promise<void>
   createNote: () => Promise<Note>
   createNoteWithInstagram: (url: string) => Promise<Note | null>
   updateNote: (id: string, content: string) => Promise<void>
@@ -15,15 +18,27 @@ interface NotesState {
   selectNote: (id: string | null) => void
   addAttachment: (noteId: string, file: File) => Promise<Attachment | null>
   removeAttachment: (noteId: string, attachmentId: string) => Promise<void>
+  addTagToNote: (noteId: string, tagName: string) => Promise<void>
+  removeTagFromNote: (noteId: string, tagId: string) => Promise<void>
+  setFilterTag: (tagName: string | null) => void
   subscribeToChanges: () => () => void
 }
 
 // Row -> App type 변환
-function rowToNote(row: NoteRow, attachments: Attachment[] = []): Note {
+function rowToTag(row: TagRow): Tag {
+  return {
+    id: row.id,
+    name: row.name,
+    createdAt: new Date(row.created_at),
+  }
+}
+
+function rowToNote(row: NoteRow, attachments: Attachment[] = [], tags: Tag[] = []): Note {
   return {
     id: row.id,
     content: row.content ?? '',
     attachments,
+    tags,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
     source: row.source,
@@ -86,6 +101,8 @@ export const useNotesStore = create<NotesState>((set, get) => ({
   notes: [],
   selectedNoteId: null,
   isLoading: false,
+  allTags: [],
+  filterTag: null,
 
   loadNotes: async () => {
     set({ isLoading: true })
@@ -114,6 +131,23 @@ export const useNotesStore = create<NotesState>((set, get) => ({
         attachmentRows = (data ?? []) as AttachmentRow[]
       }
 
+      // 모든 태그 관계 로드
+      interface NoteTagWithTag {
+        note_id: string
+        tag_id: string
+        tags: TagRow
+      }
+      let noteTagRows: NoteTagWithTag[] = []
+      if (noteIds.length > 0) {
+        const { data, error: noteTagsError } = await supabase
+          .from('note_tags')
+          .select('note_id, tag_id, tags(*)')
+          .in('note_id', noteIds)
+
+        if (noteTagsError) throw noteTagsError
+        noteTagRows = (data ?? []) as unknown as NoteTagWithTag[]
+      }
+
       // 첨부파일을 노트별로 그룹화
       const attachmentsByNote = new Map<string, Attachment[]>()
       for (const row of attachmentRows) {
@@ -123,9 +157,22 @@ export const useNotesStore = create<NotesState>((set, get) => ({
         attachmentsByNote.set(attachment.noteId, existing)
       }
 
-      // 노트와 첨부파일 결합
+      // 태그를 노트별로 그룹화
+      const tagsByNote = new Map<string, Tag[]>()
+      for (const row of noteTagRows) {
+        const tag = rowToTag(row.tags)
+        const existing = tagsByNote.get(row.note_id) ?? []
+        existing.push(tag)
+        tagsByNote.set(row.note_id, existing)
+      }
+
+      // 노트와 첨부파일, 태그 결합
       const notes = (noteRows ?? []).map((row) =>
-        rowToNote(row as NoteRow, attachmentsByNote.get(row.id) ?? [])
+        rowToNote(
+          row as NoteRow,
+          attachmentsByNote.get(row.id) ?? [],
+          tagsByNote.get(row.id) ?? []
+        )
       )
 
       set({ notes, isLoading: false })
@@ -142,6 +189,7 @@ export const useNotesStore = create<NotesState>((set, get) => ({
       id,
       content: '',
       attachments: [],
+      tags: [],
       createdAt: now,
       updatedAt: now,
       source: 'desktop',
@@ -436,6 +484,103 @@ export const useNotesStore = create<NotesState>((set, get) => ({
           : n
       ),
     }))
+  },
+
+  loadTags: async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tags')
+        .select('*')
+        .order('name', { ascending: true })
+
+      if (error) throw error
+
+      const allTags = (data ?? []).map((row) => rowToTag(row as TagRow))
+      set({ allTags })
+    } catch (error) {
+      console.error('Failed to load tags:', error)
+    }
+  },
+
+  addTagToNote: async (noteId, tagName) => {
+    const trimmedName = tagName.trim().toLowerCase()
+    if (!trimmedName) return
+
+    try {
+      // 1. 태그가 이미 존재하는지 확인, 없으면 생성
+      let { data: existingTag } = await supabase
+        .from('tags')
+        .select('*')
+        .eq('name', trimmedName)
+        .single()
+
+      if (!existingTag) {
+        const { data: newTag, error: createError } = await supabase
+          .from('tags')
+          .insert({ name: trimmedName })
+          .select()
+          .single()
+
+        if (createError) {
+          console.error('Failed to create tag:', createError)
+          return
+        }
+        existingTag = newTag
+      }
+
+      const tag = rowToTag(existingTag as TagRow)
+
+      // 2. note_tags 관계 추가 (이미 있으면 무시)
+      const { error: linkError } = await supabase
+        .from('note_tags')
+        .upsert({ note_id: noteId, tag_id: tag.id }, { onConflict: 'note_id,tag_id' })
+
+      if (linkError) {
+        console.error('Failed to link tag to note:', linkError)
+        return
+      }
+
+      // 3. 로컬 상태 업데이트
+      set((state) => ({
+        notes: state.notes.map((n) =>
+          n.id === noteId && !n.tags.some((t) => t.id === tag.id)
+            ? { ...n, tags: [...n.tags, tag] }
+            : n
+        ),
+        allTags: state.allTags.some((t) => t.id === tag.id)
+          ? state.allTags
+          : [...state.allTags, tag].sort((a, b) => a.name.localeCompare(b.name)),
+      }))
+    } catch (error) {
+      console.error('Failed to add tag to note:', error)
+    }
+  },
+
+  removeTagFromNote: async (noteId, tagId) => {
+    try {
+      const { error } = await supabase
+        .from('note_tags')
+        .delete()
+        .eq('note_id', noteId)
+        .eq('tag_id', tagId)
+
+      if (error) {
+        console.error('Failed to remove tag from note:', error)
+        return
+      }
+
+      set((state) => ({
+        notes: state.notes.map((n) =>
+          n.id === noteId ? { ...n, tags: n.tags.filter((t) => t.id !== tagId) } : n
+        ),
+      }))
+    } catch (error) {
+      console.error('Failed to remove tag from note:', error)
+    }
+  },
+
+  setFilterTag: (tagName) => {
+    set({ filterTag: tagName })
   },
 
   // Realtime 구독

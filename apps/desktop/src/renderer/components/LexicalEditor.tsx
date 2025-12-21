@@ -17,6 +17,7 @@ import {
   TRANSFORMERS,
 } from '@lexical/markdown'
 import { EditorState, $getRoot, COMMAND_PRIORITY_HIGH, PASTE_COMMAND } from 'lexical'
+import { resolveNoteEditorShortcut } from '../shortcuts/noteEditor'
 
 export interface LexicalEditorHandle {
   focus: () => void
@@ -61,11 +62,11 @@ function EscapePlugin({ onEscape }: { onEscape: () => void }) {
     if (!rootElement) return
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        rootElement.blur()
-        onEscape()
-      }
+      const action = resolveNoteEditorShortcut(e)
+      if (action !== 'escape') return
+      e.preventDefault()
+      rootElement.blur()
+      onEscape()
     }
 
     rootElement.addEventListener('keydown', handleKeyDown)

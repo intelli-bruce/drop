@@ -575,3 +575,130 @@ body {
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* Tag Styles */
+.note-tags-section {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border-color);
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.tag-name {
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.tag-name:hover {
+  text-decoration: underline;
+}
+
+.tag-remove {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.tag-remove:hover {
+  color: #ff4444;
+}
+
+.tag-input-container {
+  position: relative;
+}
+
+.tag-input {
+  width: 80px;
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px dashed var(--border-color);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 12px;
+  outline: none;
+}
+
+.tag-input:focus {
+  border-style: solid;
+  border-color: var(--accent);
+  width: 120px;
+}
+
+.tag-input::placeholder {
+  color: var(--text-secondary);
+}
+
+.tag-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 150px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  margin-top: 4px;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.tag-suggestion {
+  padding: 8px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.tag-suggestion:hover,
+.tag-suggestion.selected {
+  background: var(--bg-secondary);
+}
+
+.filter-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 12px;
+  padding: 4px 12px;
+  background: var(--accent);
+  color: white;
+  border-radius: 16px;
+  font-size: 12px;
+  -webkit-app-region: no-drag;
+}
+
+.filter-indicator button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.filter-indicator button:hover {
+  opacity: 0.8;
+}

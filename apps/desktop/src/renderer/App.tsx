@@ -6,10 +6,11 @@ const isLocal = import.meta.env.VITE_SUPABASE_URL?.includes('127.0.0.1')
 const envLabel = isLocal ? 'LOCAL' : 'REMOTE'
 
 function App() {
-  const { loadNotes, subscribeToChanges } = useNotesStore()
+  const { loadNotes, loadTags, subscribeToChanges } = useNotesStore()
 
   useEffect(() => {
     loadNotes()
+    loadTags()
 
     // Realtime 구독 시작
     const unsubscribe = subscribeToChanges()
@@ -17,7 +18,7 @@ function App() {
     return () => {
       unsubscribe()
     }
-  }, [loadNotes, subscribeToChanges])
+  }, [loadNotes, loadTags, subscribeToChanges])
 
   return (
     <div className="app">
