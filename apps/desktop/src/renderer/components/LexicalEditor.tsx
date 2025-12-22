@@ -1,3 +1,4 @@
+/// <reference path="../../preload/index.d.ts" />
 import { forwardRef, useImperativeHandle, useEffect, useCallback, useRef } from 'react'
 import { LexicalComposer } from '@lexical/react/LexicalComposer'
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
@@ -152,7 +153,7 @@ function LinkClickPlugin() {
       if (!href) return
 
       e.preventDefault()
-      window.open(href, '_blank')
+      window.api.openExternal(href)
     }
 
     rootElement.addEventListener('click', handleClick)
