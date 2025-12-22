@@ -1,70 +1,13 @@
-import { useRef, useState, useCallback, useEffect, DragEvent, ClipboardEvent } from 'react'
+import { useRef, useState, useCallback, useEffect, ClipboardEvent } from 'react'
 import { useNotesStore } from '../stores/notes'
 import { NoteCard, NoteCardHandle } from './NoteCard'
 import { TagDialog } from './TagDialog'
 import { isCreateNoteShortcut } from '../shortcuts/noteGlobal'
 import { resolveNoteFeedShortcut } from '../shortcuts/noteFeed'
 import { isOpenTagListShortcut } from '../shortcuts/tagList'
-
-const INSTAGRAM_HOSTS = new Set(['instagram.com', 'instagr.am'])
-const INSTAGRAM_PATH_TYPES = new Set(['p', 'reel', 'reels', 'tv'])
-
-function isTextInputTarget(target: EventTarget | null) {
-  if (!(target instanceof HTMLElement)) return false
-  if (target.isContentEditable) return true
-  const tagName = target.tagName
-  if (tagName === 'INPUT' || tagName === 'TEXTAREA') return true
-  return Boolean(target.closest('[contenteditable="true"]'))
-}
-
-function getClosestNoteId(target: EventTarget | null): string | null {
-  if (!(target instanceof HTMLElement)) return null
-  const noteElement = target.closest<HTMLElement>('[data-note-id]')
-  return noteElement?.dataset.noteId ?? null
-}
-
-function normalizeInstagramUrl(raw: string): string | null {
-  try {
-    const url = new URL(raw.startsWith('http') ? raw : `https://${raw}`)
-    const hostname = url.hostname.replace(/^www\./, '')
-    if (!INSTAGRAM_HOSTS.has(hostname)) return null
-
-    const parts = url.pathname.split('/').filter(Boolean)
-    if (parts.length < 2) return null
-
-    let type = parts[0]
-    let shortcode = parts[1]
-
-    if (type === 'share') {
-      if (parts.length < 3) return null
-      type = parts[1]
-      shortcode = parts[2]
-    }
-
-    if (type === 'reels') type = 'reel'
-    if (!INSTAGRAM_PATH_TYPES.has(type)) return null
-
-    return `https://www.instagram.com/${type}/${shortcode}/`
-  } catch {
-    return null
-  }
-}
-
-function extractInstagramUrls(text: string): string[] {
-  const urlMatches =
-    text.match(/https?:\/\/[^\s]+/g) ??
-    text.match(/(?:www\.)?(?:instagram\.com|instagr\.am)\/[^\s]+/g) ??
-    []
-  const urls: string[] = []
-
-  for (const match of urlMatches) {
-    const cleaned = match.replace(/[)\]}>,.;'"]+$/g, '')
-    const normalized = normalizeInstagramUrl(cleaned)
-    if (normalized) urls.push(normalized)
-  }
-
-  return Array.from(new Set(urls))
-}
+import { isTextInputTarget, getClosestNoteId } from '../lib/dom-utils'
+import { extractInstagramUrls } from '../lib/instagram-url-utils'
+import { useDragAndDrop } from '../hooks'
 
 export function NoteFeed() {
   const {
@@ -78,10 +21,29 @@ export function NoteFeed() {
     setFilterTag,
   } = useNotesStore()
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null)
-  const [isDragOver, setIsDragOver] = useState(false)
   const [tagDialogNoteId, setTagDialogNoteId] = useState<string | null>(null)
   const cardRefs = useRef<Map<string, NoteCardHandle>>(new Map())
   const feedRef = useRef<HTMLDivElement>(null)
+
+  // 새 노트 생성 + 첨부물 추가 헬퍼 (useDragAndDrop에서 사용하기 위해 먼저 정의)
+  const createNoteWithFile = useCallback(
+    async (file: File) => {
+      const note = await createNote()
+      await addAttachment(note.id, file)
+      setTimeout(() => {
+        cardRefs.current.get(note.id)?.focus()
+      }, 50)
+    },
+    [createNote, addAttachment]
+  )
+
+  const { isDragOver, handleDragOver, handleDragLeave, handleDrop } = useDragAndDrop({
+    onDrop: async (files) => {
+      for (const file of files) {
+        await createNoteWithFile(file)
+      }
+    },
+  })
 
   // 태그 필터링 적용
   const flatNotes = filterTag
@@ -252,18 +214,6 @@ export function NoteFeed() {
     return () => window.removeEventListener('keydown', handleGlobalNavigation)
   }, [focusedIndex, flatNotes, deleteNote])
 
-  // 새 노트 생성 + 첨부물 추가 헬퍼
-  const createNoteWithFile = useCallback(
-    async (file: File) => {
-      const note = await createNote()
-      await addAttachment(note.id, file)
-      setTimeout(() => {
-        cardRefs.current.get(note.id)?.focus()
-      }, 50)
-    },
-    [createNote, addAttachment]
-  )
-
   // 피드에서 붙여넣기 -> 새 노트 생성
   const handlePaste = useCallback(
     async (e: ClipboardEvent) => {
@@ -326,33 +276,6 @@ export function NoteFeed() {
       }
     },
     [createNote, createNoteWithFile, createNoteWithInstagram, updateNote]
-  )
-
-  // 피드에 드래그 앤 드롭 -> 새 노트 생성
-  const handleDragOver = useCallback((e: DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragOver(true)
-  }, [])
-
-  const handleDragLeave = useCallback((e: DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragOver(false)
-  }, [])
-
-  const handleDrop = useCallback(
-    async (e: DragEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      setIsDragOver(false)
-
-      const files = Array.from(e.dataTransfer.files)
-      for (const file of files) {
-        await createNoteWithFile(file)
-      }
-    },
-    [createNoteWithFile]
   )
 
   // 태그 다이얼로그에 전달할 현재 노트의 태그 목록 (필터링되지 않은 전체 notes에서 검색)
