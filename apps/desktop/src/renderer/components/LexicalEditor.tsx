@@ -7,10 +7,12 @@ import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin'
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin'
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
+import { AutoLinkPlugin } from '@lexical/react/LexicalAutoLinkPlugin'
+import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin'
 import { HeadingNode, QuoteNode } from '@lexical/rich-text'
 import { ListNode, ListItemNode } from '@lexical/list'
 import { CodeNode } from '@lexical/code'
-import { LinkNode } from '@lexical/link'
+import { LinkNode, AutoLinkNode } from '@lexical/link'
 import {
   $convertFromMarkdownString,
   $convertToMarkdownString,
@@ -18,6 +20,23 @@ import {
 } from '@lexical/markdown'
 import { EditorState, $getRoot, COMMAND_PRIORITY_HIGH, PASTE_COMMAND } from 'lexical'
 import { resolveNoteEditorShortcut } from '../shortcuts/noteEditor'
+
+const URL_MATCHER =
+  /((https?:\/\/(www\.)?|www\.)[a-zA-Z0-9][-a-zA-Z0-9@:%._+~#=]{0,254}[a-zA-Z0-9]\.[a-z]{2,63}(\/[-a-zA-Z0-9@:%_+.~#?&/=]*)?)/
+
+const MATCHERS = [
+  (text: string) => {
+    const match = URL_MATCHER.exec(text)
+    if (!match) return null
+    const fullMatch = match[0]
+    return {
+      index: match.index,
+      length: fullMatch.length,
+      text: fullMatch,
+      url: fullMatch.startsWith('http') ? fullMatch : `https://${fullMatch}`,
+    }
+  },
+]
 
 export interface LexicalEditorHandle {
   focus: () => void
@@ -117,6 +136,32 @@ function InitialContentPlugin({ content }: { content: string }) {
   return null
 }
 
+function LinkClickPlugin() {
+  const [editor] = useLexicalComposerContext()
+
+  useEffect(() => {
+    const rootElement = editor.getRootElement()
+    if (!rootElement) return
+
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      const link = target.closest('a')
+      if (!link) return
+
+      const href = link.getAttribute('href')
+      if (!href) return
+
+      e.preventDefault()
+      window.open(href, '_blank')
+    }
+
+    rootElement.addEventListener('click', handleClick)
+    return () => rootElement.removeEventListener('click', handleClick)
+  }, [editor])
+
+  return null
+}
+
 function FilePastePlugin({ onAddFile }: { onAddFile: (file: File) => void }) {
   const [editor] = useLexicalComposerContext()
 
@@ -176,7 +221,7 @@ export const LexicalEditor = forwardRef<LexicalEditorHandle, Props>(
       namespace: 'NoteEditor',
       theme,
       onError: (error: Error) => console.error(error),
-      nodes: [HeadingNode, QuoteNode, ListNode, ListItemNode, CodeNode, LinkNode],
+      nodes: [HeadingNode, QuoteNode, ListNode, ListItemNode, CodeNode, LinkNode, AutoLinkNode],
     }
 
     return (
@@ -188,6 +233,9 @@ export const LexicalEditor = forwardRef<LexicalEditorHandle, Props>(
             ErrorBoundary={LexicalErrorBoundary}
           />
           <HistoryPlugin />
+          <LinkPlugin />
+          <AutoLinkPlugin matchers={MATCHERS} />
+          <LinkClickPlugin />
           <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
           <OnChangePlugin onChange={handleChange} />
           <FilePastePlugin onAddFile={onAddFile} />
