@@ -177,6 +177,9 @@ export const createInstagramSlice: StateCreator<NotesState, [], [], InstagramSli
               : n
           ),
         }))
+
+        // 인스타그램 태그 자동 추가
+        await get().addTagToNote(note.id, '인스타그램')
       } catch (error) {
         console.error('Failed to fetch Instagram post:', error)
         // 에러 시 skeleton 제거
