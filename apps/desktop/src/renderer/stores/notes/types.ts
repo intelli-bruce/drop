@@ -7,7 +7,7 @@ export interface NotesSlice {
   isLoading: boolean
 
   loadNotes: () => Promise<void>
-  createNote: (initialContent?: string) => Promise<Note>
+  createNote: (initialContent?: string, parentId?: string) => Promise<Note>
   updateNote: (id: string, content: string) => Promise<void>
   deleteNote: (id: string) => Promise<void>
   selectNote: (id: string | null) => void

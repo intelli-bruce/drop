@@ -8,6 +8,7 @@ export type AttachmentType = 'image' | 'audio' | 'video' | 'file' | 'text' | 'in
 export interface NoteRow {
   id: string
   content: string | null
+  parent_id: string | null
   created_at: string
   updated_at: string
   source: NoteSource
@@ -45,6 +46,7 @@ export interface NoteTagRow {
 export interface Note {
   id: string
   content: string
+  parentId: string | null
   attachments: Attachment[]
   tags: Tag[]
   createdAt: Date
@@ -116,6 +118,7 @@ export function noteRowToNote(
   return {
     id: row.id,
     content: row.content ?? '',
+    parentId: row.parent_id,
     attachments,
     tags,
     createdAt: new Date(row.created_at),

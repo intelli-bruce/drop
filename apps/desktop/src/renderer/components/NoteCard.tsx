@@ -11,7 +11,9 @@ import type { Note } from '@throw/shared'
 interface Props {
   note: Note
   isFocused: boolean
+  depth?: number
   onEscapeFromNormal: () => void
+  onReply?: (noteId: string) => void
 }
 
 export interface NoteCardHandle {
@@ -20,7 +22,7 @@ export interface NoteCardHandle {
 }
 
 export const NoteCard = forwardRef<NoteCardHandle, Props>(
-  ({ note, isFocused, onEscapeFromNormal }, ref) => {
+  ({ note, isFocused, depth = 0, onEscapeFromNormal, onReply }, ref) => {
     const editorRef = useRef<LexicalEditorHandle>(null)
     const tagInputRef = useRef<TagInputHandle>(null)
     const { updateNote, deleteNote, addAttachment, removeAttachment } = useNotesStore()
@@ -57,9 +59,12 @@ export const NoteCard = forwardRef<NoteCardHandle, Props>(
       [note.id, removeAttachment]
     )
 
+    const indentStyle = depth > 0 ? { marginLeft: `${depth * 24}px` } : undefined
+
     return (
       <div
-        className={`note-card ${isFocused ? 'focused' : ''} ${isDragOver ? 'drag-over' : ''}`}
+        className={`note-card ${isFocused ? 'focused' : ''} ${isDragOver ? 'drag-over' : ''} ${depth > 0 ? 'note-card-reply' : ''}`}
+        style={indentStyle}
         data-note-id={note.id}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -67,16 +72,27 @@ export const NoteCard = forwardRef<NoteCardHandle, Props>(
       >
         <div className="note-card-header">
           <span className="note-time">{formatRelativeTime(note.createdAt)}</span>
-          <button
-            className="delete-btn"
-            onClick={() => {
-              if (window.confirm('이 노트를 삭제하시겠습니까?')) {
-                deleteNote(note.id)
-              }
-            }}
-          >
-            ×
-          </button>
+          <div className="note-card-actions">
+            {onReply && (
+              <button
+                className="reply-btn"
+                onClick={() => onReply(note.id)}
+                title="답글"
+              >
+                ↩
+              </button>
+            )}
+            <button
+              className="delete-btn"
+              onClick={() => {
+                if (window.confirm('이 노트를 삭제하시겠습니까?')) {
+                  deleteNote(note.id)
+                }
+              }}
+            >
+              ×
+            </button>
+          </div>
         </div>
         <div className="note-editor">
           <LexicalEditor

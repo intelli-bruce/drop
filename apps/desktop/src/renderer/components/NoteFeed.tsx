@@ -49,9 +49,53 @@ export function NoteFeed() {
   })
 
   // 태그 필터링 적용
-  const flatNotes = filterTag
+  const filteredNotes = filterTag
     ? notes.filter((note) => note.tags.some((t) => t.name === filterTag))
     : notes
+
+  // 루트 노트만 추출 (parentId가 null인 노트)
+  const rootNotes = filteredNotes.filter((note) => note.parentId === null)
+
+  // 자식 노트 맵 생성
+  const childrenMap = new Map<string, typeof filteredNotes>()
+  for (const note of filteredNotes) {
+    if (note.parentId) {
+      const children = childrenMap.get(note.parentId) || []
+      children.push(note)
+      childrenMap.set(note.parentId, children)
+    }
+  }
+
+  // 노트와 자식들을 평탄화 (depth 포함)
+  const flattenWithDepth = (
+    noteList: typeof filteredNotes,
+    depth: number
+  ): Array<{ note: typeof filteredNotes[0]; depth: number }> => {
+    const result: Array<{ note: typeof filteredNotes[0]; depth: number }> = []
+    for (const note of noteList) {
+      result.push({ note, depth })
+      const children = childrenMap.get(note.id) || []
+      // 자식은 생성일 기준 오름차순 (오래된 것 먼저)
+      const sortedChildren = [...children].sort(
+        (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+      )
+      result.push(...flattenWithDepth(sortedChildren, depth + 1))
+    }
+    return result
+  }
+
+  const flatNotes = flattenWithDepth(rootNotes, 0)
+
+  // 답글 생성
+  const handleReply = useCallback(
+    async (parentId: string) => {
+      const note = await createNote('', parentId)
+      setTimeout(() => {
+        cardRefs.current.get(note.id)?.focus()
+      }, 50)
+    },
+    [createNote]
+  )
 
   const handleEscapeFromNormal = useCallback((index: number) => {
     setFocusedIndex(index)
@@ -72,21 +116,21 @@ export function NoteFeed() {
     []
   )
 
-  const groupByDate = (notes: typeof flatNotes) => {
-    const groups: { date: string; notes: typeof flatNotes }[] = []
+  const groupByDate = (items: typeof flatNotes) => {
+    const groups: { date: string; items: typeof flatNotes }[] = []
     const map: Record<string, typeof flatNotes> = {}
 
-    for (const note of notes) {
-      const date = new Date(note.createdAt).toLocaleDateString('ko-KR', {
+    for (const item of items) {
+      const date = new Date(item.note.createdAt).toLocaleDateString('ko-KR', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
       })
       if (!map[date]) {
         map[date] = []
-        groups.push({ date, notes: map[date] })
+        groups.push({ date, items: map[date] })
       }
-      map[date].push(note)
+      map[date].push(item)
     }
     return groups
   }
@@ -106,7 +150,7 @@ export function NoteFeed() {
   // 포커스된 카드로 스크롤
   useEffect(() => {
     if (focusedIndex !== null && flatNotes[focusedIndex]) {
-      const noteId = flatNotes[focusedIndex].id
+      const noteId = flatNotes[focusedIndex].note.id
       const element = cardElementRefs.current.get(noteId)
       element?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
@@ -136,7 +180,7 @@ export function NoteFeed() {
   useEffect(() => {
     const handleTagListKeyDown = (e: KeyboardEvent) => {
       if (!isOpenTagListShortcut(e)) return
-      const fallbackNoteId = focusedIndex !== null ? flatNotes[focusedIndex]?.id : null
+      const fallbackNoteId = focusedIndex !== null ? flatNotes[focusedIndex]?.note.id : null
       const noteId = getClosestNoteId(document.activeElement) ?? fallbackNoteId
       if (!noteId) return
       e.preventDefault()
@@ -189,9 +233,9 @@ export function NoteFeed() {
       if (action === 'openFocused') {
         if (focusedIndex === null) return
         e.preventDefault()
-        const note = flatNotes[focusedIndex]
-        if (note) {
-          cardRefs.current.get(note.id)?.focus()
+        const item = flatNotes[focusedIndex]
+        if (item) {
+          cardRefs.current.get(item.note.id)?.focus()
           setFocusedIndex(null)
         }
         return
@@ -200,9 +244,9 @@ export function NoteFeed() {
       if (action === 'deleteFocused') {
         if (focusedIndex === null) return
         e.preventDefault()
-        const note = flatNotes[focusedIndex]
-        if (note && window.confirm('이 노트를 삭제하시겠습니까?')) {
-          deleteNote(note.id)
+        const item = flatNotes[focusedIndex]
+        if (item && window.confirm('이 노트를 삭제하시겠습니까?')) {
+          deleteNote(item.note.id)
           if (flatNotes.length > 1) {
             const nextIndex = focusedIndex >= flatNotes.length - 1 ? focusedIndex - 1 : focusedIndex
             setFocusedIndex(nextIndex)
@@ -311,24 +355,26 @@ export function NoteFeed() {
         )}
       </div>
       <div className="feed-content">
-        {grouped.map(({ date, notes: dateNotes }) => (
+        {grouped.map(({ date, items }) => (
           <div key={date} className="date-group">
             <div className="date-label">{date}</div>
-            {dateNotes.map((note) => {
-              const globalIndex = flatNotes.findIndex((n) => n.id === note.id)
+            {items.map((item) => {
+              const globalIndex = flatNotes.findIndex((n) => n.note.id === item.note.id)
               return (
                 <div
-                  key={note.id}
+                  key={item.note.id}
                   ref={(el) => {
-                    if (el) cardElementRefs.current.set(note.id, el)
-                    else cardElementRefs.current.delete(note.id)
+                    if (el) cardElementRefs.current.set(item.note.id, el)
+                    else cardElementRefs.current.delete(item.note.id)
                   }}
                 >
                   <NoteCard
-                    ref={(handle) => setCardRef(note.id, handle)}
-                    note={note}
+                    ref={(handle) => setCardRef(item.note.id, handle)}
+                    note={item.note}
+                    depth={item.depth}
                     isFocused={focusedIndex === globalIndex}
                     onEscapeFromNormal={() => handleEscapeFromNormal(globalIndex)}
+                    onReply={handleReply}
                   />
                 </div>
               )

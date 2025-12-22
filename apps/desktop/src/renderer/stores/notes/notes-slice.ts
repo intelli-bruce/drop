@@ -91,12 +91,13 @@ export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (s
     }
   },
 
-  createNote: async (initialContent = '') => {
+  createNote: async (initialContent = '', parentId?: string) => {
     const id = crypto.randomUUID()
     const now = new Date()
     const optimisticNote = {
       id,
       content: initialContent,
+      parentId: parentId ?? null,
       attachments: [],
       tags: [],
       createdAt: now,
@@ -109,13 +110,14 @@ export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (s
       notes: [optimisticNote, ...state.notes],
       selectedNoteId: id,
     }))
-    console.info('[notes] createNote optimistic', { id })
+    console.info('[notes] createNote optimistic', { id, parentId })
 
     const { data, error } = await supabase
       .from('notes')
       .insert({
         id,
         content: initialContent,
+        parent_id: parentId ?? null,
         source: 'desktop',
       })
       .select()
