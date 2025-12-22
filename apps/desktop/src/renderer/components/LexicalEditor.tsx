@@ -62,6 +62,9 @@ function EscapePlugin({ onEscape }: { onEscape: () => void }) {
     if (!rootElement) return
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // IME 조합 중이면 무시 (조합 취소만 되고, 다시 Esc 누르면 나감)
+      if (e.isComposing) return
+
       const action = resolveNoteEditorShortcut(e)
       if (action !== 'escape') return
       e.preventDefault()
@@ -97,21 +100,17 @@ function FocusPlugin({
 
 function InitialContentPlugin({ content }: { content: string }) {
   const [editor] = useLexicalComposerContext()
-  const lastAppliedRef = useRef<string | null>(null)
+  const isInitializedRef = useRef(false)
 
   useEffect(() => {
+    // 초기 마운트 시 한 번만 실행
+    if (isInitializedRef.current) return
+    isInitializedRef.current = true
+
     if (!content) return
 
     editor.update(() => {
-      const root = $getRoot()
-      const hasUserContent = root.getTextContent().length > 0
-      const isDuplicate = lastAppliedRef.current === content
-
-      if (hasUserContent && !isDuplicate) return
-
-      root.clear()
       $convertFromMarkdownString(content, TRANSFORMERS)
-      lastAppliedRef.current = content
     })
   }, [content, editor])
 
