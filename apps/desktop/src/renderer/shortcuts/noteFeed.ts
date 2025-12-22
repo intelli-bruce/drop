@@ -6,6 +6,7 @@ export type NoteFeedShortcutAction =
   | 'focusPrev'
   | 'openFocused'
   | 'deleteFocused'
+  | 'replyToFocused'
 
 export function resolveNoteFeedShortcut(event: KeyEventLike): NoteFeedShortcutAction | null {
   switch (event.key) {
@@ -20,6 +21,9 @@ export function resolveNoteFeedShortcut(event: KeyEventLike): NoteFeedShortcutAc
     case 'ㅏ': // 한글 k
       return 'focusPrev'
     case 'Enter':
+      if (event.shiftKey) {
+        return 'replyToFocused'
+      }
       return 'openFocused'
     case 'Delete':
     case 'Backspace':

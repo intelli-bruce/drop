@@ -254,12 +254,23 @@ export function NoteFeed() {
             setFocusedIndex(null)
           }
         }
+        return
+      }
+
+      if (action === 'replyToFocused') {
+        if (focusedIndex === null) return
+        e.preventDefault()
+        const item = flatNotes[focusedIndex]
+        if (item) {
+          handleReply(item.note.id)
+          setFocusedIndex(null)
+        }
       }
     }
 
     window.addEventListener('keydown', handleGlobalNavigation)
     return () => window.removeEventListener('keydown', handleGlobalNavigation)
-  }, [focusedIndex, flatNotes, deleteNote])
+  }, [focusedIndex, flatNotes, deleteNote, handleReply])
 
   // 글로벌 붙여넣기 -> 새 노트 생성 (에디터에 포커스 없을 때)
   useEffect(() => {
