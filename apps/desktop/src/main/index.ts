@@ -177,7 +177,14 @@ function extractPostDataFromHtml(
     if (!mediaNode || typeof mediaNode !== 'object') continue
 
     const mediaRecord = mediaNode as Record<string, unknown>
+    console.info('[instagram] mediaRecord keys:', Object.keys(mediaRecord))
+    console.info('[instagram] edge_sidecar_to_children:', mediaRecord.edge_sidecar_to_children)
+    console.info('[instagram] carousel_media:', mediaRecord.carousel_media)
+    console.info('[instagram] children:', mediaRecord.children)
+    console.info('[instagram] __typename:', mediaRecord.__typename)
+    console.info('[instagram] media_type:', mediaRecord.media_type)
     const mediaItems = collectMediaItems(mediaRecord)
+    console.info('[instagram] collected mediaItems:', mediaItems.length, mediaItems)
     const captionCandidate = extractCaption(mediaRecord) || jsonLdCaption || metaDesc || metaTitle
     const caption = cleanInstagramCaption(captionCandidate)
 
@@ -225,8 +232,12 @@ function extractPostDataFromHtml(
     }
   }
 
-  if (!metaImage && !metaTitle && !metaDesc) return null
+  if (!metaImage && !metaTitle && !metaDesc) {
+    console.warn('[instagram] no JSON payload and no HTML meta tags found')
+    return null
+  }
 
+  console.warn('[instagram] falling back to HTML meta tags (only first image will be available)')
   const captionCandidate = jsonLdCaption || metaDesc || metaTitle
   const caption = cleanInstagramCaption(captionCandidate)
   const displayName = jsonLdAuthor || metaUsername
@@ -415,7 +426,6 @@ async function fetchJson(
     session: instagramSession,
     useSessionCookies: true,
     origin,
-    referrerPolicy: 'no-referrer',
   })
 
   if (!result) return null
@@ -436,16 +446,28 @@ async function fetchInstagramJsonPayload(parsed: {
   postUrl: string
 }): Promise<unknown[]> {
   const urls = [buildInstagramJsonUrl(parsed.postUrl), ...buildInstagramApiUrls(parsed.shortcode)]
+  console.info('[instagram] trying JSON endpoints:', urls)
   for (const url of urls) {
     const useAppUa = url.includes('/api/v1/')
+    console.info('[instagram] fetching:', url)
     const payload = await fetchJson(
       url,
       parsed.postUrl,
       useAppUa ? INSTAGRAM_APP_USER_AGENT : undefined
     )
-    if (!payload) continue
-    if (findShortcodeMedia(payload)) return [payload]
+    if (!payload) {
+      console.info('[instagram] no payload from:', url)
+      continue
+    }
+    console.info('[instagram] payload received, keys:', Object.keys(payload as Record<string, unknown>))
+    const found = findShortcodeMedia(payload)
+    if (found) {
+      console.info('[instagram] found shortcode_media in payload')
+      return [payload]
+    }
+    console.info('[instagram] no shortcode_media found in payload')
   }
+  console.warn('[instagram] no valid JSON payload found from any endpoint')
   return []
 }
 

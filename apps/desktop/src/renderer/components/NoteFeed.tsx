@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect, ClipboardEvent } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 import { useNotesStore } from '../stores/notes'
 import { NoteCard, NoteCardHandle } from './NoteCard'
 import { TagDialog } from './TagDialog'
@@ -8,6 +8,10 @@ import { isOpenTagListShortcut } from '../shortcuts/tagList'
 import { isTextInputTarget, getClosestNoteId } from '../lib/dom-utils'
 import { extractInstagramUrls } from '../lib/instagram-url-utils'
 import { useDragAndDrop } from '../hooks'
+
+// 큰 텍스트 임계값 (이 이상이면 텍스트 첨부파일로 처리)
+const LARGE_TEXT_THRESHOLD_LINES = 10
+const LARGE_TEXT_THRESHOLD_CHARS = 500
 
 export function NoteFeed() {
   const {
@@ -214,18 +218,14 @@ export function NoteFeed() {
     return () => window.removeEventListener('keydown', handleGlobalNavigation)
   }, [focusedIndex, flatNotes, deleteNote])
 
-  // 피드에서 붙여넣기 -> 새 노트 생성
-  const handlePaste = useCallback(
-    async (e: ClipboardEvent) => {
-      console.info('[paste] start', {
-        hasClipboard: Boolean(e.clipboardData),
-        activeElement: document.activeElement?.tagName,
-      })
+  // 글로벌 붙여넣기 -> 새 노트 생성 (에디터에 포커스 없을 때)
+  useEffect(() => {
+    const handlePaste = async (e: globalThis.ClipboardEvent) => {
+      // 에디터에 포커스가 있으면 무시 (에디터가 직접 처리)
+      if (isTextInputTarget(document.activeElement)) return
+
       const items = e.clipboardData?.items
-      if (!items) {
-        console.warn('[paste] no clipboard items')
-        return
-      }
+      if (!items) return
 
       // 파일/이미지 처리
       for (const item of items) {
@@ -234,28 +234,19 @@ export function NoteFeed() {
           if (!file) continue
 
           e.preventDefault()
-          console.info('[paste] file detected', {
-            name: file.name,
-            type: file.type,
-            size: file.size,
-          })
           await createNoteWithFile(file)
           return
         }
       }
 
-      // 텍스트 처리 - 새 노트 본문으로
+      // 텍스트 처리
       const text = e.clipboardData?.getData('text/plain')
       if (text) {
         e.preventDefault()
-        console.info('[paste] text detected', { length: text.length })
-        console.info('[paste] text contains instagram', {
-          hasInstagram: text.includes('instagram.com') || text.includes('instagr.am'),
-        })
 
+        // Instagram URL 처리
         const instagramUrls = extractInstagramUrls(text)
         if (instagramUrls.length > 0) {
-          console.info('[paste] instagram urls', instagramUrls)
           for (const url of instagramUrls) {
             const note = await createNoteWithInstagram(url)
             if (note) {
@@ -267,16 +258,30 @@ export function NoteFeed() {
           return
         }
 
-        console.info('[paste] plain text -> create note')
-        const note = await createNote()
-        await updateNote(note.id, text)
-        setTimeout(() => {
-          cardRefs.current.get(note.id)?.focus()
-        }, 50)
+        // 큰 텍스트는 텍스트 첨부파일로 처리
+        const lineCount = text.split('\n').length
+        const isLargeText =
+          lineCount >= LARGE_TEXT_THRESHOLD_LINES || text.length >= LARGE_TEXT_THRESHOLD_CHARS
+
+        if (isLargeText) {
+          const firstLine = text.split('\n')[0].slice(0, 50)
+          const title = firstLine || `붙여넣기 (${lineCount}줄)`
+          const textFile = new File([text], `${title}.txt`, { type: 'text/plain' })
+          await createNoteWithFile(textFile)
+        } else {
+          // 짧은 텍스트는 노트 본문으로
+          const note = await createNote()
+          await updateNote(note.id, text)
+          setTimeout(() => {
+            cardRefs.current.get(note.id)?.focus()
+          }, 50)
+        }
       }
-    },
-    [createNote, createNoteWithFile, createNoteWithInstagram, updateNote]
-  )
+    }
+
+    document.addEventListener('paste', handlePaste)
+    return () => document.removeEventListener('paste', handlePaste)
+  }, [createNote, createNoteWithFile, createNoteWithInstagram, updateNote])
 
   // 태그 다이얼로그에 전달할 현재 노트의 태그 목록 (필터링되지 않은 전체 notes에서 검색)
   const tagDialogNote = tagDialogNoteId ? notes.find((n) => n.id === tagDialogNoteId) : null
@@ -288,7 +293,6 @@ export function NoteFeed() {
       className={`feed ${isDragOver ? 'drag-over' : ''}`}
       tabIndex={0}
       onKeyDown={handleKeyDown}
-      onPaste={handlePaste}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}

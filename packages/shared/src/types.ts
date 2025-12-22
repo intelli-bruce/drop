@@ -2,7 +2,7 @@
 
 export type NoteSource = 'mobile' | 'desktop' | 'web'
 
-export type AttachmentType = 'image' | 'audio' | 'video' | 'file' | 'instagram'
+export type AttachmentType = 'image' | 'audio' | 'video' | 'file' | 'text' | 'instagram'
 
 // Database row types (snake_case - Supabase 컬럼명과 일치)
 export interface NoteRow {

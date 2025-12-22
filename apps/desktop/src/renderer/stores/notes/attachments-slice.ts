@@ -25,6 +25,7 @@ export const createAttachmentsSlice: StateCreator<NotesState, [], [], Attachment
     if (file.type.startsWith('image/')) type = 'image'
     else if (file.type.startsWith('audio/')) type = 'audio'
     else if (file.type.startsWith('video/')) type = 'video'
+    else if (file.type === 'text/plain') type = 'text'
 
     // DB에 레코드 삽입
     const { data, error } = await supabase

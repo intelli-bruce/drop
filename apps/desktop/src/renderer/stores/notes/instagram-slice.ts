@@ -1,3 +1,4 @@
+/// <reference path="../../../preload/index.d.ts" />
 import type { StateCreator } from 'zustand'
 import { supabase } from '../../lib/supabase'
 import { fileFromDataUrl, extensionFromMime, normalizeExternalUrl } from '../../lib/file-utils'
@@ -23,6 +24,23 @@ export const createInstagramSlice: StateCreator<NotesState, [], [], InstagramSli
     console.info('[instagram] createNoteWithInstagram start', { url, shortcode })
     const note = await get().createNote()
     console.info('[instagram] note created', { noteId: note.id })
+
+    // 로딩 중 표시를 위한 임시 skeleton attachment 추가
+    const skeletonId = `skeleton-${shortcode}`
+    const skeletonAttachment: Attachment = {
+      id: skeletonId,
+      noteId: note.id,
+      type: 'instagram',
+      storagePath: '',
+      originalUrl: url,
+      createdAt: new Date(),
+      metadata: { loading: true, shortcode },
+    }
+    set((state) => ({
+      notes: state.notes.map((n) =>
+        n.id === note.id ? { ...n, attachments: [skeletonAttachment] } : n
+      ),
+    }))
 
     void (async () => {
       try {
@@ -145,13 +163,30 @@ export const createInstagramSlice: StateCreator<NotesState, [], [], InstagramSli
         const attachment = attachmentRowToAttachment(data as AttachmentRow)
         console.info('[instagram] attachment created', { noteId: note.id, attachmentId: attachment.id })
 
+        // skeleton 제거하고 실제 attachment 추가
         set((state) => ({
           notes: state.notes.map((n) =>
-            n.id === note.id ? { ...n, attachments: [...n.attachments, attachment] } : n
+            n.id === note.id
+              ? {
+                  ...n,
+                  attachments: [
+                    ...n.attachments.filter((a) => a.id !== skeletonId),
+                    attachment,
+                  ],
+                }
+              : n
           ),
         }))
       } catch (error) {
         console.error('Failed to fetch Instagram post:', error)
+        // 에러 시 skeleton 제거
+        set((state) => ({
+          notes: state.notes.map((n) =>
+            n.id === note.id
+              ? { ...n, attachments: n.attachments.filter((a) => a.id !== skeletonId) }
+              : n
+          ),
+        }))
       }
     })()
 
