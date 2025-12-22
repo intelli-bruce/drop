@@ -3,11 +3,11 @@
   "version": "0.0.0",
   "main": "./out/main/index.js",
   "scripts": {
-    "dev": "electron-vite dev --mode local",
-    "dev:local": "electron-vite dev --mode local",
+    "dev": "electron-vite dev --mode localdev",
+    "dev:local": "electron-vite dev --mode localdev",
     "dev:remote": "electron-vite dev --mode remote",
     "build": "electron-vite build",
-    "build:local": "electron-vite build --mode local",
+    "build:local": "electron-vite build --mode localdev",
     "build:remote": "electron-vite build --mode remote",
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit"
