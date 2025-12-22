@@ -43,9 +43,11 @@ export const NoteCard = forwardRef<NoteCardHandle, Props>(
 
     const handleChange = useCallback(
       (content: string) => {
+        // 동일한 content면 업데이트 스킵 (초기 렌더링 시 불필요한 호출 방지)
+        if (content === note.content) return
         updateNote(note.id, content)
       },
-      [note.id, updateNote]
+      [note.id, note.content, updateNote]
     )
 
     const handleRemoveAttachment = useCallback(
