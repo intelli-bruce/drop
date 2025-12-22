@@ -43,21 +43,6 @@ body {
   -webkit-app-region: drag;
 }
 
-.new-note-btn {
-  padding: 8px 20px;
-  background: var(--accent);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  -webkit-app-region: no-drag;
-}
-
-.new-note-btn:hover {
-  opacity: 0.9;
-}
-
 .feed-content {
   flex: 1;
   overflow-y: auto;
@@ -701,4 +686,101 @@ body {
 
 .filter-indicator button:hover {
   opacity: 0.8;
+}
+
+/* Tag Dialog */
+.tag-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 15vh;
+  z-index: 1000;
+}
+
+.tag-dialog {
+  width: 320px;
+  max-height: 400px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.tag-dialog-input {
+  width: 100%;
+  padding: 14px 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+}
+
+.tag-dialog-input::placeholder {
+  color: var(--text-secondary);
+}
+
+.tag-dialog-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.tag-dialog-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.tag-dialog-item:hover,
+.tag-dialog-item.selected {
+  background: var(--bg-secondary);
+}
+
+.tag-dialog-hash {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.tag-dialog-name {
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.tag-dialog-create {
+  border-top: 1px solid var(--border-color);
+  margin-top: 4px;
+  padding-top: 12px;
+}
+
+.tag-dialog-create-icon {
+  color: var(--accent);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.tag-dialog-create-text {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.tag-dialog-create-text strong {
+  color: var(--text-primary);
+}
+
+.tag-dialog-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
 }
