@@ -8,7 +8,7 @@ import {
 import type { NoteRow, AttachmentRow, TagRow, Attachment, Tag } from '@throw/shared'
 import type { NotesState, NotesSlice } from './types'
 
-export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (set, get) => ({
+export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (set) => ({
   notes: [],
   selectedNoteId: null,
   isLoading: false,

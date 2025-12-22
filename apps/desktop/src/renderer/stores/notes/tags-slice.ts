@@ -4,7 +4,7 @@ import { tagRowToTag } from '@throw/shared'
 import type { TagRow } from '@throw/shared'
 import type { NotesState, TagsSlice } from './types'
 
-export const createTagsSlice: StateCreator<NotesState, [], [], TagsSlice> = (set, get) => ({
+export const createTagsSlice: StateCreator<NotesState, [], [], TagsSlice> = (set) => ({
   allTags: [],
   filterTag: null,
 

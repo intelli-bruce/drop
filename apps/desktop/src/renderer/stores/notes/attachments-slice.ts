@@ -4,10 +4,7 @@ import { attachmentRowToAttachment } from '@throw/shared'
 import type { AttachmentType, AttachmentRow } from '@throw/shared'
 import type { NotesState, AttachmentsSlice } from './types'
 
-export const createAttachmentsSlice: StateCreator<NotesState, [], [], AttachmentsSlice> = (
-  set,
-  get
-) => ({
+export const createAttachmentsSlice: StateCreator<NotesState, [], [], AttachmentsSlice> = (set) => ({
   addAttachment: async (noteId, file) => {
     console.info('[attachments] upload start', {
       noteId,
