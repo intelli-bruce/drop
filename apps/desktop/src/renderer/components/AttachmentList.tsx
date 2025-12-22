@@ -36,6 +36,7 @@ function getExtension(filename?: string, mimeType?: string): string {
 
 function useAttachmentUrl(storagePath: string) {
   const [url, setUrl] = useState<string | null>(null)
+  const [retryCount, setRetryCount] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -54,9 +55,11 @@ function useAttachmentUrl(storagePath: string) {
     return () => {
       cancelled = true
     }
-  }, [storagePath])
+  }, [storagePath, retryCount])
 
-  return url
+  const retry = () => setRetryCount((c) => c + 1)
+
+  return { url, retry }
 }
 
 function ImageAttachment({
@@ -67,26 +70,40 @@ function ImageAttachment({
   onRemove: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
-  const url = useAttachmentUrl(attachment.storagePath)
+  const [hasError, setHasError] = useState(false)
+  const { url, retry } = useAttachmentUrl(attachment.storagePath)
+
   const handleError = () => {
     console.error('[attachments] image load failed', {
       attachmentId: attachment.id,
       storagePath: attachment.storagePath,
       url,
     })
+    setHasError(true)
+  }
+
+  const handleRetry = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setHasError(false)
+    retry()
   }
 
   return (
     <div className="attachment-card attachment-image">
       <button className="attachment-remove" onClick={onRemove}>×</button>
-      <div className="attachment-thumbnail" onClick={() => setExpanded(!expanded)}>
-        {url ? (
+      <div className="attachment-thumbnail" onClick={() => !hasError && setExpanded(!expanded)}>
+        {hasError ? (
+          <div className="attachment-error" onClick={handleRetry}>
+            <span>로드 실패</span>
+            <button>재시도</button>
+          </div>
+        ) : url ? (
           <img src={url} alt={attachment.filename || '이미지'} onError={handleError} />
         ) : (
           <span className="attachment-placeholder">로딩 중</span>
         )}
       </div>
-      {expanded && url ? (
+      {expanded && url && !hasError ? (
         <div className="attachment-modal" onClick={() => setExpanded(false)}>
           <img src={url} alt={attachment.filename || '이미지'} onError={handleError} />
         </div>
@@ -102,12 +119,32 @@ function VideoAttachment({
   attachment: Attachment
   onRemove: () => void
 }) {
-  const url = useAttachmentUrl(attachment.storagePath)
+  const [hasError, setHasError] = useState(false)
+  const { url, retry } = useAttachmentUrl(attachment.storagePath)
+
+  const handleRetry = () => {
+    setHasError(false)
+    retry()
+  }
 
   return (
     <div className="attachment-card attachment-video">
       <button className="attachment-remove" onClick={onRemove}>×</button>
-      {url ? <video className="attachment-video-player" controls src={url} /> : null}
+      {hasError ? (
+        <div className="attachment-error" onClick={handleRetry}>
+          <span>로드 실패</span>
+          <button>재시도</button>
+        </div>
+      ) : url ? (
+        <video
+          className="attachment-video-player"
+          controls
+          src={url}
+          onError={() => setHasError(true)}
+        />
+      ) : (
+        <span className="attachment-placeholder">로딩 중</span>
+      )}
     </div>
   )
 }
@@ -119,12 +156,32 @@ function AudioAttachment({
   attachment: Attachment
   onRemove: () => void
 }) {
-  const url = useAttachmentUrl(attachment.storagePath)
+  const [hasError, setHasError] = useState(false)
+  const { url, retry } = useAttachmentUrl(attachment.storagePath)
+
+  const handleRetry = () => {
+    setHasError(false)
+    retry()
+  }
 
   return (
     <div className="attachment-card attachment-audio">
       <button className="attachment-remove" onClick={onRemove}>×</button>
-      {url ? <audio className="attachment-audio-player" controls src={url} /> : null}
+      {hasError ? (
+        <div className="attachment-error" onClick={handleRetry}>
+          <span>로드 실패</span>
+          <button>재시도</button>
+        </div>
+      ) : url ? (
+        <audio
+          className="attachment-audio-player"
+          controls
+          src={url}
+          onError={() => setHasError(true)}
+        />
+      ) : (
+        <span className="attachment-placeholder">로딩 중</span>
+      )}
     </div>
   )
 }
@@ -136,7 +193,7 @@ function FileAttachment({
   attachment: Attachment
   onRemove: () => void
 }) {
-  const url = useAttachmentUrl(attachment.storagePath)
+  const { url } = useAttachmentUrl(attachment.storagePath)
 
   const handleDownload = () => {
     if (!url) return
@@ -172,8 +229,9 @@ function InstagramAttachment({
   attachment: Attachment
   onRemove: () => void
 }) {
-  const url = useAttachmentUrl(attachment.storagePath)
+  const { url, retry } = useAttachmentUrl(attachment.storagePath)
   const [expanded, setExpanded] = useState(false)
+  const [hasError, setHasError] = useState(false)
   const caption = attachment.caption?.trim()
   const authorName = attachment.authorName?.trim()
   const originalUrl = attachment.originalUrl
@@ -192,13 +250,28 @@ function InstagramAttachment({
     window.open(target, '_blank')
   }
 
+  const handleRetry = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setHasError(false)
+    retry()
+  }
+
   return (
     <div className="attachment-card attachment-instagram">
       <button className="attachment-remove" onClick={onRemove}>×</button>
-      <div className="attachment-instagram-content" onClick={() => setExpanded(true)}>
+      <div className="attachment-instagram-content" onClick={() => !hasError && setExpanded(true)}>
         <div className="attachment-instagram-thumbnail">
-          {url ? (
-            <img src={url} alt={attachment.filename || 'Instagram'} />
+          {hasError ? (
+            <div className="attachment-error" onClick={handleRetry}>
+              <span>로드 실패</span>
+              <button>재시도</button>
+            </div>
+          ) : url ? (
+            <img
+              src={url}
+              alt={attachment.filename || 'Instagram'}
+              onError={() => setHasError(true)}
+            />
           ) : (
             <span className="attachment-placeholder">로딩 중</span>
           )}
