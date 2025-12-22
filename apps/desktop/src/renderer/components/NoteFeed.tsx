@@ -9,9 +9,9 @@ import { isTextInputTarget, getClosestNoteId } from '../lib/dom-utils'
 import { extractInstagramUrls } from '../lib/instagram-url-utils'
 import { useDragAndDrop } from '../hooks'
 
-// 큰 텍스트 임계값 (이 이상이면 텍스트 첨부파일로 처리)
-const LARGE_TEXT_THRESHOLD_LINES = 10
-const LARGE_TEXT_THRESHOLD_CHARS = 500
+// 큰 텍스트 임계값 (둘 다 충족해야 텍스트 첨부파일로 처리)
+const LARGE_TEXT_THRESHOLD_LINES = 20
+const LARGE_TEXT_THRESHOLD_CHARS = 1000
 
 export function NoteFeed() {
   const {
@@ -258,10 +258,10 @@ export function NoteFeed() {
           return
         }
 
-        // 큰 텍스트는 텍스트 첨부파일로 처리
+        // 큰 텍스트는 텍스트 첨부파일로 처리 (둘 다 충족해야 함)
         const lineCount = text.split('\n').length
         const isLargeText =
-          lineCount >= LARGE_TEXT_THRESHOLD_LINES || text.length >= LARGE_TEXT_THRESHOLD_CHARS
+          lineCount >= LARGE_TEXT_THRESHOLD_LINES && text.length >= LARGE_TEXT_THRESHOLD_CHARS
 
         if (isLargeText) {
           const firstLine = text.split('\n')[0].slice(0, 50)
