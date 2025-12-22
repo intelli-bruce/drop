@@ -4,6 +4,7 @@ import {
   ipcMain,
   net,
   session,
+  shell,
   type ClientRequestConstructorOptions,
 } from 'electron'
 import { join } from 'path'
@@ -547,6 +548,10 @@ async function fetchInstagramPost(postUrl: string): Promise<InstagramPostData | 
 }
 
 function setupIpcHandlers(): void {
+  ipcMain.handle('shell:openExternal', async (_event, url: string) => {
+    await shell.openExternal(url)
+  })
+
   ipcMain.handle('instagram:ensureLogin', async () => ensureInstagramLogin())
 
   ipcMain.handle('instagram:fetchPost', async (_event, postUrl: string) => {
