@@ -13,9 +13,11 @@ export function resolveNoteFeedShortcut(event: KeyEventLike): NoteFeedShortcutAc
       return 'clearFocus'
     case 'ArrowDown':
     case 'j':
+    case 'ㅓ': // 한글 j
       return 'focusNext'
     case 'ArrowUp':
     case 'k':
+    case 'ㅏ': // 한글 k
       return 'focusPrev'
     case 'Enter':
       return 'openFocused'

@@ -1,6 +1,7 @@
 import { useRef, useState, useCallback, useEffect, DragEvent, ClipboardEvent } from 'react'
 import { useNotesStore } from '../stores/notes'
 import { NoteCard, NoteCardHandle } from './NoteCard'
+import { TagDialog } from './TagDialog'
 import { isCreateNoteShortcut } from '../shortcuts/noteGlobal'
 import { resolveNoteFeedShortcut } from '../shortcuts/noteFeed'
 import { isOpenTagListShortcut } from '../shortcuts/tagList'
@@ -78,6 +79,7 @@ export function NoteFeed() {
   } = useNotesStore()
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
+  const [tagDialogNoteId, setTagDialogNoteId] = useState<string | null>(null)
   const cardRefs = useRef<Map<string, NoteCardHandle>>(new Map())
   const feedRef = useRef<HTMLDivElement>(null)
 
@@ -93,67 +95,16 @@ export function NoteFeed() {
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (flatNotes.length === 0) return
+      // 텍스트 입력 영역에서 버블링된 이벤트 무시
       if (isTextInputTarget(e.target)) return
 
-      const action = resolveNoteFeedShortcut(e)
-      if (!action) return
-
-      if (action === 'clearFocus') {
+      // Escape로 포커스 해제 (피드에 직접 포커스가 있을 때만)
+      if (e.key === 'Escape') {
         e.preventDefault()
         setFocusedIndex(null)
-        return
-      }
-
-      if (action === 'focusNext') {
-        e.preventDefault()
-        if (focusedIndex === null) {
-          setFocusedIndex(0)
-        } else {
-          const nextIndex = Math.min(focusedIndex + 1, flatNotes.length - 1)
-          setFocusedIndex(nextIndex)
-        }
-        return
-      }
-
-      if (action === 'focusPrev') {
-        e.preventDefault()
-        if (focusedIndex === null) {
-          setFocusedIndex(flatNotes.length - 1)
-        } else {
-          const prevIndex = Math.max(focusedIndex - 1, 0)
-          setFocusedIndex(prevIndex)
-        }
-        return
-      }
-
-      if (action === 'openFocused') {
-        if (focusedIndex === null) return
-        e.preventDefault()
-        const note = flatNotes[focusedIndex]
-        if (note) {
-          cardRefs.current.get(note.id)?.focus()
-          setFocusedIndex(null)
-        }
-        return
-      }
-
-      if (action === 'deleteFocused') {
-        if (focusedIndex === null) return
-        e.preventDefault()
-        const note = flatNotes[focusedIndex]
-        if (note && window.confirm('이 노트를 삭제하시겠습니까?')) {
-          deleteNote(note.id)
-          if (flatNotes.length > 1) {
-            const nextIndex = focusedIndex >= flatNotes.length - 1 ? focusedIndex - 1 : focusedIndex
-            setFocusedIndex(nextIndex)
-          } else {
-            setFocusedIndex(null)
-          }
-        }
       }
     },
-    [focusedIndex, flatNotes, deleteNote]
+    []
   )
 
   const groupByDate = (notes: typeof flatNotes) => {
@@ -216,7 +167,7 @@ export function NoteFeed() {
     return () => window.removeEventListener('keydown', handleGlobalKeyDown)
   }, [handleCreateNote])
 
-  // Cmd+Shift+T 단축키로 태그 목록 열기
+  // Cmd+Shift+T 단축키로 태그 다이얼로그 열기
   useEffect(() => {
     const handleTagListKeyDown = (e: KeyboardEvent) => {
       if (!isOpenTagListShortcut(e)) return
@@ -225,7 +176,7 @@ export function NoteFeed() {
       if (!noteId) return
       e.preventDefault()
       e.stopPropagation()
-      cardRefs.current.get(noteId)?.openTagList()
+      setTagDialogNoteId(noteId)
     }
 
     window.addEventListener('keydown', handleTagListKeyDown)
@@ -236,6 +187,70 @@ export function NoteFeed() {
   useEffect(() => {
     feedRef.current?.focus()
   }, [])
+
+  // 글로벌 j/k 네비게이션
+  useEffect(() => {
+    const handleGlobalNavigation = (e: KeyboardEvent) => {
+      if (flatNotes.length === 0) return
+      if (isTextInputTarget(e.target)) return
+
+      const action = resolveNoteFeedShortcut(e as unknown as React.KeyboardEvent)
+      if (!action) return
+
+      if (action === 'focusNext') {
+        e.preventDefault()
+        if (focusedIndex === null) {
+          setFocusedIndex(0)
+        } else {
+          const nextIndex = Math.min(focusedIndex + 1, flatNotes.length - 1)
+          setFocusedIndex(nextIndex)
+        }
+        feedRef.current?.focus()
+        return
+      }
+
+      if (action === 'focusPrev') {
+        e.preventDefault()
+        if (focusedIndex === null) {
+          setFocusedIndex(flatNotes.length - 1)
+        } else {
+          const prevIndex = Math.max(focusedIndex - 1, 0)
+          setFocusedIndex(prevIndex)
+        }
+        feedRef.current?.focus()
+        return
+      }
+
+      if (action === 'openFocused') {
+        if (focusedIndex === null) return
+        e.preventDefault()
+        const note = flatNotes[focusedIndex]
+        if (note) {
+          cardRefs.current.get(note.id)?.focus()
+          setFocusedIndex(null)
+        }
+        return
+      }
+
+      if (action === 'deleteFocused') {
+        if (focusedIndex === null) return
+        e.preventDefault()
+        const note = flatNotes[focusedIndex]
+        if (note && window.confirm('이 노트를 삭제하시겠습니까?')) {
+          deleteNote(note.id)
+          if (flatNotes.length > 1) {
+            const nextIndex = focusedIndex >= flatNotes.length - 1 ? focusedIndex - 1 : focusedIndex
+            setFocusedIndex(nextIndex)
+          } else {
+            setFocusedIndex(null)
+          }
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleGlobalNavigation)
+    return () => window.removeEventListener('keydown', handleGlobalNavigation)
+  }, [focusedIndex, flatNotes, deleteNote])
 
   // 새 노트 생성 + 첨부물 추가 헬퍼
   const createNoteWithFile = useCallback(
@@ -340,6 +355,10 @@ export function NoteFeed() {
     [createNoteWithFile]
   )
 
+  // 태그 다이얼로그에 전달할 현재 노트의 태그 목록 (필터링되지 않은 전체 notes에서 검색)
+  const tagDialogNote = tagDialogNoteId ? notes.find((n) => n.id === tagDialogNoteId) : null
+  const tagDialogExistingTags = tagDialogNote?.tags.map((t) => t.name) ?? []
+
   return (
     <div
       ref={feedRef}
@@ -351,10 +370,14 @@ export function NoteFeed() {
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
+      {tagDialogNoteId && (
+        <TagDialog
+          noteId={tagDialogNoteId}
+          existingTagNames={tagDialogExistingTags}
+          onClose={() => setTagDialogNoteId(null)}
+        />
+      )}
       <div className="feed-header">
-        <button className="new-note-btn" onClick={handleCreateNote}>
-          + 새 노트
-        </button>
         {filterTag && (
           <div className="filter-indicator">
             <span>#{filterTag}</span>
