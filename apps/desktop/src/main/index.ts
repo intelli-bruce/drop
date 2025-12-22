@@ -33,14 +33,27 @@ import {
   type ImageCandidate,
   type VideoCandidate,
 } from './instagram-utils'
-const INSTAGRAM_USER_AGENT =
+const USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:120.0) Gecko/20100101 Firefox/120.0'
+const INSTAGRAM_USER_AGENT = USER_AGENT
 const INSTAGRAM_APP_USER_AGENT = 'Instagram 289.0.0.0.0 Android'
 const MAX_REDIRECTS = 5
 const MAX_MEDIA_BASE64 = 10
 const MAX_VIDEO_BASE64 = 2
 const MAX_VIDEO_BYTES = 20 * 1024 * 1024
 const INSTAGRAM_SESSION_PARTITION = 'persist:instagram'
+
+export interface YouTubeOEmbedData {
+  title: string
+  authorName: string
+  authorUrl: string
+  thumbnailUrl: string
+  thumbnailWidth: number
+  thumbnailHeight: number
+  html: string
+  videoId: string
+  videoUrl: string
+}
 const INSTAGRAM_LOGIN_URL = 'https://www.instagram.com/accounts/login/'
 
 type NetRequestOptions = Pick<
@@ -547,6 +560,100 @@ async function fetchInstagramPost(postUrl: string): Promise<InstagramPostData | 
   return extractPostDataFromHtml(htmlSource, parsed, extraPayloads)
 }
 
+function extractYouTubeVideoId(url: string): string | null {
+  try {
+    const parsed = new URL(url)
+    const hostname = parsed.hostname.replace(/^www\./, '').replace(/^m\./, '')
+
+    if (hostname === 'youtu.be') {
+      const videoId = parsed.pathname.slice(1).split('/')[0]
+      if (videoId && /^[A-Za-z0-9_-]{11}$/.test(videoId)) {
+        return videoId
+      }
+      return null
+    }
+
+    if (!hostname.includes('youtube')) return null
+
+    if (parsed.pathname === '/watch') {
+      const videoId = parsed.searchParams.get('v')
+      if (videoId && /^[A-Za-z0-9_-]{11}$/.test(videoId)) {
+        return videoId
+      }
+      return null
+    }
+
+    const pathMatch = parsed.pathname.match(/^\/(?:embed|v|shorts|live)\/([A-Za-z0-9_-]{11})/)
+    if (pathMatch) {
+      return pathMatch[1]
+    }
+
+    return null
+  } catch {
+    return null
+  }
+}
+
+async function fetchYouTubeOEmbed(videoUrl: string): Promise<YouTubeOEmbedData | null> {
+  const videoId = extractYouTubeVideoId(videoUrl)
+  if (!videoId) {
+    console.warn('[youtube] invalid video URL:', videoUrl)
+    return null
+  }
+
+  const canonicalUrl = `https://www.youtube.com/watch?v=${videoId}`
+  const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(canonicalUrl)}&format=json`
+
+  console.info('[youtube] fetching oEmbed:', oembedUrl)
+
+  const result = await fetchBufferWithRedirect(oembedUrl, {
+    headers: {
+      'User-Agent': USER_AGENT,
+      Accept: 'application/json',
+    },
+  })
+
+  if (!result) {
+    console.warn('[youtube] oEmbed fetch failed')
+    return null
+  }
+
+  try {
+    const text = result.buffer.toString('utf8')
+    const data = JSON.parse(text) as {
+      title?: string
+      author_name?: string
+      author_url?: string
+      thumbnail_url?: string
+      thumbnail_width?: number
+      thumbnail_height?: number
+      html?: string
+    }
+
+    // Use maxresdefault thumbnail if available
+    let thumbnailUrl = data.thumbnail_url || ''
+    if (thumbnailUrl) {
+      // Try to get higher quality thumbnail
+      thumbnailUrl = `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`
+    }
+
+    return {
+      title: data.title || '',
+      authorName: data.author_name || '',
+      authorUrl: data.author_url || '',
+      thumbnailUrl,
+      thumbnailWidth: data.thumbnail_width || 0,
+      thumbnailHeight: data.thumbnail_height || 0,
+      html: data.html || '',
+      videoId,
+      videoUrl: canonicalUrl,
+    }
+  } catch (error) {
+    console.error('[youtube] oEmbed parse error:', error)
+    return null
+  }
+}
+
 function setupIpcHandlers(): void {
   ipcMain.handle('shell:openExternal', async (_event, url: string) => {
     await shell.openExternal(url)
@@ -612,6 +719,22 @@ function setupIpcHandlers(): void {
       ...postData,
       media,
     }
+  })
+
+  ipcMain.handle('youtube:fetchOEmbed', async (_event, videoUrl: string) => {
+    console.info('[youtube] fetchOEmbed start', { videoUrl })
+    const oembedData = await fetchYouTubeOEmbed(videoUrl)
+    if (!oembedData) {
+      console.warn('[youtube] fetchOEmbed: no data')
+      return null
+    }
+
+    console.info('[youtube] fetchOEmbed: done', {
+      title: oembedData.title,
+      authorName: oembedData.authorName,
+    })
+
+    return oembedData
   })
 }
 

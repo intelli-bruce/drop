@@ -271,6 +271,116 @@ function TextAttachment({
   )
 }
 
+function YouTubeAttachment({
+  attachment,
+  onRemove,
+}: {
+  attachment: Attachment
+  onRemove: () => void
+}) {
+  const isLoading = attachment.metadata?.loading === true
+  const [hasError, setHasError] = useState(false)
+  const title = attachment.caption?.trim()
+  const authorName = attachment.authorName?.trim()
+  const originalUrl = attachment.originalUrl
+  const authorUrl = attachment.authorUrl
+  const videoId = attachment.metadata?.videoId as string | undefined
+  const thumbnailUrl = attachment.metadata?.thumbnailUrl as string | undefined
+
+  // 썸네일 URL 결정 (metadata에서 가져오거나 videoId로 생성)
+  const getThumbnailUrl = () => {
+    if (thumbnailUrl) return thumbnailUrl
+    if (videoId) return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+    return null
+  }
+
+  const openUrl = (target?: string) => {
+    if (!target) return
+    window.api.openExternal(target)
+  }
+
+  // 로딩 중인 경우 skeleton 표시
+  if (isLoading) {
+    return (
+      <div className="attachment-card attachment-youtube attachment-loading">
+        <div className="attachment-youtube-content">
+          <div className="attachment-youtube-thumbnail">
+            <div className="attachment-skeleton" />
+          </div>
+          <div className="attachment-youtube-info">
+            <div className="attachment-youtube-header">
+              <span className="attachment-youtube-icon" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+                </svg>
+              </span>
+              <span className="attachment-youtube-label">YouTube</span>
+            </div>
+            <span className="attachment-skeleton-text" />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const thumbUrl = getThumbnailUrl()
+
+  return (
+    <div className="attachment-card attachment-youtube">
+      <button className="attachment-remove" onClick={onRemove}>×</button>
+      <div
+        className="attachment-youtube-content"
+        onClick={() => openUrl(originalUrl)}
+      >
+        <div className="attachment-youtube-thumbnail">
+          {hasError || !thumbUrl ? (
+            <div className="attachment-youtube-placeholder">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" opacity="0.5">
+                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+              </svg>
+            </div>
+          ) : (
+            <>
+              <img
+                src={thumbUrl}
+                alt={title || 'YouTube'}
+                onError={() => setHasError(true)}
+              />
+              <div className="attachment-youtube-play">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="white">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </div>
+            </>
+          )}
+        </div>
+        <div className="attachment-youtube-info">
+          <div className="attachment-youtube-header">
+            <span className="attachment-youtube-icon" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+              </svg>
+            </span>
+            <span className="attachment-youtube-label">YouTube</span>
+          </div>
+          {title ? <p className="attachment-youtube-title">{title}</p> : null}
+          {authorName ? (
+            <span
+              className="attachment-youtube-author"
+              onClick={(event) => {
+                event.stopPropagation()
+                openUrl(authorUrl)
+              }}
+            >
+              {authorName}
+            </span>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function InstagramAttachment({
   attachment,
   onRemove,
@@ -449,6 +559,14 @@ export function AttachmentList({ attachments, onRemove }: Props) {
           case 'instagram':
             return (
               <InstagramAttachment
+                key={attachment.id}
+                attachment={attachment}
+                onRemove={() => onRemove(attachment.id)}
+              />
+            )
+          case 'youtube':
+            return (
+              <YouTubeAttachment
                 key={attachment.id}
                 attachment={attachment}
                 onRemove={() => onRemove(attachment.id)}

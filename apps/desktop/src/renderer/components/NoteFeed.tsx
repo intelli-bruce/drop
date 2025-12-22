@@ -7,6 +7,7 @@ import { resolveNoteFeedShortcut } from '../shortcuts/noteFeed'
 import { isOpenTagListShortcut } from '../shortcuts/tagList'
 import { isTextInputTarget, getClosestNoteId } from '../lib/dom-utils'
 import { extractInstagramUrls } from '../lib/instagram-url-utils'
+import { extractYouTubeUrls } from '../lib/youtube-url-utils'
 import { useDragAndDrop } from '../hooks'
 
 // 큰 텍스트 임계값 (둘 다 충족해야 텍스트 첨부파일로 처리)
@@ -20,6 +21,7 @@ export function NoteFeed() {
     deleteNote,
     addAttachment,
     createNoteWithInstagram,
+    createNoteWithYouTube,
     filterTag,
     setFilterTag,
   } = useNotesStore()
@@ -312,6 +314,20 @@ export function NoteFeed() {
           return
         }
 
+        // YouTube URL 처리
+        const youtubeUrls = extractYouTubeUrls(text)
+        if (youtubeUrls.length > 0) {
+          for (const url of youtubeUrls) {
+            const note = await createNoteWithYouTube(url)
+            if (note) {
+              setTimeout(() => {
+                cardRefs.current.get(note.id)?.focus()
+              }, 50)
+            }
+          }
+          return
+        }
+
         // 큰 텍스트는 텍스트 첨부파일로 처리 (둘 다 충족해야 함)
         const lineCount = text.split('\n').length
         const isLargeText =
@@ -334,7 +350,7 @@ export function NoteFeed() {
 
     document.addEventListener('paste', handlePaste)
     return () => document.removeEventListener('paste', handlePaste)
-  }, [createNote, createNoteWithFile, createNoteWithInstagram])
+  }, [createNote, createNoteWithFile, createNoteWithInstagram, createNoteWithYouTube])
 
   // 태그 다이얼로그에 전달할 현재 노트의 태그 목록 (필터링되지 않은 전체 notes에서 검색)
   const tagDialogNote = tagDialogNoteId ? notes.find((n) => n.id === tagDialogNoteId) : null

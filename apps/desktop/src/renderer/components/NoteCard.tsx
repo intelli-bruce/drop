@@ -1,6 +1,7 @@
 import { useRef, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { LexicalEditor, LexicalEditorHandle } from './LexicalEditor'
 import { AttachmentList } from './AttachmentList'
+import { LinkPreviews } from './LinkPreviews'
 import { TagList } from './TagList'
 import { TagInput, TagInputHandle } from './TagInput'
 import { useNotesStore } from '../stores/notes'
@@ -105,6 +106,7 @@ export const NoteCard = forwardRef<NoteCardHandle, Props>(
           />
         </div>
         <AttachmentList attachments={note.attachments} onRemove={handleRemoveAttachment} />
+        <LinkPreviews content={note.content} attachments={note.attachments} />
         <div className="note-tags-section">
           <TagList noteId={note.id} tags={note.tags} />
           <TagInput

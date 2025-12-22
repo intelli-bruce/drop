@@ -16,6 +16,9 @@ const api = {
     ensureLogin: (): Promise<boolean> => ipcRenderer.invoke('instagram:ensureLogin'),
     fetchPost: (url: string) => ipcRenderer.invoke('instagram:fetchPost', url),
   },
+  youtube: {
+    fetchOEmbed: (url: string) => ipcRenderer.invoke('youtube:fetchOEmbed', url),
+  },
 }
 
 contextBridge.exposeInMainWorld('api', api)

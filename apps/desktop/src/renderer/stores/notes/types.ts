@@ -36,5 +36,10 @@ export interface InstagramSlice {
   createNoteWithInstagram: (url: string) => Promise<Note | null>
 }
 
+// YouTube slice
+export interface YouTubeSlice {
+  createNoteWithYouTube: (url: string) => Promise<Note | null>
+}
+
 // Combined store state
-export interface NotesState extends NotesSlice, TagsSlice, AttachmentsSlice, InstagramSlice {}
+export interface NotesState extends NotesSlice, TagsSlice, AttachmentsSlice, InstagramSlice, YouTubeSlice {}

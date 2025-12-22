@@ -1,0 +1,156 @@
+/// <reference path="../../preload/index.d.ts" />
+import { useEffect, useState, useMemo } from 'react'
+import { extractYouTubeUrls } from '../lib/youtube-url-utils'
+import type { Attachment } from '@throw/shared'
+
+interface YouTubeOEmbedData {
+  title: string
+  authorName: string
+  authorUrl: string
+  thumbnailUrl: string
+  videoId: string
+  videoUrl: string
+}
+
+interface Props {
+  content: string
+  attachments: Attachment[]
+}
+
+function YouTubeLinkPreview({ url }: { url: string }) {
+  const [data, setData] = useState<YouTubeOEmbedData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+
+    const fetchOEmbed = async () => {
+      try {
+        const result = await window.api.youtube.fetchOEmbed(url)
+        if (cancelled) return
+        if (result) {
+          setData(result)
+        } else {
+          setError(true)
+        }
+      } catch {
+        if (!cancelled) setError(true)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    void fetchOEmbed()
+    return () => {
+      cancelled = true
+    }
+  }, [url])
+
+  const openUrl = (target: string) => {
+    window.api.openExternal(target)
+  }
+
+  if (loading) {
+    return (
+      <div className="link-preview link-preview-youtube link-preview-loading">
+        <div className="link-preview-thumbnail">
+          <div className="attachment-skeleton" />
+        </div>
+        <div className="link-preview-info">
+          <div className="link-preview-header">
+            <span className="link-preview-icon" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+              </svg>
+            </span>
+            <span className="link-preview-label">YouTube</span>
+          </div>
+          <span className="attachment-skeleton-text" />
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !data) {
+    return null
+  }
+
+  const thumbnailUrl = data.thumbnailUrl || `https://i.ytimg.com/vi/${data.videoId}/hqdefault.jpg`
+
+  return (
+    <div
+      className="link-preview link-preview-youtube"
+      onClick={() => openUrl(data.videoUrl)}
+    >
+      <div className="link-preview-thumbnail">
+        <img src={thumbnailUrl} alt={data.title} />
+        <div className="link-preview-play">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="white">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        </div>
+      </div>
+      <div className="link-preview-info">
+        <div className="link-preview-header">
+          <span className="link-preview-icon" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+            </svg>
+          </span>
+          <span className="link-preview-label">YouTube</span>
+        </div>
+        {data.title && <p className="link-preview-title">{data.title}</p>}
+        {data.authorName && (
+          <span
+            className="link-preview-author"
+            onClick={(e) => {
+              e.stopPropagation()
+              if (data.authorUrl) openUrl(data.authorUrl)
+            }}
+          >
+            {data.authorName}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export function LinkPreviews({ content, attachments }: Props) {
+  // 본문에서 YouTube URL 추출
+  const youtubeUrls = useMemo(() => extractYouTubeUrls(content), [content])
+
+  // 이미 attachment로 존재하는 URL 제외
+  const existingUrls = useMemo(() => {
+    const urls = new Set<string>()
+    for (const att of attachments) {
+      if (att.originalUrl) {
+        urls.add(att.originalUrl)
+      }
+      // metadata에서 videoUrl도 체크
+      const videoUrl = att.metadata?.videoUrl as string | undefined
+      if (videoUrl) {
+        urls.add(videoUrl)
+      }
+    }
+    return urls
+  }, [attachments])
+
+  const newYoutubeUrls = useMemo(
+    () => youtubeUrls.filter((url) => !existingUrls.has(url)),
+    [youtubeUrls, existingUrls]
+  )
+
+  if (newYoutubeUrls.length === 0) {
+    return null
+  }
+
+  return (
+    <div className="link-previews">
+      {newYoutubeUrls.map((url) => (
+        <YouTubeLinkPreview key={url} url={url} />
+      ))}
+    </div>
+  )
+}

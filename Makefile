@@ -1,4 +1,5 @@
-.PHONY: install rebuild dev dev-local dev-remote build build-local build-remote test clean
+.PHONY: install rebuild dev dev-local dev-remote build build-local build-remote test clean \
+        mobile-setup mobile-dev mobile-dev-remote mobile-build mobile-analyze mobile-test mobile-codegen mobile-clean
 
 # 의존성 설치
 install:
@@ -52,3 +53,45 @@ clean:
 	rm -rf node_modules
 	rm -rf apps/*/node_modules apps/*/out apps/*/dist
 	rm -rf packages/*/node_modules packages/*/dist
+
+# ============================================
+# Mobile (Flutter)
+# ============================================
+
+# Flutter 의존성 설치 + 코드 생성
+mobile-setup:
+	cd apps/mobile && flutter pub get && dart run build_runner build --delete-conflicting-outputs
+
+# Flutter 개발 서버 (로컬 Supabase)
+mobile-dev:
+	cd apps/mobile && flutter run \
+		--dart-define=SUPABASE_URL=http://127.0.0.1:57321 \
+		--dart-define=SUPABASE_ANON_KEY=REDACTED_SUPABASE_KEY_LOCAL
+
+# Flutter 개발 서버 (리모트 Supabase)
+mobile-dev-remote:
+	cd apps/mobile && flutter run \
+		--dart-define=SUPABASE_URL=https://REDACTED_SUPABASE_HOST \
+		--dart-define=SUPABASE_ANON_KEY=REDACTED_SUPABASE_KEY
+
+# Flutter 빌드 (iOS 시뮬레이터, 로컬)
+mobile-build:
+	cd apps/mobile && flutter build ios --simulator \
+		--dart-define=SUPABASE_URL=http://127.0.0.1:57321 \
+		--dart-define=SUPABASE_ANON_KEY=REDACTED_SUPABASE_KEY_LOCAL
+
+# Flutter 코드 분석
+mobile-analyze:
+	cd apps/mobile && flutter analyze
+
+# Flutter 테스트
+mobile-test:
+	cd apps/mobile && flutter test
+
+# Flutter 코드 재생성
+mobile-codegen:
+	cd apps/mobile && dart run build_runner build --delete-conflicting-outputs
+
+# Flutter 정리
+mobile-clean:
+	cd apps/mobile && flutter clean && rm -rf .dart_tool build
