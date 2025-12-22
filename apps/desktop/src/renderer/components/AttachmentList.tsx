@@ -1,3 +1,4 @@
+/// <reference path="../../preload/index.d.ts" />
 import { useEffect, useState } from 'react'
 import { FileIcon, defaultStyles } from 'react-file-icon'
 import type { Attachment } from '@throw/shared'
@@ -296,7 +297,7 @@ function InstagramAttachment({
 
   const openUrl = (target?: string) => {
     if (!target) return
-    window.open(target, '_blank')
+    window.api.openExternal(target)
   }
 
   const handleRetry = (e: React.MouseEvent) => {
