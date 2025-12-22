@@ -91,12 +91,12 @@ export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (s
     }
   },
 
-  createNote: async () => {
+  createNote: async (initialContent = '') => {
     const id = crypto.randomUUID()
     const now = new Date()
     const optimisticNote = {
       id,
-      content: '',
+      content: initialContent,
       attachments: [],
       tags: [],
       createdAt: now,
@@ -115,7 +115,7 @@ export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (s
       .from('notes')
       .insert({
         id,
-        content: '',
+        content: initialContent,
         source: 'desktop',
       })
       .select()

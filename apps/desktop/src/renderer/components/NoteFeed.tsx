@@ -19,7 +19,6 @@ export function NoteFeed() {
     createNote,
     deleteNote,
     addAttachment,
-    updateNote,
     createNoteWithInstagram,
     filterTag,
     setFilterTag,
@@ -270,8 +269,7 @@ export function NoteFeed() {
           await createNoteWithFile(textFile)
         } else {
           // 짧은 텍스트는 노트 본문으로
-          const note = await createNote()
-          await updateNote(note.id, text)
+          const note = await createNote(text)
           setTimeout(() => {
             cardRefs.current.get(note.id)?.focus()
           }, 50)
@@ -281,7 +279,7 @@ export function NoteFeed() {
 
     document.addEventListener('paste', handlePaste)
     return () => document.removeEventListener('paste', handlePaste)
-  }, [createNote, createNoteWithFile, createNoteWithInstagram, updateNote])
+  }, [createNote, createNoteWithFile, createNoteWithInstagram])
 
   // 태그 다이얼로그에 전달할 현재 노트의 태그 목록 (필터링되지 않은 전체 notes에서 검색)
   const tagDialogNote = tagDialogNoteId ? notes.find((n) => n.id === tagDialogNoteId) : null
