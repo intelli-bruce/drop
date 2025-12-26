@@ -16,7 +16,7 @@ class HomeScreen extends ConsumerWidget {
         backgroundColor: const Color(0xFF1A1A1A),
         elevation: 0,
         title: const Text(
-          'Throw',
+          'DROP',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,

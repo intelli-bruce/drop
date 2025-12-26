@@ -46,7 +46,7 @@ test:
 
 # database 패키지 테스트
 test-db:
-	pnpm --filter @throw/database test
+	pnpm --filter @drop/database test
 
 # 빌드 산출물 정리
 clean:

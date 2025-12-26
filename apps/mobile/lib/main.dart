@@ -11,18 +11,18 @@ void main() async {
 
   runApp(
     const ProviderScope(
-      child: ThrowApp(),
+      child: DropApp(),
     ),
   );
 }
 
-class ThrowApp extends StatelessWidget {
-  const ThrowApp({super.key});
+class DropApp extends StatelessWidget {
+  const DropApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Throw',
+      title: 'DROP',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
