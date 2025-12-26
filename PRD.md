@@ -1,4 +1,4 @@
-# PRD — Throw
+# PRD — DROP
 
 > "생각을 떠올리는 즉시 어디서든 기록하고, 하나의 공간에서 관리"
 
@@ -8,7 +8,7 @@
 
 | 항목 | 내용 |
 |------|------|
-| 제품명 | Throw |
+| 제품명 | DROP |
 | 구성요소 | iOS/Android (Flutter), Desktop (Electron), Supabase Backend |
 | 핵심 가치 | Markdown 노트 + 실시간 동기화 |
 | 목표 사용자 | 빠른 기록 + 멀티 디바이스 사용자 |
@@ -114,7 +114,7 @@ CREATE TRIGGER notes_updated_at
 ### 3.3 Type Definitions
 
 ```typescript
-// 공유 타입 정의 (@throw/shared)
+// 공유 타입 정의 (@drop/shared)
 
 type NoteSource = 'mobile' | 'desktop' | 'web'
 type AttachmentType = 'image' | 'audio' | 'video' | 'file' | 'text' | 'instagram'

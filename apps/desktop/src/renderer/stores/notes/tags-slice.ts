@@ -1,7 +1,7 @@
 import type { StateCreator } from 'zustand'
 import { supabase } from '../../lib/supabase'
-import { tagRowToTag } from '@throw/shared'
-import type { TagRow } from '@throw/shared'
+import { tagRowToTag } from '@drop/shared'
+import type { TagRow } from '@drop/shared'
 import type { NotesState, TagsSlice } from './types'
 
 export const createTagsSlice: StateCreator<NotesState, [], [], TagsSlice> = (set) => ({

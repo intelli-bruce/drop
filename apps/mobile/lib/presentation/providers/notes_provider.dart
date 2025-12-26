@@ -1,7 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:throw_mobile/data/models/models.dart';
-import 'package:throw_mobile/data/repositories/notes_repository.dart';
+import 'package:drop_mobile/data/models/models.dart';
+import 'package:drop_mobile/data/repositories/notes_repository.dart';
 
 part 'notes_provider.g.dart';
 

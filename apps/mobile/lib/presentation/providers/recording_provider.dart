@@ -1,8 +1,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:throw_mobile/data/models/models.dart';
-import 'package:throw_mobile/data/services/audio_recorder_service.dart';
-import 'package:throw_mobile/data/services/whisper_service.dart';
-import 'package:throw_mobile/presentation/providers/notes_provider.dart';
+import 'package:drop_mobile/data/models/models.dart';
+import 'package:drop_mobile/data/services/audio_recorder_service.dart';
+import 'package:drop_mobile/data/services/whisper_service.dart';
+import 'package:drop_mobile/presentation/providers/notes_provider.dart';
 
 part 'recording_provider.g.dart';
 

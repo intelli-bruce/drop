@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:throw_mobile/core/config/supabase_config.dart';
-import 'package:throw_mobile/core/config/router.dart';
+import 'package:drop_mobile/core/config/supabase_config.dart';
+import 'package:drop_mobile/core/config/router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

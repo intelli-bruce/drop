@@ -1,5 +1,5 @@
 {
-  "name": "@throw/desktop",
+  "name": "@drop/desktop",
   "version": "0.0.0",
   "main": "./out/main/index.js",
   "scripts": {
@@ -20,7 +20,7 @@
     "@lexical/react": "^0.39.0",
     "@lexical/rich-text": "^0.39.0",
     "@supabase/supabase-js": "^2.89.0",
-    "@throw/shared": "workspace:*",
+    "@drop/shared": "workspace:*",
     "lexical": "^0.39.0",
     "react-file-icon": "^1.6.0",
     "zustand": "^5.0.2"

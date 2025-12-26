@@ -1,4 +1,4 @@
-package com.throw.throw_mobile
+package com.intellieffect.drop.mobile
 
 import io.flutter.embedding.android.FlutterActivity
 

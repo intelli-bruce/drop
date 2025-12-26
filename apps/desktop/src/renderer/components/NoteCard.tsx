@@ -7,7 +7,7 @@ import { TagInput, TagInputHandle } from './TagInput'
 import { useNotesStore } from '../stores/notes'
 import { formatRelativeTime } from '../lib/time-utils'
 import { useDragAndDrop } from '../hooks'
-import type { Note } from '@throw/shared'
+import type { Note } from '@drop/shared'
 
 interface Props {
   note: Note

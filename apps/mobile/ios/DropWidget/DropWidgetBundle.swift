@@ -2,8 +2,8 @@ import WidgetKit
 import SwiftUI
 
 @main
-struct ThrowWidgetBundle: WidgetBundle {
+struct DropWidgetBundle: WidgetBundle {
     var body: some Widget {
-        ThrowWidget()
+        DropWidget()
     }
 }

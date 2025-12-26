@@ -1,7 +1,7 @@
 /// <reference path="../../preload/index.d.ts" />
 import { useEffect, useState, useMemo } from 'react'
 import { extractYouTubeUrls } from '../lib/youtube-url-utils'
-import type { Attachment } from '@throw/shared'
+import type { Attachment } from '@drop/shared'
 
 interface YouTubeOEmbedData {
   title: string

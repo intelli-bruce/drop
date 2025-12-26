@@ -4,7 +4,7 @@ import { resolve } from 'path'
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin({ exclude: ['@throw/database', '@throw/shared'] })],
+    plugins: [externalizeDepsPlugin({ exclude: ['@drop/database', '@drop/shared'] })],
     build: {
       rollupOptions: {
         external: ['better-sqlite3'],
@@ -12,7 +12,7 @@ export default defineConfig({
     },
   },
   preload: {
-    plugins: [externalizeDepsPlugin({ exclude: ['@throw/shared'] })],
+    plugins: [externalizeDepsPlugin({ exclude: ['@drop/shared'] })],
   },
   renderer: {
     resolve: {

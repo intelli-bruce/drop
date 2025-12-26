@@ -1,4 +1,4 @@
-import type { Note, Attachment, Tag } from '@throw/shared'
+import type { Note, Attachment, Tag } from '@drop/shared'
 
 // Notes slice
 export interface NotesSlice {

@@ -1,7 +1,7 @@
 import type { StateCreator } from 'zustand'
 import { supabase, uploadAttachment } from '../../lib/supabase'
-import { attachmentRowToAttachment } from '@throw/shared'
-import type { AttachmentType, AttachmentRow } from '@throw/shared'
+import { attachmentRowToAttachment } from '@drop/shared'
+import type { AttachmentType, AttachmentRow } from '@drop/shared'
 import type { NotesState, AttachmentsSlice } from './types'
 
 export const createAttachmentsSlice: StateCreator<NotesState, [], [], AttachmentsSlice> = (set) => ({

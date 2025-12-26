@@ -4,8 +4,8 @@ import {
   tagRowToTag,
   noteRowToNote,
   attachmentRowToAttachment,
-} from '@throw/shared'
-import type { NoteRow, AttachmentRow, TagRow, Attachment, Tag } from '@throw/shared'
+} from '@drop/shared'
+import type { NoteRow, AttachmentRow, TagRow, Attachment, Tag } from '@drop/shared'
 import type { NotesState, NotesSlice } from './types'
 
 export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (set) => ({

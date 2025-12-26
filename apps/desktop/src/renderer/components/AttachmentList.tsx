@@ -1,7 +1,7 @@
 /// <reference path="../../preload/index.d.ts" />
 import { useEffect, useState } from 'react'
 import { FileIcon, defaultStyles } from 'react-file-icon'
-import type { Attachment } from '@throw/shared'
+import type { Attachment } from '@drop/shared'
 import { getAttachmentUrl, getSignedAttachmentUrl } from '../lib/supabase'
 
 interface Props {

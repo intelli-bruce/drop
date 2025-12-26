@@ -16,10 +16,10 @@
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
 		DD0229CAD03882958992756D /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4073263F74DF309C7D0BEC1F /* Pods_Runner.framework */; };
-		WIDGET001000000000000001 /* ThrowWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGET002000000000000001 /* ThrowWidgetBundle.swift */; };
-		WIDGET001000000000000002 /* ThrowWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGET002000000000000002 /* ThrowWidget.swift */; };
+		WIDGET001000000000000001 /* DropWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGET002000000000000001 /* DropWidgetBundle.swift */; };
+		WIDGET001000000000000002 /* DropWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = WIDGET002000000000000002 /* DropWidget.swift */; };
 		WIDGET001000000000000003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = WIDGET002000000000000003 /* Assets.xcassets */; };
-		WIDGET001000000000000004 /* ThrowWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = WIDGET003000000000000001 /* ThrowWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		WIDGET001000000000000004 /* DropWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = WIDGET003000000000000001 /* DropWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -35,7 +35,7 @@
 			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = WIDGET005000000000000001;
-			remoteInfo = ThrowWidgetExtension;
+			remoteInfo = DropWidgetExtension;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -56,7 +56,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				WIDGET001000000000000004 /* ThrowWidgetExtension.appex in Embed Foundation Extensions */,
+				WIDGET001000000000000004 /* DropWidgetExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -65,12 +65,12 @@
 
 /* Begin PBXFileReference section */
 		040259256745FE3F0A0932A1 /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
-		WIDGET002000000000000001 /* ThrowWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThrowWidgetBundle.swift; sourceTree = "<group>"; };
-		WIDGET002000000000000002 /* ThrowWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThrowWidget.swift; sourceTree = "<group>"; };
+		WIDGET002000000000000001 /* DropWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropWidgetBundle.swift; sourceTree = "<group>"; };
+		WIDGET002000000000000002 /* DropWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropWidget.swift; sourceTree = "<group>"; };
 		WIDGET002000000000000003 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		WIDGET002000000000000004 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		WIDGET002000000000000005 /* ThrowWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ThrowWidget.entitlements; sourceTree = "<group>"; };
-		WIDGET003000000000000001 /* ThrowWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ThrowWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		WIDGET002000000000000005 /* DropWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DropWidget.entitlements; sourceTree = "<group>"; };
+		WIDGET003000000000000001 /* DropWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DropWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
 		331C807B294A618700263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
@@ -150,22 +150,22 @@
 				97C146F01CF9000F007C117D /* Runner */,
 				97C146EF1CF9000F007C117D /* Products */,
 				331C8082294A63A400263BE5 /* RunnerTests */,
-				WIDGET007000000000000001 /* ThrowWidget */,
+				WIDGET007000000000000001 /* DropWidget */,
 				CF102F388A58DE6FDE0FC6DA /* Pods */,
 				26E2766D9FA703FDEFADCDE2 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
-		WIDGET007000000000000001 /* ThrowWidget */ = {
+		WIDGET007000000000000001 /* DropWidget */ = {
 			isa = PBXGroup;
 			children = (
-				WIDGET002000000000000001 /* ThrowWidgetBundle.swift */,
-				WIDGET002000000000000002 /* ThrowWidget.swift */,
+				WIDGET002000000000000001 /* DropWidgetBundle.swift */,
+				WIDGET002000000000000002 /* DropWidget.swift */,
 				WIDGET002000000000000003 /* Assets.xcassets */,
 				WIDGET002000000000000004 /* Info.plist */,
-				WIDGET002000000000000005 /* ThrowWidget.entitlements */,
+				WIDGET002000000000000005 /* DropWidget.entitlements */,
 			);
-			path = ThrowWidget;
+			path = DropWidget;
 			sourceTree = "<group>";
 		};
 		97C146EF1CF9000F007C117D /* Products */ = {
@@ -173,7 +173,7 @@
 			children = (
 				97C146EE1CF9000F007C117D /* Runner.app */,
 				331C8081294A63A400263BE5 /* RunnerTests.xctest */,
-				WIDGET003000000000000001 /* ThrowWidgetExtension.appex */,
+				WIDGET003000000000000001 /* DropWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -220,9 +220,9 @@
 /* End PBXFrameworksBuildPhase section - Widget */
 
 /* Begin PBXNativeTarget section */
-		WIDGET005000000000000001 /* ThrowWidgetExtension */ = {
+		WIDGET005000000000000001 /* DropWidgetExtension */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = WIDGET009000000000000001 /* Build configuration list for PBXNativeTarget "ThrowWidgetExtension" */;
+			buildConfigurationList = WIDGET009000000000000001 /* Build configuration list for PBXNativeTarget "DropWidgetExtension" */;
 			buildPhases = (
 				WIDGET00A000000000000001 /* Sources */,
 				WIDGET008000000000000001 /* Frameworks */,
@@ -232,9 +232,9 @@
 			);
 			dependencies = (
 			);
-			name = ThrowWidgetExtension;
-			productName = ThrowWidgetExtension;
-			productReference = WIDGET003000000000000001 /* ThrowWidgetExtension.appex */;
+			name = DropWidgetExtension;
+			productName = DropWidgetExtension;
+			productReference = WIDGET003000000000000001 /* DropWidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 		331C8080294A63A400263BE5 /* RunnerTests */ = {
@@ -288,8 +288,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				WIDGET001000000000000001 /* ThrowWidgetBundle.swift in Sources */,
-				WIDGET001000000000000002 /* ThrowWidget.swift in Sources */,
+				WIDGET001000000000000001 /* DropWidgetBundle.swift in Sources */,
+				WIDGET001000000000000002 /* DropWidget.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -339,7 +339,7 @@
 			targets = (
 				97C146ED1CF9000F007C117D /* Runner */,
 				331C8080294A63A400263BE5 /* RunnerTests */,
-				WIDGET005000000000000001 /* ThrowWidgetExtension */,
+				WIDGET005000000000000001 /* DropWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -505,7 +505,7 @@
 		};
 		WIDGET00D000000000000001 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = WIDGET005000000000000001 /* ThrowWidgetExtension */;
+			target = WIDGET005000000000000001 /* DropWidgetExtension */;
 			targetProxy = WIDGET004000000000000001 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -596,7 +596,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.throw.throwMobile;
+				PRODUCT_BUNDLE_IDENTIFIER = com.intellieffect.drop.mobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -613,7 +613,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.throw.throwMobile.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.intellieffect.drop.mobile.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -631,7 +631,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.throw.throwMobile.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.intellieffect.drop.mobile.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
@@ -647,7 +647,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.throw.throwMobile.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.intellieffect.drop.mobile.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
@@ -779,7 +779,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.throw.throwMobile;
+				PRODUCT_BUNDLE_IDENTIFIER = com.intellieffect.drop.mobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -802,7 +802,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.throw.throwMobile;
+				PRODUCT_BUNDLE_IDENTIFIER = com.intellieffect.drop.mobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -815,13 +815,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
-				CODE_SIGN_ENTITLEMENTS = ThrowWidget/ThrowWidget.entitlements;
+				CODE_SIGN_ENTITLEMENTS = DropWidget/DropWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = BMGD68PVC4;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = ThrowWidget/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Throw Widget";
+				INFOPLIST_FILE = DropWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "DROP Widget";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -830,7 +830,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.throw.throwMobile.ThrowWidget;
+				PRODUCT_BUNDLE_IDENTIFIER = com.intellieffect.drop.mobile.DropWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
@@ -846,13 +846,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
-				CODE_SIGN_ENTITLEMENTS = ThrowWidget/ThrowWidget.entitlements;
+				CODE_SIGN_ENTITLEMENTS = DropWidget/DropWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = BMGD68PVC4;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = ThrowWidget/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Throw Widget";
+				INFOPLIST_FILE = DropWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "DROP Widget";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -861,7 +861,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.throw.throwMobile.ThrowWidget;
+				PRODUCT_BUNDLE_IDENTIFIER = com.intellieffect.drop.mobile.DropWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -875,13 +875,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
-				CODE_SIGN_ENTITLEMENTS = ThrowWidget/ThrowWidget.entitlements;
+				CODE_SIGN_ENTITLEMENTS = DropWidget/DropWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = BMGD68PVC4;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = ThrowWidget/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Throw Widget";
+				INFOPLIST_FILE = DropWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "DROP Widget";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -890,7 +890,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.throw.throwMobile.ThrowWidget;
+				PRODUCT_BUNDLE_IDENTIFIER = com.intellieffect.drop.mobile.DropWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -932,7 +932,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		WIDGET009000000000000001 /* Build configuration list for PBXNativeTarget "ThrowWidgetExtension" */ = {
+		WIDGET009000000000000001 /* Build configuration list for PBXNativeTarget "DropWidgetExtension" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				WIDGET00C000000000000001 /* Debug */,

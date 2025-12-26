@@ -2,8 +2,8 @@
 import type { StateCreator } from 'zustand'
 import { supabase } from '../../lib/supabase'
 import { fileFromDataUrl, extensionFromMime, normalizeExternalUrl } from '../../lib/file-utils'
-import { attachmentRowToAttachment } from '@throw/shared'
-import type { AttachmentRow, Attachment } from '@throw/shared'
+import { attachmentRowToAttachment } from '@drop/shared'
+import type { AttachmentRow, Attachment } from '@drop/shared'
 import type { NotesState, InstagramSlice } from './types'
 
 interface InstagramMediaItem {

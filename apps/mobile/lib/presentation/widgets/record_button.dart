@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:throw_mobile/data/services/audio_recorder_service.dart';
-import 'package:throw_mobile/presentation/widgets/waveform_view.dart';
+import 'package:drop_mobile/data/services/audio_recorder_service.dart';
+import 'package:drop_mobile/presentation/widgets/waveform_view.dart';
 
 /// Recording button with waveform visualization
 class RecordButton extends ConsumerStatefulWidget {

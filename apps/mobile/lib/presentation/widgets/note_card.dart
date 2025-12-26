@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:throw_mobile/core/utils/time_utils.dart';
-import 'package:throw_mobile/data/models/models.dart';
-import 'package:throw_mobile/presentation/providers/notes_provider.dart';
+import 'package:drop_mobile/core/utils/time_utils.dart';
+import 'package:drop_mobile/data/models/models.dart';
+import 'package:drop_mobile/presentation/providers/notes_provider.dart';
 
 class NoteCard extends ConsumerWidget {
   final Note note;

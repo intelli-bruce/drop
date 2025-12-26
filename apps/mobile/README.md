@@ -1,4 +1,4 @@
-# throw_mobile
+# drop_mobile
 
 A new Flutter project.
 

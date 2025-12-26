@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:throw_mobile/core/config/secrets.dart';
+import 'package:drop_mobile/core/config/secrets.dart';
 
 /// OpenAI Whisper transcription service
 class WhisperService {

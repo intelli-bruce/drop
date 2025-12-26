@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import type { Tag } from '@throw/shared'
+import type { Tag } from '@drop/shared'
 import { useNotesStore } from '../stores/notes'
 
 interface Props {

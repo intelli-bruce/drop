@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:throw_mobile/presentation/providers/notes_provider.dart';
-import 'package:throw_mobile/presentation/widgets/note_card.dart';
+import 'package:drop_mobile/presentation/providers/notes_provider.dart';
+import 'package:drop_mobile/presentation/widgets/note_card.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});

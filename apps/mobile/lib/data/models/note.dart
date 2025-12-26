@@ -1,6 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:throw_mobile/data/models/attachment.dart';
-import 'package:throw_mobile/data/models/tag.dart';
+import 'package:drop_mobile/data/models/attachment.dart';
+import 'package:drop_mobile/data/models/tag.dart';
 
 part 'note.freezed.dart';
 part 'note.g.dart';
