@@ -18,7 +18,7 @@
     "dist:remote": "electron-vite build --mode remote && electron-builder --mac"
   },
   "build": {
-    "appId": "com.drop.app",
+    "appId": "com.intellieffect.drop.desktop",
     "productName": "DROP",
     "directories": {
       "output": "release"
@@ -32,7 +32,11 @@
     "nodeGypRebuild": false,
     "mac": {
       "target": "dmg",
-      "category": "public.app-category.productivity"
+      "category": "public.app-category.productivity",
+      "identity": "Developer Name (J2Y925QHNV)",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "notarize": true
     },
     "dmg": {
       "title": "DROP",
