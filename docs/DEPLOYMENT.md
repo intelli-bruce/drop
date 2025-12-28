@@ -123,6 +123,55 @@ xcrun altool --upload-app --type ios \
 
 ---
 
+## GitHub Actions CI/CD
+
+### 워크플로우
+
+| 워크플로우 | 트리거 | 설명 |
+|-----------|--------|------|
+| `ci.yml` | Push/PR to main | 테스트, 린트, 빌드 검증 |
+| `release.yml` | Tag push (v*) | Mac DMG + iOS TestFlight 배포 |
+
+### 필요한 GitHub Secrets
+
+| Secret | 설명 |
+|--------|------|
+| `APPLE_ID` | Apple Developer 이메일 |
+| `APPLE_APP_SPECIFIC_PASSWORD` | 앱 전용 비밀번호 |
+| `APPLE_TEAM_ID` | Team ID (J2Y925QHNV) |
+| `CERTIFICATES_P12` | 인증서 파일 (base64 인코딩) |
+| `CSC_KEY_PASSWORD` | P12 파일 비밀번호 |
+| `SUPABASE_URL` | Supabase 프로젝트 URL |
+| `SUPABASE_ANON_KEY` | Supabase Anonymous Key |
+
+### Secrets 설정 방법
+
+**1. P12 파일 Base64 인코딩:**
+```bash
+base64 -i Certificates.p12 | pbcopy
+# 클립보드에 복사된 값을 CERTIFICATES_P12 시크릿에 저장
+```
+
+**2. GitHub에서 Secrets 추가:**
+- Repository → Settings → Secrets and variables → Actions
+- "New repository secret" 클릭
+- 위 테이블의 각 시크릿 추가
+
+### 릴리스 방법
+
+```bash
+# 버전 태그 생성 및 푸시
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+태그 푸시 시 자동으로:
+1. Mac DMG 빌드 + Notarization
+2. iOS IPA 빌드 + TestFlight 업로드
+3. GitHub Release에 DMG 첨부
+
+---
+
 ## 문제 해결
 
 ### Notarization 실패
