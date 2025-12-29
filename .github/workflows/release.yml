@@ -91,6 +91,14 @@ jobs:
           DMG_NAME=$(basename "$DMG_FILE")
           VERSION="${{ steps.version.outputs.VERSION }}"
 
+          # Create releases bucket if not exists
+          curl -X POST \
+            "${SUPABASE_URL}/storage/v1/bucket" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "Content-Type: application/json" \
+            -d '{"id": "releases", "name": "releases", "public": true}' \
+            || true
+
           # Upload to releases/desktop/{version}/DROP-{version}.dmg
           curl -X POST \
             "${SUPABASE_URL}/storage/v1/object/releases/desktop/${VERSION}/${DMG_NAME}" \
@@ -111,7 +119,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.32.0'
+          flutter-version: '3.38.5'
           channel: 'stable'
 
       - name: Install dependencies
