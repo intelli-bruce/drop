@@ -36,7 +36,8 @@
       "identity": "Developer Name (J2Y925QHNV)",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
-      "notarize": true
+      "notarize": true,
+      "icon": "build/icon.png"
     },
     "dmg": {
       "title": "DROP",

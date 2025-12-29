@@ -63,6 +63,13 @@ dev_dependencies:
   riverpod_generator: ^3.0.3
   custom_lint: ^0.8.0
   riverpod_lint: ^3.0.3
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  ios: true
+  android: false
+  image_path: "assets/icon/app_icon.png"
+  remove_alpha_ios: true
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
