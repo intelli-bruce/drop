@@ -78,6 +78,30 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Upload DMG to Supabase Storage
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          DMG_FILE=$(ls apps/desktop/release/*.dmg | head -1)
+          DMG_NAME=$(basename "$DMG_FILE")
+          VERSION="${{ steps.version.outputs.VERSION }}"
+
+          # Upload to releases/desktop/{version}/DROP-{version}.dmg
+          curl -X POST \
+            "${SUPABASE_URL}/storage/v1/object/releases/desktop/${VERSION}/${DMG_NAME}" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "Content-Type: application/octet-stream" \
+            -H "x-upsert: true" \
+            --data-binary "@${DMG_FILE}" \
+            --fail --show-error
+
+          echo "✅ Uploaded ${DMG_NAME} to Supabase Storage: releases/desktop/${VERSION}/${DMG_NAME}"
+
   # iOS (Flutter) 빌드 및 TestFlight 업로드
   release-ios:
     runs-on: macos-latest
