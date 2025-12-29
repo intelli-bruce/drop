@@ -33,7 +33,7 @@ final class NotesNotifierProvider
   NotesNotifier create() => NotesNotifier();
 }
 
-String _$notesNotifierHash() => r'45ac7ff4ac0c284fb8bc76cd92418fff9edc36ae';
+String _$notesNotifierHash() => r'f8c0acb4dc46e338be51697269cd40aaba98fc55';
 
 abstract class _$NotesNotifier extends $AsyncNotifier<List<Note>> {
   FutureOr<List<Note>> build();
@@ -54,22 +54,22 @@ abstract class _$NotesNotifier extends $AsyncNotifier<List<Note>> {
   }
 }
 
-/// Provides notes grouped by date
+/// Provides notes grouped by date with thread depth
 
 @ProviderFor(notesGroupedByDate)
 const notesGroupedByDateProvider = NotesGroupedByDateProvider._();
 
-/// Provides notes grouped by date
+/// Provides notes grouped by date with thread depth
 
 final class NotesGroupedByDateProvider
     extends
         $FunctionalProvider<
-          Map<String, List<Note>>,
-          Map<String, List<Note>>,
-          Map<String, List<Note>>
+          Map<String, List<NoteListItem>>,
+          Map<String, List<NoteListItem>>,
+          Map<String, List<NoteListItem>>
         >
-    with $Provider<Map<String, List<Note>>> {
-  /// Provides notes grouped by date
+    with $Provider<Map<String, List<NoteListItem>>> {
+  /// Provides notes grouped by date with thread depth
   const NotesGroupedByDateProvider._()
     : super(
         from: null,
@@ -86,23 +86,25 @@ final class NotesGroupedByDateProvider
 
   @$internal
   @override
-  $ProviderElement<Map<String, List<Note>>> $createElement(
+  $ProviderElement<Map<String, List<NoteListItem>>> $createElement(
     $ProviderPointer pointer,
   ) => $ProviderElement(pointer);
 
   @override
-  Map<String, List<Note>> create(Ref ref) {
+  Map<String, List<NoteListItem>> create(Ref ref) {
     return notesGroupedByDate(ref);
   }
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(Map<String, List<Note>> value) {
+  Override overrideWithValue(Map<String, List<NoteListItem>> value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<Map<String, List<Note>>>(value),
+      providerOverride: $SyncValueProvider<Map<String, List<NoteListItem>>>(
+        value,
+      ),
     );
   }
 }
 
 String _$notesGroupedByDateHash() =>
-    r'78f763466fe16dae392062bc9c0731a63eec1644';
+    r'429f2e04fa2ff48eff0ea971e3cf1d0a926ad52a';

@@ -1,34 +1,33 @@
+import 'dart:async';
+
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drop_mobile/core/utils/time_utils.dart';
 import 'package:drop_mobile/data/models/models.dart';
+import 'package:drop_mobile/data/repositories/attachments_repository.dart';
 import 'package:drop_mobile/presentation/providers/notes_provider.dart';
 
 class NoteCard extends ConsumerWidget {
   final Note note;
   final int depth;
+  final VoidCallback? onEdit;
+  final VoidCallback? onReply;
 
   const NoteCard({
     super.key,
     required this.note,
     this.depth = 0,
+    this.onEdit,
+    this.onReply,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Container(
-      margin: EdgeInsets.only(left: depth * 24.0),
+    final cardContent = Container(
       decoration: BoxDecoration(
         color: const Color(0xFF2A2A2A),
         borderRadius: BorderRadius.circular(8),
-        border: depth > 0
-            ? const Border(
-                left: BorderSide(
-                  color: Color(0xFF333333),
-                  width: 2,
-                ),
-              )
-            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -55,11 +54,12 @@ class NoteCard extends ConsumerWidget {
                   children: [
                     // Reply button
                     GestureDetector(
-                      onTap: () async {
-                        await ref
-                            .read(notesProvider.notifier)
-                            .createNote(parentId: note.id);
-                      },
+                      onTap: onReply ??
+                          () async {
+                            await ref
+                                .read(notesProvider.notifier)
+                                .createNote(parentId: note.id);
+                          },
                       child: const Padding(
                         padding: EdgeInsets.all(4),
                         child: Icon(
@@ -87,7 +87,6 @@ class NoteCard extends ConsumerWidget {
               ],
             ),
           ),
-
           // Content
           Padding(
             padding: const EdgeInsets.all(12),
@@ -104,13 +103,36 @@ class NoteCard extends ConsumerWidget {
               ),
             ),
           ),
-
           // Attachments
           if (note.attachments.isNotEmpty) _buildAttachments(),
-
           // Tags
           if (note.tags.isNotEmpty) _buildTags(),
         ],
+      ),
+    );
+
+    return GestureDetector(
+      onTap: onEdit,
+      child: Padding(
+        padding: EdgeInsets.only(left: depth * 24.0),
+        child: depth > 0
+            ? IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      width: 2,
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF444444),
+                        borderRadius: BorderRadius.circular(1),
+                      ),
+                    ),
+                    Expanded(child: cardContent),
+                  ],
+                ),
+              )
+            : cardContent,
       ),
     );
   }
@@ -127,6 +149,9 @@ class NoteCard extends ConsumerWidget {
         spacing: 8,
         runSpacing: 8,
         children: note.attachments.map((attachment) {
+          if (attachment.type == AttachmentType.audio) {
+            return _AudioAttachmentChip(attachment: attachment);
+          }
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
@@ -236,6 +261,117 @@ class NoteCard extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AudioAttachmentChip extends ConsumerStatefulWidget {
+  final Attachment attachment;
+
+  const _AudioAttachmentChip({
+    required this.attachment,
+  });
+
+  @override
+  ConsumerState<_AudioAttachmentChip> createState() =>
+      _AudioAttachmentChipState();
+}
+
+class _AudioAttachmentChipState extends ConsumerState<_AudioAttachmentChip> {
+  final AudioPlayer _player = AudioPlayer();
+  StreamSubscription<void>? _completionSubscription;
+  bool _isPlaying = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _completionSubscription = _player.onPlayerComplete.listen((_) {
+      if (mounted) {
+        setState(() => _isPlaying = false);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _completionSubscription?.cancel();
+    _player.dispose();
+    super.dispose();
+  }
+
+  Future<void> _togglePlay(String url) async {
+    if (_isPlaying) {
+      await _player.stop();
+      if (mounted) setState(() => _isPlaying = false);
+      return;
+    }
+
+    await _player.play(UrlSource(url));
+    if (mounted) setState(() => _isPlaying = true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final urlAsync = ref.watch(
+      attachmentSignedUrlProvider(widget.attachment.storagePath),
+    );
+
+    return urlAsync.when(
+      data: (url) => GestureDetector(
+        onTap: () => _togglePlay(url),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: const Color(0xFF242424),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: const Color(0xFF333333)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                _isPlaying ? Icons.pause : Icons.play_arrow,
+                color: const Color(0xFF888888),
+                size: 16,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                widget.attachment.filename ?? 'audio',
+                style: const TextStyle(
+                  color: Color(0xFF888888),
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      loading: () => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFF242424),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: const Color(0xFF333333)),
+        ),
+        child: const SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+      error: (error, stack) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFF242424),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: const Color(0xFF333333)),
+        ),
+        child: const Icon(
+          Icons.error_outline,
+          color: Color(0xFF888888),
+          size: 16,
+        ),
       ),
     );
   }

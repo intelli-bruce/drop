@@ -120,6 +120,21 @@ class NotesNotifier extends _$NotesNotifier {
     }
   }
 
+  /// Attach a new attachment to a note in state
+  void addAttachmentToNote(String noteId, Attachment attachment) {
+    final current = state.value ?? [];
+    if (current.isEmpty) return;
+
+    state = AsyncData(
+      current.map((n) {
+        if (n.id == noteId) {
+          return n.copyWith(attachments: [...n.attachments, attachment]);
+        }
+        return n;
+      }).toList(),
+    );
+  }
+
   /// Delete a note
   Future<void> deleteNote(String id) async {
     final repository = ref.read(notesRepositoryProvider);
@@ -139,18 +154,62 @@ class NotesNotifier extends _$NotesNotifier {
   }
 }
 
-/// Provides notes grouped by date
-@riverpod
-Map<String, List<Note>> notesGroupedByDate(Ref ref) {
-  final notes = ref.watch(notesProvider).value ?? [];
-  final grouped = <String, List<Note>>{};
+class NoteListItem {
+  final Note note;
+  final int depth;
 
-  for (final note in notes) {
-    final dateKey = _formatDateKey(note.createdAt);
-    grouped.putIfAbsent(dateKey, () => []).add(note);
+  const NoteListItem({
+    required this.note,
+    required this.depth,
+  });
+}
+
+/// Provides notes grouped by date with thread depth
+@riverpod
+Map<String, List<NoteListItem>> notesGroupedByDate(Ref ref) {
+  final notes = ref.watch(notesProvider).value ?? [];
+  final flattened = _flattenNotes(notes);
+  final grouped = <String, List<NoteListItem>>{};
+
+  for (final item in flattened) {
+    final dateKey = _formatDateKey(item.note.createdAt);
+    grouped.putIfAbsent(dateKey, () => []).add(item);
   }
 
   return grouped;
+}
+
+List<NoteListItem> _flattenNotes(List<Note> notes) {
+  final roots = notes.where((n) => n.parentId == null).toList()
+    ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+  final childrenMap = <String, List<Note>>{};
+  for (final note in notes) {
+    final parentId = note.parentId;
+    if (parentId == null) continue;
+    childrenMap.putIfAbsent(parentId, () => []).add(note);
+  }
+
+  for (final children in childrenMap.values) {
+    children.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+  }
+
+  final result = <NoteListItem>[];
+
+  void walk(Note note, int depth) {
+    result.add(NoteListItem(note: note, depth: depth));
+    final children = childrenMap[note.id];
+    if (children == null) return;
+    for (final child in children) {
+      walk(child, depth + 1);
+    }
+  }
+
+  for (final root in roots) {
+    walk(root, 0);
+  }
+
+  return result;
 }
 
 String _formatDateKey(DateTime date) {

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:drop_mobile/data/models/models.dart';
 import 'package:drop_mobile/presentation/providers/notes_provider.dart';
 import 'package:drop_mobile/presentation/widgets/note_card.dart';
+import 'package:drop_mobile/presentation/widgets/note_composer_sheet.dart';
+import 'package:drop_mobile/presentation/widgets/recording_sheet.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -88,13 +91,34 @@ class HomeScreen extends ConsumerWidget {
           return const _NoteFeed();
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await ref.read(notesProvider.notifier).createNote();
-        },
-        backgroundColor: const Color(0xFF4A9EFF),
-        child: const Icon(Icons.add),
+      floatingActionButton: _ActionButtons(
+        onAddPressed: () => _openComposer(context),
+        onRecordPressed: () => _openRecorder(context),
       ),
+    );
+  }
+
+  Future<void> _openComposer(BuildContext context, {String? parentId}) async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => NoteComposerSheet(parentId: parentId),
+    );
+  }
+
+  Future<void> _openRecorder(BuildContext context) async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => const RecordingSheet(),
     );
   }
 }
@@ -128,13 +152,81 @@ class _NoteFeed extends ConsumerWidget {
                 ),
               ),
             ),
-            ...dateNotes.map((note) => Padding(
+            ...dateNotes.map((item) => Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: NoteCard(note: note),
+                  child: NoteCard(
+                    note: item.note,
+                    depth: item.depth,
+                    onEdit: () => _openEditComposer(context, item.note),
+                    onReply: () => _openReplyComposer(context, item.note.id),
+                  ),
                 )),
           ],
         );
       },
+    );
+  }
+
+  Future<void> _openEditComposer(
+    BuildContext context,
+    Note note,
+  ) async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => NoteComposerSheet(note: note),
+    );
+  }
+
+  Future<void> _openReplyComposer(
+    BuildContext context,
+    String parentId,
+  ) async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => NoteComposerSheet(parentId: parentId),
+    );
+  }
+}
+
+class _ActionButtons extends StatelessWidget {
+  final VoidCallback onAddPressed;
+  final VoidCallback onRecordPressed;
+
+  const _ActionButtons({
+    required this.onAddPressed,
+    required this.onRecordPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        FloatingActionButton(
+          heroTag: 'record',
+          mini: true,
+          onPressed: onRecordPressed,
+          backgroundColor: const Color(0xFF2A2A2A),
+          child: const Icon(Icons.mic),
+        ),
+        const SizedBox(height: 12),
+        FloatingActionButton(
+          heroTag: 'add',
+          onPressed: onAddPressed,
+          backgroundColor: const Color(0xFF4A9EFF),
+          child: const Icon(Icons.add),
+        ),
+      ],
     );
   }
 }

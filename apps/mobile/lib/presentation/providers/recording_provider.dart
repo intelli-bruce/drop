@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:drop_mobile/data/models/models.dart';
 import 'package:drop_mobile/data/services/audio_recorder_service.dart';
+import 'package:drop_mobile/data/repositories/attachments_repository.dart';
 import 'package:drop_mobile/data/services/whisper_service.dart';
 import 'package:drop_mobile/presentation/providers/notes_provider.dart';
 
@@ -9,57 +12,25 @@ part 'recording_provider.g.dart';
 /// Recording state
 enum RecordingState {
   idle,
-  recording,
   transcribing,
   error,
 }
 
-/// Recording provider for managing voice recording and transcription
+/// Provider for managing audio transcription
 @riverpod
 class RecordingNotifier extends _$RecordingNotifier {
-  AudioRecorderService? _recorder;
   final WhisperService _whisperService = WhisperService();
 
   @override
   RecordingState build() {
-    ref.onDispose(() {
-      _recorder?.dispose();
-    });
     return RecordingState.idle;
   }
 
-  AudioRecorderService get recorder {
-    _recorder ??= AudioRecorderService();
-    return _recorder!;
-  }
-
-  bool get isRecording => recorder.isRecording;
-  double get recordingTime => recorder.recordingTime;
-  String get formattedTime => recorder.formattedTime;
-  double get currentLevel => recorder.currentLevel;
-  List<double> get audioLevels => recorder.audioLevels;
-
-  /// Check microphone permission
-  Future<bool> hasPermission() async {
-    return recorder.hasPermission();
-  }
-
-  /// Start recording
-  Future<void> startRecording() async {
-    try {
-      await recorder.startRecording();
-      state = RecordingState.recording;
-    } catch (e) {
-      state = RecordingState.error;
-      rethrow;
-    }
-  }
-
-  /// Stop recording and transcribe
-  Future<Note?> stopAndTranscribe({String? parentId}) async {
-    final path = await recorder.stopRecording();
-    if (path == null) return null;
-
+  /// Transcribe an existing audio file and create a note
+  Future<Note?> transcribeFromPath({
+    required String path,
+    String? parentId,
+  }) async {
     state = RecordingState.transcribing;
 
     try {
@@ -72,7 +43,7 @@ class RecordingNotifier extends _$RecordingNotifier {
             parentId: parentId,
           );
 
-      // TODO: Upload audio file to storage and attach to note
+      await _attachAudioToNote(note.id, path);
 
       state = RecordingState.idle;
       return note;
@@ -85,6 +56,9 @@ class RecordingNotifier extends _$RecordingNotifier {
             parentId: parentId,
           );
 
+      await _attachAudioToNote(note.id, path);
+
+      state = RecordingState.idle;
       return note;
     } finally {
       // Clean up audio file
@@ -92,9 +66,15 @@ class RecordingNotifier extends _$RecordingNotifier {
     }
   }
 
-  /// Cancel recording
-  Future<void> cancelRecording() async {
-    await recorder.cancelRecording();
-    state = RecordingState.idle;
+  Future<void> _attachAudioToNote(String noteId, String path) async {
+    final file = File(path);
+    if (!await file.exists()) return;
+
+    try {
+      final attachment = await ref
+          .read(attachmentsRepositoryProvider)
+          .createAudioAttachment(noteId: noteId, file: file);
+      ref.read(notesProvider.notifier).addAttachmentToNote(noteId, attachment);
+    } catch (_) {}
   }
 }
