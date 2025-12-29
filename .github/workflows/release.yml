@@ -78,38 +78,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get version from tag
-        id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
-      - name: Upload DMG to Supabase Storage
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: |
-          DMG_FILE=$(ls apps/desktop/release/*.dmg | head -1)
-          DMG_NAME=$(basename "$DMG_FILE")
-          VERSION="${{ steps.version.outputs.VERSION }}"
-
-          # Create releases bucket if not exists
-          curl -X POST \
-            "${SUPABASE_URL}/storage/v1/bucket" \
-            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
-            -H "Content-Type: application/json" \
-            -d '{"id": "releases", "name": "releases", "public": true}' \
-            || true
-
-          # Upload to releases/desktop/{version}/DROP-{version}.dmg
-          curl -X POST \
-            "${SUPABASE_URL}/storage/v1/object/releases/desktop/${VERSION}/${DMG_NAME}" \
-            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
-            -H "Content-Type: application/octet-stream" \
-            -H "x-upsert: true" \
-            --data-binary "@${DMG_FILE}" \
-            --fail --show-error
-
-          echo "✅ Uploaded ${DMG_NAME} to Supabase Storage: releases/desktop/${VERSION}/${DMG_NAME}"
-
   # iOS (Flutter) 빌드 및 TestFlight 업로드
   release-ios:
     runs-on: macos-latest
@@ -143,10 +111,12 @@ jobs:
         working-directory: apps/mobile/ios
         run: pod install
 
-      - name: Import Code Signing Certificate
+      - name: Import Code Signing Certificate and Provisioning Profiles
         env:
           CERTIFICATES_P12: ${{ secrets.CERTIFICATES_P12 }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          IOS_PROVISIONING_PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE }}
+          IOS_WIDGET_PROVISIONING_PROFILE: ${{ secrets.IOS_WIDGET_PROVISIONING_PROFILE }}
         run: |
           CERTIFICATE_PATH=$RUNNER_TEMP/certificate.p12
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
@@ -160,6 +130,11 @@ jobs:
           security import $CERTIFICATE_PATH -P "$CSC_KEY_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
           security list-keychain -d user -s $KEYCHAIN_PATH
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          # Install provisioning profiles
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo -n "$IOS_PROVISIONING_PROFILE" | base64 --decode -o ~/Library/MobileDevice/Provisioning\ Profiles/drop_mobile.mobileprovision
+          echo -n "$IOS_WIDGET_PROVISIONING_PROFILE" | base64 --decode -o ~/Library/MobileDevice/Provisioning\ Profiles/drop_widget.mobileprovision
 
       - name: Build IPA
         working-directory: apps/mobile
