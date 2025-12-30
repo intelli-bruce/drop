@@ -138,12 +138,30 @@ jobs:
           echo -n "$IOS_SHARE_EXTENSION_PROVISIONING_PROFILE" | base64 --decode -o ~/Library/MobileDevice/Provisioning\ Profiles/drop_share_extension.mobileprovision
           echo -n "$IOS_WIDGET_PROVISIONING_PROFILE" | base64 --decode -o ~/Library/MobileDevice/Provisioning\ Profiles/drop_widget.mobileprovision
 
+      - name: Configure Manual Signing
+        run: |
+          # Extract provisioning profile UUIDs
+          MAIN_UUID=$(grep -a UUID -A1 ~/Library/MobileDevice/Provisioning\ Profiles/drop_mobile.mobileprovision | grep -o '[-A-Z0-9]\{36\}')
+          SHARE_UUID=$(grep -a UUID -A1 ~/Library/MobileDevice/Provisioning\ Profiles/drop_share_extension.mobileprovision | grep -o '[-A-Z0-9]\{36\}')
+          WIDGET_UUID=$(grep -a UUID -A1 ~/Library/MobileDevice/Provisioning\ Profiles/drop_widget.mobileprovision | grep -o '[-A-Z0-9]\{36\}')
+
+          echo "Main UUID: $MAIN_UUID"
+          echo "Share UUID: $SHARE_UUID"
+          echo "Widget UUID: $WIDGET_UUID"
+
+          # Update Release configuration to use manual signing
+          PBXPROJ="apps/mobile/ios/Runner.xcodeproj/project.pbxproj"
+
+          # Replace CODE_SIGN_STYLE for Release builds
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' "$PBXPROJ"
+
       - name: Build IPA
         working-directory: apps/mobile
         run: |
           flutter build ipa \
             --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
-            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
+            --export-options-plist=ios/ExportOptions.plist
 
       - name: Upload to TestFlight
         env:
