@@ -1,7 +1,8 @@
+import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:drop_mobile/data/models/models.dart';
 import 'package:drop_mobile/data/services/audio_recorder_service.dart';
 import 'package:drop_mobile/data/repositories/attachments_repository.dart';
 import 'package:drop_mobile/data/services/whisper_service.dart';
@@ -9,61 +10,244 @@ import 'package:drop_mobile/presentation/providers/notes_provider.dart';
 
 part 'recording_provider.g.dart';
 
-/// Recording state
-enum RecordingState {
+/// Recording phase
+enum RecordingPhase {
   idle,
+  recording,
   transcribing,
-  error,
 }
 
-/// Provider for managing audio transcription
-@riverpod
+/// Recording state
+@immutable
+class RecordingState {
+  final RecordingPhase phase;
+  final String? activeNoteId;
+  final List<double> audioLevels;
+  final double recordingTime;
+  final String? error;
+  final String? audioPath;
+
+  const RecordingState({
+    this.phase = RecordingPhase.idle,
+    this.activeNoteId,
+    this.audioLevels = const [],
+    this.recordingTime = 0,
+    this.error,
+    this.audioPath,
+  });
+
+  bool get isIdle => phase == RecordingPhase.idle;
+  bool get isRecording => phase == RecordingPhase.recording;
+  bool get isTranscribing => phase == RecordingPhase.transcribing;
+
+  String get formattedTime {
+    final minutes = (recordingTime ~/ 60).toString();
+    final seconds = (recordingTime % 60).toInt().toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
+  RecordingState copyWith({
+    RecordingPhase? phase,
+    String? activeNoteId,
+    List<double>? audioLevels,
+    double? recordingTime,
+    String? error,
+    String? audioPath,
+    bool clearActiveNoteId = false,
+    bool clearError = false,
+    bool clearAudioPath = false,
+  }) {
+    return RecordingState(
+      phase: phase ?? this.phase,
+      activeNoteId: clearActiveNoteId ? null : (activeNoteId ?? this.activeNoteId),
+      audioLevels: audioLevels ?? this.audioLevels,
+      recordingTime: recordingTime ?? this.recordingTime,
+      error: clearError ? null : (error ?? this.error),
+      audioPath: clearAudioPath ? null : (audioPath ?? this.audioPath),
+    );
+  }
+}
+
+/// Provider for managing audio recording and transcription
+@Riverpod(keepAlive: true)
 class RecordingNotifier extends _$RecordingNotifier {
+  final AudioRecorderService _recorder = AudioRecorderService();
   final WhisperService _whisperService = WhisperService();
+  Timer? _recordingTimer;
+  Timer? _meteringTimer;
 
   @override
   RecordingState build() {
-    return RecordingState.idle;
+    ref.onDispose(() {
+      _stopTimers();
+      _recorder.dispose();
+    });
+    return const RecordingState();
   }
 
-  /// Transcribe an existing audio file and create a note
-  Future<Note?> transcribeFromPath({
-    required String path,
-    String? parentId,
-  }) async {
-    state = RecordingState.transcribing;
+  /// Start recording and create a placeholder note
+  Future<void> startRecording({String? parentId}) async {
+    if (!state.isIdle) return;
 
     try {
-      // Transcribe audio
-      final text = await _whisperService.transcribe(audioPath: path);
+      // Check permission first
+      final hasPermission = await _recorder.hasPermission();
+      if (!hasPermission) {
+        state = state.copyWith(
+          error: '마이크 권한이 필요합니다',
+        );
+        return;
+      }
 
-      // Create note with transcribed text
+      // Create placeholder note immediately
       final note = await ref.read(notesProvider.notifier).createNote(
-            content: text,
-            parentId: parentId,
-          );
+        content: '',
+        parentId: parentId,
+      );
 
-      await _attachAudioToNote(note.id, path);
+      // Start recording
+      final path = await _recorder.startRecording();
 
-      state = RecordingState.idle;
-      return note;
+      state = state.copyWith(
+        phase: RecordingPhase.recording,
+        activeNoteId: note.id,
+        audioLevels: [],
+        recordingTime: 0,
+        audioPath: path,
+        clearError: true,
+      );
+
+      _startTimers();
     } catch (e) {
-      state = RecordingState.error;
+      debugPrint('[RecordingProvider] Failed to start recording: $e');
+      state = state.copyWith(
+        error: '녹음을 시작할 수 없습니다: $e',
+      );
+    }
+  }
 
-      // Still create note even if transcription fails
-      final note = await ref.read(notesProvider.notifier).createNote(
-            content: '[음성 메모 - 변환 실패]',
-            parentId: parentId,
-          );
+  /// Stop recording and start transcription
+  Future<void> stopRecording() async {
+    if (!state.isRecording) return;
 
-      await _attachAudioToNote(note.id, path);
+    _stopTimers();
 
-      state = RecordingState.idle;
-      return note;
+    final noteId = state.activeNoteId;
+    final audioPath = state.audioPath;
+
+    if (noteId == null || audioPath == null) {
+      state = const RecordingState();
+      return;
+    }
+
+    try {
+      await _recorder.stopRecording();
+
+      state = state.copyWith(
+        phase: RecordingPhase.transcribing,
+        audioLevels: [],
+      );
+
+      // Transcribe audio
+      String transcribedText;
+      try {
+        transcribedText = await _whisperService.transcribe(audioPath: audioPath);
+      } catch (e) {
+        debugPrint('[RecordingProvider] Transcription failed: $e');
+        transcribedText = '[음성 메모 - 변환 실패]';
+      }
+
+      // Update note with transcribed text
+      await ref.read(notesProvider.notifier).updateNote(noteId, transcribedText);
+
+      // Attach audio to note
+      await _attachAudioToNote(noteId, audioPath);
+
+      // Reset state
+      state = const RecordingState();
+    } catch (e) {
+      debugPrint('[RecordingProvider] Failed to stop recording: $e');
+      state = state.copyWith(
+        phase: RecordingPhase.idle,
+        error: '녹음 처리 중 오류가 발생했습니다',
+        clearActiveNoteId: true,
+        clearAudioPath: true,
+      );
     } finally {
       // Clean up audio file
-      await AudioRecorderService.deleteAudioFile(path);
+      await AudioRecorderService.deleteAudioFile(audioPath);
     }
+  }
+
+  /// Cancel recording and delete the placeholder note
+  Future<void> cancelRecording() async {
+    if (!state.isRecording) return;
+
+    _stopTimers();
+
+    final noteId = state.activeNoteId;
+    final audioPath = state.audioPath;
+
+    try {
+      await _recorder.cancelRecording();
+
+      // Delete the placeholder note
+      if (noteId != null) {
+        await ref.read(notesProvider.notifier).deleteNote(noteId);
+      }
+
+      // Clean up audio file
+      if (audioPath != null) {
+        await AudioRecorderService.deleteAudioFile(audioPath);
+      }
+    } catch (e) {
+      debugPrint('[RecordingProvider] Failed to cancel recording: $e');
+    } finally {
+      state = const RecordingState();
+    }
+  }
+
+  void _startTimers() {
+    // Recording time timer (1 second interval)
+    _recordingTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      final newTime = state.recordingTime + 1;
+      state = state.copyWith(recordingTime: newTime);
+
+      // Auto-stop at max duration
+      if (newTime >= AudioRecorderService.maxDuration) {
+        stopRecording();
+      }
+    });
+
+    // Audio metering timer (50ms interval)
+    _meteringTimer = Timer.periodic(const Duration(milliseconds: 50), (_) async {
+      if (!state.isRecording) return;
+
+      try {
+        final amplitude = await _recorder.getAmplitude();
+        if (amplitude == null) return;
+
+        // Normalize from dB to 0-1 range
+        final level = ((amplitude.current + 60) / 60).clamp(0.0, 1.0);
+
+        final newLevels = [...state.audioLevels, level];
+        // Keep only last 50 samples
+        if (newLevels.length > 50) {
+          newLevels.removeAt(0);
+        }
+
+        state = state.copyWith(audioLevels: newLevels);
+      } catch (e) {
+        // Ignore amplitude errors
+      }
+    });
+  }
+
+  void _stopTimers() {
+    _recordingTimer?.cancel();
+    _recordingTimer = null;
+    _meteringTimer?.cancel();
+    _meteringTimer = null;
   }
 
   Future<void> _attachAudioToNote(String noteId, String path) async {
@@ -75,6 +259,8 @@ class RecordingNotifier extends _$RecordingNotifier {
           .read(attachmentsRepositoryProvider)
           .createAudioAttachment(noteId: noteId, file: file);
       ref.read(notesProvider.notifier).addAttachmentToNote(noteId, attachment);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[RecordingProvider] Failed to attach audio: $e');
+    }
   }
 }

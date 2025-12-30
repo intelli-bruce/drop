@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drop_mobile/presentation/providers/recording_provider.dart';
-import 'package:drop_mobile/presentation/widgets/record_button.dart';
+import 'package:drop_mobile/presentation/widgets/waveform_view.dart';
 
+/// Recording sheet for inline recording (deprecated - use NoteCard recording instead)
+/// Kept for potential future use in reply recording scenarios.
 class RecordingSheet extends ConsumerWidget {
   final String? parentId;
 
@@ -14,7 +17,8 @@ class RecordingSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final recordingState = ref.watch(recordingProvider);
-    final isTranscribing = recordingState == RecordingState.transcribing;
+    final isRecording = recordingState.isRecording;
+    final isTranscribing = recordingState.isTranscribing;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -35,49 +39,149 @@ class RecordingSheet extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            '음성 메모',
+          Text(
+            isRecording
+                ? '녹음 중...'
+                : isTranscribing
+                    ? '변환 중...'
+                    : '음성 메모',
             style: TextStyle(
-              color: Colors.white,
+              color: isRecording
+                  ? Colors.red
+                  : isTranscribing
+                      ? const Color(0xFF4A9EFF)
+                      : Colors.white,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            isTranscribing ? '변환 중...' : '버튼을 눌러 녹음을 시작하세요',
-            style: const TextStyle(
-              color: Color(0xFF888888),
-              fontSize: 13,
+          if (!isRecording && !isTranscribing)
+            const Text(
+              '버튼을 눌러 녹음을 시작하세요',
+              style: TextStyle(
+                color: Color(0xFF888888),
+                fontSize: 13,
+              ),
             ),
-          ),
           const SizedBox(height: 20),
-          if (isTranscribing)
-            const LinearProgressIndicator(
-              minHeight: 2,
+
+          // Waveform (when recording)
+          if (isRecording)
+            Container(
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2A2A2A),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                children: [
+                  SizedBox(
+                    height: 40,
+                    child: WaveformView(
+                      levels: recordingState.audioLevels,
+                      color: Colors.red,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    recordingState.formattedTime,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ],
+              ),
             ),
-          const SizedBox(height: 16),
-          RecordButton(
-            enabled: !isTranscribing,
-            onRecordingComplete: (path) async {
-              final notifier = ref.read(recordingProvider.notifier);
-              try {
-                await notifier.transcribeFromPath(
-                  path: path,
-                  parentId: parentId,
-                );
-                if (context.mounted) {
+
+          // Progress indicator (when transcribing)
+          if (isTranscribing)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.graphic_eq,
+                    color: Color(0xFF4A9EFF),
+                    size: 32,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '음성을 텍스트로 변환 중...',
+                    style: TextStyle(
+                      color: Color(0xFFE0E0E0),
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const LinearProgressIndicator(minHeight: 2),
+                ],
+              ),
+            ),
+
+          // Record button
+          if (!isTranscribing)
+            GestureDetector(
+              onTap: () {
+                HapticFeedback.mediumImpact();
+                if (isRecording) {
+                  ref.read(recordingProvider.notifier).stopRecording();
                   Navigator.pop(context);
+                } else {
+                  ref.read(recordingProvider.notifier).startRecording(parentId: parentId);
                 }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('변환에 실패했습니다: $e')),
-                  );
-                }
-              }
-            },
-          ),
+              },
+              child: Container(
+                width: 88,
+                height: 88,
+                decoration: BoxDecoration(
+                  color: isRecording ? Colors.red : const Color(0xFF4A9EFF),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: isRecording
+                      ? Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                        )
+                      : const Icon(
+                          Icons.mic,
+                          color: Colors.white,
+                          size: 40,
+                        ),
+                ),
+              ),
+            ),
+
+          if (isRecording)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: TextButton(
+                onPressed: () {
+                  ref.read(recordingProvider.notifier).cancelRecording();
+                  Navigator.pop(context);
+                },
+                child: const Text(
+                  '취소',
+                  style: TextStyle(color: Color(0xFF888888)),
+                ),
+              ),
+            ),
+
           const SizedBox(height: 8),
         ],
       ),

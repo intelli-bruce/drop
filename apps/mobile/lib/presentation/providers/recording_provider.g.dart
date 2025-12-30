@@ -8,22 +8,22 @@ part of 'recording_provider.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Provider for managing audio transcription
+/// Provider for managing audio recording and transcription
 
 @ProviderFor(RecordingNotifier)
 const recordingProvider = RecordingNotifierProvider._();
 
-/// Provider for managing audio transcription
+/// Provider for managing audio recording and transcription
 final class RecordingNotifierProvider
     extends $NotifierProvider<RecordingNotifier, RecordingState> {
-  /// Provider for managing audio transcription
+  /// Provider for managing audio recording and transcription
   const RecordingNotifierProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
         name: r'recordingProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -44,9 +44,9 @@ final class RecordingNotifierProvider
   }
 }
 
-String _$recordingNotifierHash() => r'9c48af408725e56823995932dff04025c12c219d';
+String _$recordingNotifierHash() => r'e2ba4f811848e6d5eba909fae4c1c3890e9c06fc';
 
-/// Provider for managing audio transcription
+/// Provider for managing audio recording and transcription
 
 abstract class _$RecordingNotifier extends $Notifier<RecordingState> {
   RecordingState build();

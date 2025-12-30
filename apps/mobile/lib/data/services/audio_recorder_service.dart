@@ -39,6 +39,12 @@ class AudioRecorderService {
   void Function()? onStateChanged;
   void Function()? onMaxDurationReached;
 
+  /// Get current amplitude for metering
+  Future<Amplitude?> getAmplitude() async {
+    if (!_isRecording) return null;
+    return await _recorder.getAmplitude();
+  }
+
   /// Check if microphone permission is granted
   Future<bool> hasPermission() async {
     return await _recorder.hasPermission();

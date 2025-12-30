@@ -16,11 +16,13 @@ void main() async {
   );
 }
 
-class DropApp extends StatelessWidget {
+class DropApp extends ConsumerWidget {
   const DropApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final goRouter = ref.watch(routerProvider);
+
     return MaterialApp.router(
       title: 'DROP',
       debugShowCheckedModeBanner: false,
@@ -33,7 +35,7 @@ class DropApp extends StatelessWidget {
           surface: Color(0xFF2A2A2A),
         ),
       ),
-      routerConfig: router,
+      routerConfig: goRouter,
     );
   }
 }
