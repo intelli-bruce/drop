@@ -125,6 +125,12 @@ flutter-build:
 		--dart-define=SUPABASE_URL=http://127.0.0.1:57321 \
 		--dart-define=SUPABASE_ANON_KEY=REDACTED_SUPABASE_KEY_LOCAL
 
+# Flutter IPA 빌드 (리모트 Supabase - TestFlight용)
+flutter-build-ipa:
+	cd apps/mobile && flutter build ipa \
+		--dart-define=SUPABASE_URL=https://REDACTED_SUPABASE_HOST \
+		--dart-define=SUPABASE_ANON_KEY=REDACTED_SUPABASE_KEY
+
 # Flutter 코드 분석
 flutter-analyze:
 	cd apps/mobile && flutter analyze
