@@ -19,6 +19,38 @@ const api = {
   youtube: {
     fetchOEmbed: (url: string) => ipcRenderer.invoke('youtube:fetchOEmbed', url),
   },
+  quickCapture: {
+    open: () => ipcRenderer.invoke('quickCapture:open'),
+    close: () => ipcRenderer.invoke('quickCapture:close'),
+    submit: (content: string): Promise<{ success: boolean; handledByMainWindow: boolean }> =>
+      ipcRenderer.invoke('quickCapture:submit', content),
+    /** QuickCapture에서 직접 저장 후 메인 윈도우에 refresh 알림 */
+    notifyRefresh: (): Promise<void> => ipcRenderer.invoke('quickCapture:notifyRefresh'),
+    onNoteCreated: (callback: (content: string) => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, content: string) => callback(content)
+      ipcRenderer.on('quickCapture:noteCreated', handler)
+      return () => {
+        ipcRenderer.removeListener('quickCapture:noteCreated', handler)
+      }
+    },
+    /** 메인 윈도우에서 refresh 이벤트 수신 */
+    onRefresh: (callback: () => void): (() => void) => {
+      const handler = () => callback()
+      ipcRenderer.on('quickCapture:refresh', handler)
+      return () => {
+        ipcRenderer.removeListener('quickCapture:refresh', handler)
+      }
+    },
+  },
+  auth: {
+    onCallback: (callback: (url: string) => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, url: string) => callback(url)
+      ipcRenderer.on('auth:callback', handler)
+      return () => {
+        ipcRenderer.removeListener('auth:callback', handler)
+      }
+    },
+  },
 }
 
 contextBridge.exposeInMainWorld('api', api)

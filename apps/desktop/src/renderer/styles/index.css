@@ -37,10 +37,21 @@ body {
 }
 
 .feed-header {
+  position: relative;
   padding: 16px 24px;
   padding-top: 48px;
   border-bottom: 1px solid var(--border-color);
   -webkit-app-region: drag;
+}
+
+.feed-header::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 80px;
+  height: 48px;
+  -webkit-app-region: no-drag;
 }
 
 .feed-content {

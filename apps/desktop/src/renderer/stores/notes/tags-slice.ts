@@ -29,6 +29,15 @@ export const createTagsSlice: StateCreator<NotesState, [], [], TagsSlice> = (set
     if (!trimmedName) return
 
     try {
+      // Get current user
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) {
+        console.error('[tags] addTagToNote: user not authenticated')
+        return
+      }
+
       // 1. 태그가 이미 존재하는지 확인, 없으면 생성
       let { data: existingTag } = await supabase
         .from('tags')
@@ -39,7 +48,7 @@ export const createTagsSlice: StateCreator<NotesState, [], [], TagsSlice> = (set
       if (!existingTag) {
         const { data: newTag, error: createError } = await supabase
           .from('tags')
-          .insert({ name: trimmedName })
+          .insert({ name: trimmedName, user_id: user.id })
           .select()
           .single()
 

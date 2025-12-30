@@ -72,12 +72,19 @@ class NotesRepository {
     String content = '',
     String? parentId,
   }) async {
+    // Get current user
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      throw Exception('User not authenticated');
+    }
+
     final data = await _client
         .from('notes')
         .insert({
           'content': content,
           'parent_id': parentId,
           'source': 'mobile',
+          'user_id': user.id,
         })
         .select()
         .single();

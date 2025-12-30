@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
 // 환경 변수에서 Supabase 설정 로드 (로컬 개발용)
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'http://127.0.0.1:57321'
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'http://127.0.0.1:58321'
 const supabaseAnonKey =
   import.meta.env.VITE_SUPABASE_ANON_KEY || 'REDACTED_SUPABASE_KEY_LOCAL'
 
@@ -12,8 +12,17 @@ export async function uploadAttachment(
   file: File,
   noteId: string
 ): Promise<{ path: string; error: Error | null }> {
+  // Get current user for storage path
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return { path: '', error: new Error('User not authenticated') }
+  }
+
   const fileExt = file.name.split('.').pop()
-  const fileName = `${noteId}/${crypto.randomUUID()}.${fileExt}`
+  // Storage path: {user_id}/{note_id}/{filename}
+  const fileName = `${user.id}/${noteId}/${crypto.randomUUID()}.${fileExt}`
 
   const { error } = await supabase.storage.from('attachments').upload(fileName, file)
 

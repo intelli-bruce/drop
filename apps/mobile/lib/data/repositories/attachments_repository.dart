@@ -27,9 +27,16 @@ class AttachmentsRepository {
     required String noteId,
     required File file,
   }) async {
+    // Get current user for storage path
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      throw Exception('User not authenticated');
+    }
+
     final fileName = _fileName(file.path);
     final extension = _fileExtension(fileName, fallback: 'm4a');
-    final storagePath = '$noteId/${_randomId()}.$extension';
+    // Storage path: {user_id}/{note_id}/{filename}
+    final storagePath = '${user.id}/$noteId/${_randomId()}.$extension';
     final mimeType = 'audio/m4a';
     final size = await file.length();
 
@@ -44,6 +51,83 @@ class AttachmentsRepository {
         .insert({
           'note_id': noteId,
           'type': 'audio',
+          'storage_path': storagePath,
+          'filename': fileName,
+          'mime_type': mimeType,
+          'size': size,
+        })
+        .select()
+        .single();
+
+    return Attachment.fromRow(AttachmentRow.fromJson(data));
+  }
+
+  Future<Attachment> createImageAttachment({
+    required String noteId,
+    required File file,
+    String? customFileName,
+  }) async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      throw Exception('User not authenticated');
+    }
+
+    final fileName = customFileName ?? _fileName(file.path);
+    final extension = _fileExtension(fileName, fallback: 'png');
+    final storagePath = '${user.id}/$noteId/${_randomId()}.$extension';
+    final mimeType = _getMimeType(extension);
+    final size = await file.length();
+
+    await _client.storage.from('attachments').upload(
+          storagePath,
+          file,
+          fileOptions: FileOptions(contentType: mimeType),
+        );
+
+    final data = await _client
+        .from('attachments')
+        .insert({
+          'note_id': noteId,
+          'type': 'image',
+          'storage_path': storagePath,
+          'filename': fileName,
+          'mime_type': mimeType,
+          'size': size,
+        })
+        .select()
+        .single();
+
+    return Attachment.fromRow(AttachmentRow.fromJson(data));
+  }
+
+  Future<Attachment> createFileAttachment({
+    required String noteId,
+    required File file,
+    required String type,
+    String? customFileName,
+  }) async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      throw Exception('User not authenticated');
+    }
+
+    final fileName = customFileName ?? _fileName(file.path);
+    final extension = _fileExtension(fileName, fallback: 'bin');
+    final storagePath = '${user.id}/$noteId/${_randomId()}.$extension';
+    final mimeType = _getMimeType(extension);
+    final size = await file.length();
+
+    await _client.storage.from('attachments').upload(
+          storagePath,
+          file,
+          fileOptions: FileOptions(contentType: mimeType),
+        );
+
+    final data = await _client
+        .from('attachments')
+        .insert({
+          'note_id': noteId,
+          'type': type,
           'storage_path': storagePath,
           'filename': fileName,
           'mime_type': mimeType,
@@ -82,4 +166,28 @@ String _randomId() {
   final time = DateTime.now().microsecondsSinceEpoch;
   final salt = random.nextInt(1 << 32);
   return '${time}_$salt';
+}
+
+String _getMimeType(String extension) {
+  switch (extension.toLowerCase()) {
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'png':
+      return 'image/png';
+    case 'gif':
+      return 'image/gif';
+    case 'webp':
+      return 'image/webp';
+    case 'heic':
+      return 'image/heic';
+    case 'mp4':
+      return 'video/mp4';
+    case 'mov':
+      return 'video/quicktime';
+    case 'pdf':
+      return 'application/pdf';
+    default:
+      return 'application/octet-stream';
+  }
 }

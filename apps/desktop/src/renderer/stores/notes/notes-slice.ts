@@ -92,6 +92,15 @@ export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (s
   },
 
   createNote: async (initialContent = '', parentId?: string) => {
+    // Get current user
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) {
+      console.error('[notes] createNote: user not authenticated')
+      return { id: '', content: '', parentId: null, attachments: [], tags: [], createdAt: new Date(), updatedAt: new Date(), source: 'desktop' as const, isDeleted: false }
+    }
+
     const id = crypto.randomUUID()
     const now = new Date()
     const optimisticNote = {
@@ -119,6 +128,7 @@ export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (s
         content: initialContent,
         parent_id: parentId ?? null,
         source: 'desktop',
+        user_id: user.id,
       })
       .select()
       .single()

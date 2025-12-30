@@ -13,6 +13,7 @@ export interface NoteRow {
   updated_at: string
   source: NoteSource
   is_deleted: boolean
+  user_id: string | null
 }
 
 export interface AttachmentRow {
@@ -35,6 +36,7 @@ export interface TagRow {
   id: string
   name: string
   created_at: string
+  user_id: string | null
 }
 
 export interface NoteTagRow {

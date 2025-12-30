@@ -1,10 +1,14 @@
 import {
   app,
   BrowserWindow,
+  globalShortcut,
   ipcMain,
+  Menu,
   net,
+  nativeImage,
   session,
   shell,
+  Tray,
   type ClientRequestConstructorOptions,
 } from 'electron'
 import { join } from 'path'
@@ -333,7 +337,8 @@ async function fetchBufferWithRedirect(
             maxBytes,
             contentLength,
           })
-          response.resume()
+          // Drain the response to avoid memory leaks
+          response.on('data', () => {})
           finish(null)
           return
         }
@@ -738,8 +743,150 @@ function setupIpcHandlers(): void {
   })
 }
 
+let tray: Tray | null = null
+let mainWindow: BrowserWindow | null = null
+let quickCaptureWindow: BrowserWindow | null = null
+
+function getRendererUrl(hash = ''): string {
+  if (process.env.ELECTRON_RENDERER_URL) {
+    return `${process.env.ELECTRON_RENDERER_URL}${hash ? `#${hash}` : ''}`
+  }
+  return `file://${join(__dirname, '../renderer/index.html')}${hash ? `#${hash}` : ''}`
+}
+
+function createQuickCaptureWindow(): void {
+  if (quickCaptureWindow && !quickCaptureWindow.isDestroyed()) {
+    // 이미 창이 있으면 포커스
+    app.focus({ steal: true })
+    quickCaptureWindow.show()
+    quickCaptureWindow.focus()
+    quickCaptureWindow.webContents.focus()
+    return
+  }
+
+  quickCaptureWindow = new BrowserWindow({
+    width: 600,
+    height: 80,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    center: true,
+    show: false,
+    resizable: false,
+    movable: true,
+    hasShadow: true,
+    vibrancy: 'under-window',
+    visualEffectState: 'active',
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  })
+
+  quickCaptureWindow.loadURL(getRendererUrl('quick-capture'))
+
+  quickCaptureWindow.once('ready-to-show', () => {
+    if (!quickCaptureWindow) return
+    // macOS에서 다른 앱에서 호출될 때 포커스 강제
+    app.focus({ steal: true })
+    quickCaptureWindow.show()
+    quickCaptureWindow.focus()
+    // webContents에도 포커스 (입력창 포커스)
+    quickCaptureWindow.webContents.focus()
+  })
+
+  quickCaptureWindow.on('blur', () => {
+    // 포커스 잃으면 숨김
+    if (quickCaptureWindow && !quickCaptureWindow.isDestroyed()) {
+      quickCaptureWindow.hide()
+    }
+  })
+
+  quickCaptureWindow.on('closed', () => {
+    quickCaptureWindow = null
+  })
+}
+
+function hideQuickCaptureWindow(): void {
+  if (quickCaptureWindow && !quickCaptureWindow.isDestroyed()) {
+    quickCaptureWindow.hide()
+  }
+}
+
+function showMainWindow(): void {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.show()
+    mainWindow.focus()
+  } else {
+    createWindow()
+  }
+}
+
+function createTray(): void {
+  // 템플릿 이미지 생성 (macOS 메뉴바 스타일)
+  const iconPath = join(__dirname, '../../build/trayIconTemplate.png')
+  let icon: Electron.NativeImage
+
+  try {
+    icon = nativeImage.createFromPath(iconPath)
+    if (icon.isEmpty()) {
+      // 아이콘 파일이 없으면 기본 아이콘 생성
+      icon = nativeImage.createEmpty()
+    }
+  } catch {
+    icon = nativeImage.createEmpty()
+  }
+
+  // 16x16 템플릿 이미지로 리사이즈
+  if (!icon.isEmpty()) {
+    icon = icon.resize({ width: 16, height: 16 })
+    icon.setTemplateImage(true)
+  }
+
+  tray = new Tray(icon)
+  tray.setToolTip('DROP')
+
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: 'Quick Capture',
+      accelerator: 'Ctrl+Space',
+      click: () => createQuickCaptureWindow(),
+    },
+    {
+      label: 'Open DROP',
+      click: () => showMainWindow(),
+    },
+    { type: 'separator' },
+    {
+      label: 'Quit',
+      click: () => {
+        app.quit()
+      },
+    },
+  ])
+
+  tray.setContextMenu(contextMenu)
+
+  tray.on('click', () => {
+    showMainWindow()
+  })
+}
+
+function registerGlobalShortcuts(): void {
+  // Ctrl+Space로 Quick Capture 열기
+  const registered = globalShortcut.register('Control+Space', () => {
+    createQuickCaptureWindow()
+  })
+
+  if (!registered) {
+    console.warn('[globalShortcut] Ctrl+Space registration failed - may be in use by another app')
+  }
+}
+
 function createWindow(): void {
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
@@ -751,26 +898,110 @@ function createWindow(): void {
     trafficLightPosition: { x: 16, y: 16 },
   })
 
-  if (process.env.ELECTRON_RENDERER_URL) {
-    mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
-  } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+  mainWindow.loadURL(getRendererUrl())
+
+  mainWindow.on('closed', () => {
+    mainWindow = null
+  })
+}
+
+// Register custom protocol for OAuth callback
+if (process.defaultApp) {
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient('drop', process.execPath, [process.argv[1]])
+  }
+} else {
+  app.setAsDefaultProtocolClient('drop')
+}
+
+// Handle OAuth callback URL (macOS)
+app.on('open-url', (event, url) => {
+  event.preventDefault()
+  handleOAuthCallback(url)
+})
+
+function handleOAuthCallback(url: string): void {
+  console.info('[auth] OAuth callback received:', url)
+
+  // Parse the URL to extract tokens
+  // URL format: drop://auth/callback#access_token=xxx&refresh_token=xxx&...
+  if (url.startsWith('drop://auth/callback')) {
+    // Send to renderer process
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('auth:callback', url)
+      mainWindow.show()
+      mainWindow.focus()
+    }
   }
 }
 
 app.whenReady().then(() => {
   setupIpcHandlers()
+  setupQuickCaptureHandlers()
+  createTray()
+  registerGlobalShortcuts()
   createWindow()
 
+  // Handle OAuth callback URL (Windows/Linux - second instance)
+  const gotTheLock = app.requestSingleInstanceLock()
+  if (!gotTheLock) {
+    app.quit()
+  } else {
+    app.on('second-instance', (_event, argv) => {
+      // Windows: the URL is in argv
+      const url = argv.find((arg) => arg.startsWith('drop://'))
+      if (url) {
+        handleOAuthCallback(url)
+      }
+      if (mainWindow) {
+        if (mainWindow.isMinimized()) mainWindow.restore()
+        mainWindow.focus()
+      }
+    })
+  }
+
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow()
-    }
+    showMainWindow()
   })
 })
 
+// 메뉴바 앱으로 동작: 창을 모두 닫아도 앱 종료하지 않음
 app.on('window-all-closed', () => {
+  // macOS에서는 Tray로 계속 실행, 다른 OS에서는 종료
   if (process.platform !== 'darwin') {
     app.quit()
   }
 })
+
+app.on('will-quit', () => {
+  // 앱 종료 시 전역 단축키 해제
+  globalShortcut.unregisterAll()
+})
+
+function setupQuickCaptureHandlers(): void {
+  ipcMain.handle('quickCapture:close', () => {
+    hideQuickCaptureWindow()
+  })
+
+  ipcMain.handle('quickCapture:submit', async (_event, content: string) => {
+    hideQuickCaptureWindow()
+    // 메인 윈도우로 노트 생성 요청 전달
+    const hasMainWindow = mainWindow !== null && !mainWindow.isDestroyed()
+    if (hasMainWindow && mainWindow) {
+      mainWindow.webContents.send('quickCapture:noteCreated', content)
+    }
+    return { success: true, handledByMainWindow: hasMainWindow }
+  })
+
+  // 메인 윈도우에서 QuickCapture 열기 요청 처리
+  ipcMain.handle('quickCapture:open', () => {
+    createQuickCaptureWindow()
+  })
+
+  // QuickCapture에서 직접 저장 후 메인 윈도우에 refresh 알림
+  ipcMain.handle('quickCapture:notifyRefresh', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('quickCapture:refresh')
+    }
+  })
+}
