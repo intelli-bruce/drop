@@ -511,7 +511,7 @@ export function normalizeMediaNode(
 
   return {
     displayUrl,
-    videoUrl,
+    videoUrl: videoUrl ?? undefined,
     typename: normalizeTypename(node),
   }
 }
