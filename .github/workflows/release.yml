@@ -140,20 +140,17 @@ jobs:
 
       - name: Configure Manual Signing
         run: |
-          # Extract provisioning profile UUIDs
-          MAIN_UUID=$(grep -a UUID -A1 ~/Library/MobileDevice/Provisioning\ Profiles/drop_mobile.mobileprovision | grep -o '[-A-Z0-9]\{36\}')
-          SHARE_UUID=$(grep -a UUID -A1 ~/Library/MobileDevice/Provisioning\ Profiles/drop_share_extension.mobileprovision | grep -o '[-A-Z0-9]\{36\}')
-          WIDGET_UUID=$(grep -a UUID -A1 ~/Library/MobileDevice/Provisioning\ Profiles/drop_widget.mobileprovision | grep -o '[-A-Z0-9]\{36\}')
-
-          echo "Main UUID: $MAIN_UUID"
-          echo "Share UUID: $SHARE_UUID"
-          echo "Widget UUID: $WIDGET_UUID"
+          # List installed profiles for debugging
+          echo "Installed provisioning profiles:"
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
 
           # Update Release configuration to use manual signing
           PBXPROJ="apps/mobile/ios/Runner.xcodeproj/project.pbxproj"
 
-          # Replace CODE_SIGN_STYLE for Release builds
+          # Replace CODE_SIGN_STYLE for all builds
           sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' "$PBXPROJ"
+
+          echo "Modified project.pbxproj for manual signing"
 
       - name: Build IPA
         working-directory: apps/mobile
