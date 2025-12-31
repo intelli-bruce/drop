@@ -21,7 +21,8 @@ export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (s
       const { data: noteRows, error: notesError } = await supabase
         .from('notes')
         .select('*')
-        .eq('is_deleted', false)
+        .is('deleted_at', null)
+        .is('archived_at', null)
         .order('created_at', { ascending: false })
 
       if (notesError) throw notesError
@@ -99,7 +100,7 @@ export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (s
     } = await supabase.auth.getUser()
     if (!user) {
       console.error('[notes] createNote: user not authenticated')
-      return { id: '', content: '', parentId: null, attachments: [], tags: [], createdAt: new Date(), updatedAt: new Date(), source: 'desktop' as const, isDeleted: false, hasLink: false, hasMedia: false, hasFiles: false, isLocked: false }
+      return { id: '', content: '', parentId: null, attachments: [], tags: [], createdAt: new Date(), updatedAt: new Date(), source: 'desktop' as const, isDeleted: false, hasLink: false, hasMedia: false, hasFiles: false, isLocked: false, deletedAt: null, archivedAt: null }
     }
 
     const id = crypto.randomUUID()
@@ -119,6 +120,8 @@ export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (s
       hasMedia: categories.hasMedia,
       hasFiles: categories.hasFiles,
       isLocked: false,
+      deletedAt: null,
+      archivedAt: null,
     }
 
     set((state) => ({
@@ -191,7 +194,10 @@ export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (s
   },
 
   deleteNote: async (id) => {
-    const { error } = await supabase.from('notes').update({ is_deleted: true }).eq('id', id)
+    const { error } = await supabase
+      .from('notes')
+      .update({ deleted_at: new Date().toISOString(), is_deleted: true })
+      .eq('id', id)
 
     if (error) throw error
 
@@ -223,7 +229,8 @@ export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (s
             })
           } else if (eventType === 'UPDATE') {
             const row = newRow as NoteRow
-            if (row.is_deleted) {
+            // 삭제되거나 보관된 노트는 active 목록에서 제거
+            if (row.deleted_at || row.archived_at) {
               set((state) => ({
                 notes: state.notes.filter((n) => n.id !== row.id),
               }))

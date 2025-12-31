@@ -20,6 +20,9 @@ export interface NoteRow {
   has_files: boolean
   // 잠금
   is_locked: boolean
+  // soft-delete & archive
+  deleted_at: string | null
+  archived_at: string | null
 }
 
 export interface AttachmentRow {
@@ -83,6 +86,9 @@ export interface Note {
   hasFiles: boolean
   // 잠금
   isLocked: boolean
+  // soft-delete & archive
+  deletedAt: Date | null
+  archivedAt: Date | null
 }
 
 export interface Attachment {
@@ -159,6 +165,8 @@ export function noteRowToNote(
     hasMedia: row.has_media,
     hasFiles: row.has_files,
     isLocked: row.is_locked,
+    deletedAt: row.deleted_at ? new Date(row.deleted_at) : null,
+    archivedAt: row.archived_at ? new Date(row.archived_at) : null,
   }
 }
 

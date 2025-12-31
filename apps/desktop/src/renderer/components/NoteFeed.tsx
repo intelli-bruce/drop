@@ -1,14 +1,17 @@
-import { useRef, useState, useCallback, useEffect } from 'react'
+import { useRef, useState, useCallback, useEffect, useMemo } from 'react'
+import type { Note } from '@drop/shared'
 import { useNotesStore } from '../stores/notes'
 import { useProfileStore } from '../stores/profile'
 import { NoteCard, NoteCardHandle } from './NoteCard'
 import { TagDialog } from './TagDialog'
 import { CategoryFilter } from './CategoryFilter'
+import { ViewModeSelector } from './ViewModeSelector'
 import { PinDialog } from './PinDialog'
 import { isCreateNoteShortcut } from '../shortcuts/noteGlobal'
 import { resolveNoteFeedShortcut } from '../shortcuts/noteFeed'
 import { isOpenTagListShortcut } from '../shortcuts/tagList'
 import { isToggleLockShortcut } from '../shortcuts/noteLock'
+import { isDeleteShortcut, isArchiveShortcut, isRestoreShortcut } from '../shortcuts/noteTrash'
 import { isTextInputTarget, getClosestNoteId } from '../lib/dom-utils'
 import { extractInstagramUrls } from '../lib/instagram-url-utils'
 import { extractYouTubeUrls } from '../lib/youtube-url-utils'
@@ -30,6 +33,15 @@ export function NoteFeed() {
     setFilterTag,
     categoryFilter,
     toggleNoteLock,
+    // Trash & Archive
+    viewMode,
+    trashedNotes,
+    archivedNotes,
+    restoreNote,
+    permanentlyDeleteNote,
+    emptyTrash,
+    archiveNote,
+    unarchiveNote,
   } = useNotesStore()
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null)
   const [tagDialogNoteId, setTagDialogNoteId] = useState<string | null>(null)
@@ -38,6 +50,12 @@ export function NoteFeed() {
   const hasPin = useProfileStore((s) => s.hasPin)
   const cardRefs = useRef<Map<string, NoteCardHandle>>(new Map())
   const feedRef = useRef<HTMLDivElement>(null)
+
+  // 이벤트 핸들러용 ref (의존성 분리) - 나중에 업데이트됨
+  const focusedIndexRef = useRef<number | null>(focusedIndex)
+  const flatNotesRef = useRef<Array<{ note: Note; depth: number }>>([])
+  const deleteNoteRef = useRef<(id: string) => void>(deleteNote)
+  const handleReplyRef = useRef<(parentId: string) => Promise<void>>(() => Promise.resolve())
 
   // 새 노트 생성 + 첨부물 추가 헬퍼 (useDragAndDrop에서 사용하기 위해 먼저 정의)
   const createNoteWithFile = useCallback(
@@ -59,52 +77,69 @@ export function NoteFeed() {
     },
   })
 
-  // 태그 필터링 적용
-  let filteredNotes = filterTag
-    ? notes.filter((note) => note.tags.some((t) => t.name === filterTag))
-    : notes
+  // 뷰 모드에 따른 노트 목록 선택
+  const baseNotes = useMemo(() => {
+    if (viewMode === 'trash') return trashedNotes
+    if (viewMode === 'archived') return archivedNotes
+    return notes
+  }, [viewMode, notes, trashedNotes, archivedNotes])
 
-  // 카테고리 필터링 적용
-  if (categoryFilter === 'link') {
-    filteredNotes = filteredNotes.filter((note) => note.hasLink)
-  } else if (categoryFilter === 'media') {
-    filteredNotes = filteredNotes.filter((note) => note.hasMedia)
-  } else if (categoryFilter === 'files') {
-    filteredNotes = filteredNotes.filter((note) => note.hasFiles)
-  }
+  // 태그 및 카테고리 필터링 (메모이제이션) - active 모드에서만 적용
+  const filteredNotes = useMemo(() => {
+    if (viewMode !== 'active') return baseNotes
 
-  // 루트 노트만 추출 (parentId가 null인 노트)
-  const rootNotes = filteredNotes.filter((note) => note.parentId === null)
+    let result = filterTag
+      ? baseNotes.filter((note) => note.tags.some((t) => t.name === filterTag))
+      : baseNotes
 
-  // 자식 노트 맵 생성
-  const childrenMap = new Map<string, typeof filteredNotes>()
-  for (const note of filteredNotes) {
-    if (note.parentId) {
-      const children = childrenMap.get(note.parentId) || []
-      children.push(note)
-      childrenMap.set(note.parentId, children)
-    }
-  }
-
-  // 노트와 자식들을 평탄화 (depth 포함)
-  const flattenWithDepth = (
-    noteList: typeof filteredNotes,
-    depth: number
-  ): Array<{ note: typeof filteredNotes[0]; depth: number }> => {
-    const result: Array<{ note: typeof filteredNotes[0]; depth: number }> = []
-    for (const note of noteList) {
-      result.push({ note, depth })
-      const children = childrenMap.get(note.id) || []
-      // 자식은 생성일 기준 오름차순 (오래된 것 먼저)
-      const sortedChildren = [...children].sort(
-        (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
-      )
-      result.push(...flattenWithDepth(sortedChildren, depth + 1))
+    if (categoryFilter === 'link') {
+      result = result.filter((note) => note.hasLink)
+    } else if (categoryFilter === 'media') {
+      result = result.filter((note) => note.hasMedia)
+    } else if (categoryFilter === 'files') {
+      result = result.filter((note) => note.hasFiles)
     }
     return result
-  }
+  }, [viewMode, baseNotes, filterTag, categoryFilter])
 
-  const flatNotes = flattenWithDepth(rootNotes, 0)
+  // flatNotes 계산 (메모이제이션)
+  const flatNotes = useMemo(() => {
+    const rootNotes = filteredNotes.filter((note) => note.parentId === null)
+
+    const childrenMap = new Map<string, typeof filteredNotes>()
+    for (const note of filteredNotes) {
+      if (note.parentId) {
+        const children = childrenMap.get(note.parentId) || []
+        children.push(note)
+        childrenMap.set(note.parentId, children)
+      }
+    }
+
+    const flattenWithDepth = (
+      noteList: typeof filteredNotes,
+      depth: number
+    ): Array<{ note: (typeof filteredNotes)[0]; depth: number }> => {
+      const result: Array<{ note: (typeof filteredNotes)[0]; depth: number }> = []
+      for (const note of noteList) {
+        result.push({ note, depth })
+        const children = childrenMap.get(note.id) || []
+        const sortedChildren = [...children].sort(
+          (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+        )
+        result.push(...flattenWithDepth(sortedChildren, depth + 1))
+      }
+      return result
+    }
+
+    return flattenWithDepth(rootNotes, 0)
+  }, [filteredNotes])
+
+  // noteId -> index 맵 (O(1) 조회용)
+  const noteIndexMap = useMemo(() => {
+    const map = new Map<string, number>()
+    flatNotes.forEach((item, index) => map.set(item.note.id, index))
+    return map
+  }, [flatNotes])
 
   // 답글 생성
   const handleReply = useCallback(
@@ -116,6 +151,23 @@ export function NoteFeed() {
     },
     [createNote]
   )
+
+  // refs 업데이트 (이벤트 핸들러에서 최신 값 참조용)
+  useEffect(() => {
+    focusedIndexRef.current = focusedIndex
+  }, [focusedIndex])
+
+  useEffect(() => {
+    flatNotesRef.current = flatNotes
+  }, [flatNotes])
+
+  useEffect(() => {
+    deleteNoteRef.current = deleteNote
+  }, [deleteNote])
+
+  useEffect(() => {
+    handleReplyRef.current = handleReply
+  }, [handleReply])
 
   const handleEscapeFromNormal = useCallback((index: number) => {
     setFocusedIndex(index)
@@ -136,11 +188,12 @@ export function NoteFeed() {
     []
   )
 
-  const groupByDate = (items: typeof flatNotes) => {
+  // 날짜별 그룹화 (메모이제이션)
+  const grouped = useMemo(() => {
     const groups: { date: string; items: typeof flatNotes }[] = []
     const map: Record<string, typeof flatNotes> = {}
 
-    for (const item of items) {
+    for (const item of flatNotes) {
       const date = new Date(item.note.createdAt).toLocaleDateString('ko-KR', {
         year: 'numeric',
         month: 'long',
@@ -153,9 +206,7 @@ export function NoteFeed() {
       map[date].push(item)
     }
     return groups
-  }
-
-  const grouped = groupByDate(flatNotes)
+  }, [flatNotes])
 
   const cardElementRefs = useRef<Map<string, HTMLDivElement>>(new Map())
 
@@ -247,15 +298,84 @@ export function NoteFeed() {
     return () => window.removeEventListener('keydown', handleLockKeyDown)
   }, [flatNotes, focusedIndex, notes, hasPin, toggleNoteLock])
 
+  // d 단축키로 삭제 (휴지통으로)
+  useEffect(() => {
+    const handleDeleteKeyDown = (e: KeyboardEvent) => {
+      if (isTextInputTarget(e.target)) return
+      if (!isDeleteShortcut(e)) return
+      if (viewMode !== 'active') return
+
+      const fallbackNoteId = focusedIndex !== null ? flatNotes[focusedIndex]?.note.id : null
+      const noteId = getClosestNoteId(document.activeElement) ?? fallbackNoteId
+      if (!noteId) return
+
+      e.preventDefault()
+      e.stopPropagation()
+      if (window.confirm('이 노트를 삭제하시겠습니까?')) {
+        deleteNote(noteId)
+      }
+    }
+
+    window.addEventListener('keydown', handleDeleteKeyDown)
+    return () => window.removeEventListener('keydown', handleDeleteKeyDown)
+  }, [flatNotes, focusedIndex, viewMode, deleteNote])
+
+  // e 단축키로 보관
+  useEffect(() => {
+    const handleArchiveKeyDown = (e: KeyboardEvent) => {
+      if (isTextInputTarget(e.target)) return
+      if (!isArchiveShortcut(e)) return
+      if (viewMode !== 'active') return
+
+      const fallbackNoteId = focusedIndex !== null ? flatNotes[focusedIndex]?.note.id : null
+      const noteId = getClosestNoteId(document.activeElement) ?? fallbackNoteId
+      if (!noteId) return
+
+      e.preventDefault()
+      e.stopPropagation()
+      archiveNote(noteId)
+    }
+
+    window.addEventListener('keydown', handleArchiveKeyDown)
+    return () => window.removeEventListener('keydown', handleArchiveKeyDown)
+  }, [flatNotes, focusedIndex, viewMode, archiveNote])
+
+  // r 단축키로 복원
+  useEffect(() => {
+    const handleRestoreKeyDown = (e: KeyboardEvent) => {
+      if (isTextInputTarget(e.target)) return
+      if (!isRestoreShortcut(e)) return
+
+      const fallbackNoteId = focusedIndex !== null ? flatNotes[focusedIndex]?.note.id : null
+      const noteId = getClosestNoteId(document.activeElement) ?? fallbackNoteId
+      if (!noteId) return
+
+      e.preventDefault()
+      e.stopPropagation()
+
+      if (viewMode === 'trash') {
+        restoreNote(noteId)
+      } else if (viewMode === 'archived') {
+        unarchiveNote(noteId)
+      }
+    }
+
+    window.addEventListener('keydown', handleRestoreKeyDown)
+    return () => window.removeEventListener('keydown', handleRestoreKeyDown)
+  }, [flatNotes, focusedIndex, viewMode, restoreNote, unarchiveNote])
+
   // 초기 포커스
   useEffect(() => {
     feedRef.current?.focus()
   }, [])
 
-  // 글로벌 j/k 네비게이션
+  // 글로벌 j/k 네비게이션 (ref 패턴으로 의존성 분리)
   useEffect(() => {
     const handleGlobalNavigation = (e: KeyboardEvent) => {
-      if (flatNotes.length === 0) return
+      const currentFlatNotes = flatNotesRef.current
+      const currentFocusedIndex = focusedIndexRef.current
+
+      if (currentFlatNotes.length === 0) return
       if (isTextInputTarget(e.target)) return
 
       const action = resolveNoteFeedShortcut(e as unknown as React.KeyboardEvent)
@@ -263,10 +383,10 @@ export function NoteFeed() {
 
       if (action === 'focusNext') {
         e.preventDefault()
-        if (focusedIndex === null) {
+        if (currentFocusedIndex === null) {
           setFocusedIndex(0)
         } else {
-          const nextIndex = Math.min(focusedIndex + 1, flatNotes.length - 1)
+          const nextIndex = Math.min(currentFocusedIndex + 1, currentFlatNotes.length - 1)
           setFocusedIndex(nextIndex)
         }
         feedRef.current?.focus()
@@ -275,10 +395,10 @@ export function NoteFeed() {
 
       if (action === 'focusPrev') {
         e.preventDefault()
-        if (focusedIndex === null) {
-          setFocusedIndex(flatNotes.length - 1)
+        if (currentFocusedIndex === null) {
+          setFocusedIndex(currentFlatNotes.length - 1)
         } else {
-          const prevIndex = Math.max(focusedIndex - 1, 0)
+          const prevIndex = Math.max(currentFocusedIndex - 1, 0)
           setFocusedIndex(prevIndex)
         }
         feedRef.current?.focus()
@@ -286,9 +406,9 @@ export function NoteFeed() {
       }
 
       if (action === 'openFocused') {
-        if (focusedIndex === null) return
+        if (currentFocusedIndex === null) return
         e.preventDefault()
-        const item = flatNotes[focusedIndex]
+        const item = currentFlatNotes[currentFocusedIndex]
         if (item) {
           cardRefs.current.get(item.note.id)?.focus()
           setFocusedIndex(null)
@@ -297,13 +417,16 @@ export function NoteFeed() {
       }
 
       if (action === 'deleteFocused') {
-        if (focusedIndex === null) return
+        if (currentFocusedIndex === null) return
         e.preventDefault()
-        const item = flatNotes[focusedIndex]
+        const item = currentFlatNotes[currentFocusedIndex]
         if (item && window.confirm('이 노트를 삭제하시겠습니까?')) {
-          deleteNote(item.note.id)
-          if (flatNotes.length > 1) {
-            const nextIndex = focusedIndex >= flatNotes.length - 1 ? focusedIndex - 1 : focusedIndex
+          deleteNoteRef.current(item.note.id)
+          if (currentFlatNotes.length > 1) {
+            const nextIndex =
+              currentFocusedIndex >= currentFlatNotes.length - 1
+                ? currentFocusedIndex - 1
+                : currentFocusedIndex
             setFocusedIndex(nextIndex)
           } else {
             setFocusedIndex(null)
@@ -313,11 +436,11 @@ export function NoteFeed() {
       }
 
       if (action === 'replyToFocused') {
-        if (focusedIndex === null) return
+        if (currentFocusedIndex === null) return
         e.preventDefault()
-        const item = flatNotes[focusedIndex]
+        const item = currentFlatNotes[currentFocusedIndex]
         if (item) {
-          handleReply(item.note.id)
+          handleReplyRef.current(item.note.id)
           setFocusedIndex(null)
         }
       }
@@ -325,7 +448,7 @@ export function NoteFeed() {
 
     window.addEventListener('keydown', handleGlobalNavigation)
     return () => window.removeEventListener('keydown', handleGlobalNavigation)
-  }, [focusedIndex, flatNotes, deleteNote, handleReply])
+  }, []) // 빈 의존성 - refs로 최신 값 참조
 
   // 글로벌 붙여넣기 -> 새 노트 생성 (에디터에 포커스 없을 때)
   useEffect(() => {
@@ -438,12 +561,29 @@ export function NoteFeed() {
         />
       )}
       <div className="feed-header">
-        <CategoryFilter />
-        {filterTag && (
-          <div className="filter-indicator">
-            <span>#{filterTag}</span>
-            <button onClick={() => setFilterTag(null)}>&times;</button>
-          </div>
+        <ViewModeSelector />
+        {viewMode === 'active' && (
+          <>
+            <CategoryFilter />
+            {filterTag && (
+              <div className="filter-indicator">
+                <span>#{filterTag}</span>
+                <button onClick={() => setFilterTag(null)}>&times;</button>
+              </div>
+            )}
+          </>
+        )}
+        {viewMode === 'trash' && trashedNotes.length > 0 && (
+          <button
+            className="empty-trash-btn"
+            onClick={() => {
+              if (window.confirm('휴지통을 비우시겠습니까? 모든 노트가 영구 삭제됩니다.')) {
+                emptyTrash()
+              }
+            }}
+          >
+            휴지통 비우기
+          </button>
         )}
       </div>
       <div className="feed-content">
@@ -451,7 +591,7 @@ export function NoteFeed() {
           <div key={date} className="date-group">
             <div className="date-label">{date}</div>
             {items.map((item) => {
-              const globalIndex = flatNotes.findIndex((n) => n.note.id === item.note.id)
+              const globalIndex = noteIndexMap.get(item.note.id) ?? -1
               return (
                 <div
                   key={item.note.id}
@@ -464,9 +604,10 @@ export function NoteFeed() {
                     ref={(handle) => setCardRef(item.note.id, handle)}
                     note={item.note}
                     depth={item.depth}
+                    viewMode={viewMode}
                     isFocused={focusedIndex === globalIndex}
                     onEscapeFromNormal={() => handleEscapeFromNormal(globalIndex)}
-                    onReply={handleReply}
+                    onReply={viewMode === 'active' ? handleReply : undefined}
                   />
                 </div>
               )

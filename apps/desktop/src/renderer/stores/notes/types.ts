@@ -55,5 +55,27 @@ export interface CategoryFilterSlice {
   setCategoryFilter: (filter: 'all' | 'link' | 'media' | 'files' | null) => void
 }
 
+// View mode for notes (active, archived, trash)
+export type NoteViewMode = 'active' | 'archived' | 'trash'
+
+// Trash & Archive slice
+export interface TrashSlice {
+  viewMode: NoteViewMode
+  setViewMode: (mode: NoteViewMode) => void
+
+  // Trash
+  trashedNotes: Note[]
+  loadTrash: () => Promise<void>
+  restoreNote: (noteId: string) => Promise<void>
+  permanentlyDeleteNote: (noteId: string) => Promise<void>
+  emptyTrash: () => Promise<void>
+
+  // Archive
+  archivedNotes: Note[]
+  loadArchived: () => Promise<void>
+  archiveNote: (noteId: string) => Promise<void>
+  unarchiveNote: (noteId: string) => Promise<void>
+}
+
 // Combined store state
-export interface NotesState extends NotesSlice, TagsSlice, AttachmentsSlice, InstagramSlice, YouTubeSlice, LockSlice, CategoryFilterSlice {}
+export interface NotesState extends NotesSlice, TagsSlice, AttachmentsSlice, InstagramSlice, YouTubeSlice, LockSlice, CategoryFilterSlice, TrashSlice {}

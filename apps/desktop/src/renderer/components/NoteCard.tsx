@@ -1,4 +1,4 @@
-import { useRef, useCallback, forwardRef, useImperativeHandle, useState } from 'react'
+import { useRef, useCallback, forwardRef, useImperativeHandle, useState, memo } from 'react'
 import { LexicalEditor, LexicalEditorHandle } from './LexicalEditor'
 import { AttachmentList } from './AttachmentList'
 import { LinkPreviews } from './LinkPreviews'
@@ -11,11 +11,13 @@ import { useProfileStore } from '../stores/profile'
 import { formatRelativeTime } from '../lib/time-utils'
 import { useDragAndDrop } from '../hooks'
 import type { Note } from '@drop/shared'
+import type { NoteViewMode } from '../stores/notes'
 
 interface Props {
   note: Note
   isFocused: boolean
   depth?: number
+  viewMode?: NoteViewMode
   onEscapeFromNormal: () => void
   onReply?: (noteId: string) => void
 }
@@ -25,14 +27,25 @@ export interface NoteCardHandle {
   openTagList: () => void
 }
 
-export const NoteCard = forwardRef<NoteCardHandle, Props>(
-  ({ note, isFocused, depth = 0, onEscapeFromNormal, onReply }, ref) => {
+export const NoteCard = memo(forwardRef<NoteCardHandle, Props>(
+  ({ note, isFocused, depth = 0, viewMode = 'active', onEscapeFromNormal, onReply }, ref) => {
     const editorRef = useRef<LexicalEditorHandle>(null)
     const tagInputRef = useRef<TagInputHandle>(null)
     const [showPinDialog, setShowPinDialog] = useState(false)
     const [pinDialogMode, setPinDialogMode] = useState<'setup' | 'unlock'>('setup')
 
-    const { updateNote, deleteNote, addAttachment, removeAttachment, toggleNoteLock, sessionUnlocked } = useNotesStore()
+    const {
+      updateNote,
+      deleteNote,
+      addAttachment,
+      removeAttachment,
+      toggleNoteLock,
+      sessionUnlocked,
+      archiveNote,
+      unarchiveNote,
+      restoreNote,
+      permanentlyDeleteNote,
+    } = useNotesStore()
     const hasPin = useProfileStore((s) => s.hasPin)
 
     const isLocked = note.isLocked && !sessionUnlocked
@@ -105,33 +118,85 @@ export const NoteCard = forwardRef<NoteCardHandle, Props>(
           <div className="note-card-header">
             <span className="note-time">{formatRelativeTime(note.createdAt)}</span>
             <div className="note-card-actions">
-              <button
-                className={`lock-btn ${note.isLocked ? 'locked' : ''}`}
-                onClick={handleLockToggle}
-                title={note.isLocked ? '잠금 해제' : '잠금'}
-              >
-                {note.isLocked ? '🔒' : '🔓'}
-              </button>
-              {onReply && !isLocked && (
-                <button
-                  className="reply-btn"
-                  onClick={() => onReply(note.id)}
-                  title="답글"
-                >
-                  ↩
-                </button>
+              {viewMode === 'active' && (
+                <>
+                  <button
+                    className={`lock-btn ${note.isLocked ? 'locked' : ''}`}
+                    onClick={handleLockToggle}
+                    title={note.isLocked ? '잠금 해제' : '잠금'}
+                  >
+                    {note.isLocked ? '🔒' : '🔓'}
+                  </button>
+                  {onReply && !isLocked && (
+                    <button className="reply-btn" onClick={() => onReply(note.id)} title="답글">
+                      ↩
+                    </button>
+                  )}
+                  {!isLocked && (
+                    <button
+                      className="archive-btn"
+                      onClick={() => archiveNote(note.id)}
+                      title="보관"
+                    >
+                      📦
+                    </button>
+                  )}
+                  {!isLocked && (
+                    <button
+                      className="delete-btn"
+                      onClick={() => {
+                        if (window.confirm('이 노트를 삭제하시겠습니까?')) {
+                          deleteNote(note.id)
+                        }
+                      }}
+                    >
+                      ×
+                    </button>
+                  )}
+                </>
               )}
-              {!isLocked && (
-                <button
-                  className="delete-btn"
-                  onClick={() => {
-                    if (window.confirm('이 노트를 삭제하시겠습니까?')) {
-                      deleteNote(note.id)
-                    }
-                  }}
-                >
-                  ×
-                </button>
+              {viewMode === 'archived' && (
+                <>
+                  <button
+                    className="unarchive-btn"
+                    onClick={() => unarchiveNote(note.id)}
+                    title="보관 해제"
+                  >
+                    ↩
+                  </button>
+                  <button
+                    className="delete-btn"
+                    onClick={() => {
+                      if (window.confirm('이 노트를 삭제하시겠습니까?')) {
+                        deleteNote(note.id)
+                      }
+                    }}
+                  >
+                    ×
+                  </button>
+                </>
+              )}
+              {viewMode === 'trash' && (
+                <>
+                  <button
+                    className="restore-btn"
+                    onClick={() => restoreNote(note.id)}
+                    title="복원"
+                  >
+                    ↩
+                  </button>
+                  <button
+                    className="permanent-delete-btn"
+                    onClick={() => {
+                      if (window.confirm('이 노트를 영구 삭제하시겠습니까? 복원할 수 없습니다.')) {
+                        permanentlyDeleteNote(note.id)
+                      }
+                    }}
+                    title="영구 삭제"
+                  >
+                    🗑️
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -175,6 +240,6 @@ export const NoteCard = forwardRef<NoteCardHandle, Props>(
       </>
     )
   }
-)
+))
 
 NoteCard.displayName = 'NoteCard'
