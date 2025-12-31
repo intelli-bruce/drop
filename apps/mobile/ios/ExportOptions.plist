@@ -19,11 +19,11 @@
 	<key>provisioningProfiles</key>
 	<dict>
 		<key>com.intellieffect.drop.mobile</key>
-		<string>DROP Mobile Distribution</string>
+		<string>DROP-Mobile-Provisioning-Profile</string>
 		<key>com.intellieffect.drop.mobile.share</key>
-		<string>DROP ShareExtension Distribution</string>
+		<string>DROP-ShareExtension-Provisioning-Profile</string>
 		<key>com.intellieffect.drop.mobile.widget</key>
-		<string>DROP Widget Distribution</string>
+		<string>DROP-Widget-Provisioning-Profile</string>
 	</dict>
 	<key>testFlightInternalTestingOnly</key>
 	<false/>
