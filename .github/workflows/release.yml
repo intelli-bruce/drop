@@ -144,18 +144,25 @@ jobs:
           echo "Installed provisioning profiles:"
           ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
 
-          # Update Release configuration to use manual signing
-          PBXPROJ="apps/mobile/ios/Runner.xcodeproj/project.pbxproj"
+          # Extract profile UUIDs
+          MAIN_UUID=$(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/drop_mobile.mobileprovision 2>/dev/null | plutil -extract UUID raw -)
+          WIDGET_UUID=$(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/drop_widget.mobileprovision 2>/dev/null | plutil -extract UUID raw -)
+          SHARE_UUID=$(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/drop_share_extension.mobileprovision 2>/dev/null | plutil -extract UUID raw -)
 
-          # Replace CODE_SIGN_STYLE for all builds
-          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' "$PBXPROJ"
+          echo "Main UUID: $MAIN_UUID"
+          echo "Widget UUID: $WIDGET_UUID"
+          echo "Share UUID: $SHARE_UUID"
 
-          echo "Modified project.pbxproj for manual signing"
+          # Rename profiles to their UUIDs (required by Xcode)
+          mv ~/Library/MobileDevice/Provisioning\ Profiles/drop_mobile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$MAIN_UUID.mobileprovision
+          mv ~/Library/MobileDevice/Provisioning\ Profiles/drop_widget.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$WIDGET_UUID.mobileprovision
+          mv ~/Library/MobileDevice/Provisioning\ Profiles/drop_share_extension.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$SHARE_UUID.mobileprovision
 
       - name: Build IPA
         working-directory: apps/mobile
         run: |
           flutter build ipa \
+            --release \
             --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
             --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
             --export-options-plist=ios/ExportOptions.plist
