@@ -144,28 +144,43 @@ jobs:
           echo "Installed provisioning profiles:"
           ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
 
-          # Extract profile UUIDs
-          MAIN_UUID=$(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/drop_mobile.mobileprovision 2>/dev/null | plutil -extract UUID raw -)
-          WIDGET_UUID=$(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/drop_widget.mobileprovision 2>/dev/null | plutil -extract UUID raw -)
-          SHARE_UUID=$(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/drop_share_extension.mobileprovision 2>/dev/null | plutil -extract UUID raw -)
+          # Extract profile UUIDs and rename
+          for profile in ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision; do
+            UUID=$(security cms -D -i "$profile" 2>/dev/null | plutil -extract UUID raw - 2>/dev/null || true)
+            if [ -n "$UUID" ]; then
+              echo "Profile UUID: $UUID"
+              mv "$profile" ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
+            fi
+          done
 
-          echo "Main UUID: $MAIN_UUID"
-          echo "Widget UUID: $WIDGET_UUID"
-          echo "Share UUID: $SHARE_UUID"
+          echo "Profiles after renaming:"
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
 
-          # Rename profiles to their UUIDs (required by Xcode)
-          mv ~/Library/MobileDevice/Provisioning\ Profiles/drop_mobile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$MAIN_UUID.mobileprovision
-          mv ~/Library/MobileDevice/Provisioning\ Profiles/drop_widget.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$WIDGET_UUID.mobileprovision
-          mv ~/Library/MobileDevice/Provisioning\ Profiles/drop_share_extension.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$SHARE_UUID.mobileprovision
-
-      - name: Build IPA
+      - name: Build iOS (Flutter)
         working-directory: apps/mobile
         run: |
-          flutter build ipa \
+          flutter build ios \
             --release \
+            --no-codesign \
             --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
-            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
-            --export-options-plist=ios/ExportOptions.plist
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+
+      - name: Archive and Export IPA
+        working-directory: apps/mobile/ios
+        run: |
+          xcodebuild -workspace Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -archivePath $RUNNER_TEMP/Runner.xcarchive \
+            archive \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            DEVELOPMENT_TEAM=J2Y925QHNV
+
+          xcodebuild -exportArchive \
+            -archivePath $RUNNER_TEMP/Runner.xcarchive \
+            -exportPath ../build/ios/ipa \
+            -exportOptionsPlist ExportOptions.plist
 
       - name: Upload to TestFlight
         env:
