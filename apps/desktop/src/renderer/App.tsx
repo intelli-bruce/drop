@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNotesStore } from './stores/notes'
 import { useAuthStore } from './stores/auth'
+import { useProfileStore } from './stores/profile'
 import { NoteFeed } from './components/NoteFeed'
 import { AuthScreen } from './components/AuthScreen'
 import { QuickCapture } from './components/QuickCapture'
@@ -12,6 +13,7 @@ const envLabel = isLocal ? 'LOCAL' : 'REMOTE'
 function App() {
   const { loadNotes, loadTags, subscribeToChanges, createNote } = useNotesStore()
   const { user, isAuthLoading, initializeAuth } = useAuthStore()
+  const loadProfile = useProfileStore((s) => s.loadProfile)
   const [route, setRoute] = useState(() => window.location.hash.replace('#', '') || 'main')
 
   // Handle hash-based routing
@@ -57,6 +59,7 @@ function App() {
 
     loadNotes()
     loadTags()
+    loadProfile()
 
     // Realtime 구독 시작
     const unsubscribe = subscribeToChanges()
@@ -64,7 +67,7 @@ function App() {
     return () => {
       unsubscribe()
     }
-  }, [user, loadNotes, loadTags, subscribeToChanges])
+  }, [user, loadNotes, loadTags, loadProfile, subscribeToChanges])
 
   // Quick Capture route - minimal UI, separate window
   if (route === 'quick-capture') {

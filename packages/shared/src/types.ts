@@ -14,6 +14,12 @@ export interface NoteRow {
   source: NoteSource
   is_deleted: boolean
   user_id: string | null
+  // 카테고리 플래그
+  has_link: boolean
+  has_media: boolean
+  has_files: boolean
+  // 잠금
+  is_locked: boolean
 }
 
 export interface AttachmentRow {
@@ -44,6 +50,22 @@ export interface NoteTagRow {
   tag_id: string
 }
 
+export interface UserProfileRow {
+  id: string
+  user_id: string
+  pin_hash: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface UserProfile {
+  id: string
+  userId: string
+  hasPin: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
 // Application types (camelCase - 앱 내부 사용)
 export interface Note {
   id: string
@@ -55,6 +77,12 @@ export interface Note {
   updatedAt: Date
   source: NoteSource
   isDeleted: boolean
+  // 카테고리 플래그
+  hasLink: boolean
+  hasMedia: boolean
+  hasFiles: boolean
+  // 잠금
+  isLocked: boolean
 }
 
 export interface Attachment {
@@ -127,6 +155,20 @@ export function noteRowToNote(
     updatedAt: new Date(row.updated_at),
     source: row.source,
     isDeleted: row.is_deleted,
+    hasLink: row.has_link,
+    hasMedia: row.has_media,
+    hasFiles: row.has_files,
+    isLocked: row.is_locked,
+  }
+}
+
+export function userProfileRowToUserProfile(row: UserProfileRow): UserProfile {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    hasPin: Boolean(row.pin_hash),
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
   }
 }
 

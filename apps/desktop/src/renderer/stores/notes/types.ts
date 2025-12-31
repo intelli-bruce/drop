@@ -41,5 +41,19 @@ export interface YouTubeSlice {
   createNoteWithYouTube: (url: string) => Promise<Note | null>
 }
 
+// Lock slice
+export interface LockSlice {
+  sessionUnlocked: boolean
+  unlockSession: () => void
+  lockSession: () => void
+  toggleNoteLock: (noteId: string) => Promise<void>
+}
+
+// Category filter slice
+export interface CategoryFilterSlice {
+  categoryFilter: 'all' | 'link' | 'media' | 'files' | null
+  setCategoryFilter: (filter: 'all' | 'link' | 'media' | 'files' | null) => void
+}
+
 // Combined store state
-export interface NotesState extends NotesSlice, TagsSlice, AttachmentsSlice, InstagramSlice, YouTubeSlice {}
+export interface NotesState extends NotesSlice, TagsSlice, AttachmentsSlice, InstagramSlice, YouTubeSlice, LockSlice, CategoryFilterSlice {}

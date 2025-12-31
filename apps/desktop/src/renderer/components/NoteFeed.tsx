@@ -1,10 +1,14 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { useNotesStore } from '../stores/notes'
+import { useProfileStore } from '../stores/profile'
 import { NoteCard, NoteCardHandle } from './NoteCard'
 import { TagDialog } from './TagDialog'
+import { CategoryFilter } from './CategoryFilter'
+import { PinDialog } from './PinDialog'
 import { isCreateNoteShortcut } from '../shortcuts/noteGlobal'
 import { resolveNoteFeedShortcut } from '../shortcuts/noteFeed'
 import { isOpenTagListShortcut } from '../shortcuts/tagList'
+import { isToggleLockShortcut } from '../shortcuts/noteLock'
 import { isTextInputTarget, getClosestNoteId } from '../lib/dom-utils'
 import { extractInstagramUrls } from '../lib/instagram-url-utils'
 import { extractYouTubeUrls } from '../lib/youtube-url-utils'
@@ -24,9 +28,14 @@ export function NoteFeed() {
     createNoteWithYouTube,
     filterTag,
     setFilterTag,
+    categoryFilter,
+    toggleNoteLock,
   } = useNotesStore()
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null)
   const [tagDialogNoteId, setTagDialogNoteId] = useState<string | null>(null)
+  const [pinDialogNoteId, setPinDialogNoteId] = useState<string | null>(null)
+  const [pinDialogMode, setPinDialogMode] = useState<'setup' | 'unlock'>('setup')
+  const hasPin = useProfileStore((s) => s.hasPin)
   const cardRefs = useRef<Map<string, NoteCardHandle>>(new Map())
   const feedRef = useRef<HTMLDivElement>(null)
 
@@ -51,9 +60,18 @@ export function NoteFeed() {
   })
 
   // 태그 필터링 적용
-  const filteredNotes = filterTag
+  let filteredNotes = filterTag
     ? notes.filter((note) => note.tags.some((t) => t.name === filterTag))
     : notes
+
+  // 카테고리 필터링 적용
+  if (categoryFilter === 'link') {
+    filteredNotes = filteredNotes.filter((note) => note.hasLink)
+  } else if (categoryFilter === 'media') {
+    filteredNotes = filteredNotes.filter((note) => note.hasMedia)
+  } else if (categoryFilter === 'files') {
+    filteredNotes = filteredNotes.filter((note) => note.hasFiles)
+  }
 
   // 루트 노트만 추출 (parentId가 null인 노트)
   const rootNotes = filteredNotes.filter((note) => note.parentId === null)
@@ -178,9 +196,10 @@ export function NoteFeed() {
     return () => window.removeEventListener('keydown', handleGlobalKeyDown)
   }, [handleCreateNote])
 
-  // Cmd+Shift+T 단축키로 태그 다이얼로그 열기
+  // t 단축키로 태그 다이얼로그 열기 (텍스트 입력 중 제외)
   useEffect(() => {
     const handleTagListKeyDown = (e: KeyboardEvent) => {
+      if (isTextInputTarget(e.target)) return
       if (!isOpenTagListShortcut(e)) return
       const fallbackNoteId = focusedIndex !== null ? flatNotes[focusedIndex]?.note.id : null
       const noteId = getClosestNoteId(document.activeElement) ?? fallbackNoteId
@@ -193,6 +212,40 @@ export function NoteFeed() {
     window.addEventListener('keydown', handleTagListKeyDown)
     return () => window.removeEventListener('keydown', handleTagListKeyDown)
   }, [flatNotes, focusedIndex])
+
+  // Cmd+L 단축키로 노트 잠금 토글
+  useEffect(() => {
+    const handleLockKeyDown = (e: KeyboardEvent) => {
+      if (!isToggleLockShortcut(e)) return
+      const fallbackNoteId = focusedIndex !== null ? flatNotes[focusedIndex]?.note.id : null
+      const noteId = getClosestNoteId(document.activeElement) ?? fallbackNoteId
+      if (!noteId) return
+      e.preventDefault()
+      e.stopPropagation()
+
+      const note = notes.find((n) => n.id === noteId)
+      if (!note) return
+
+      // 잠금하려는데 PIN이 없으면 설정 다이얼로그 표시
+      if (!note.isLocked && !hasPin) {
+        setPinDialogMode('setup')
+        setPinDialogNoteId(noteId)
+        return
+      }
+
+      // 잠금 해제하려면 PIN 확인 필요
+      if (note.isLocked) {
+        setPinDialogMode('unlock')
+        setPinDialogNoteId(noteId)
+        return
+      }
+
+      toggleNoteLock(noteId)
+    }
+
+    window.addEventListener('keydown', handleLockKeyDown)
+    return () => window.removeEventListener('keydown', handleLockKeyDown)
+  }, [flatNotes, focusedIndex, notes, hasPin, toggleNoteLock])
 
   // 초기 포커스
   useEffect(() => {
@@ -373,7 +426,19 @@ export function NoteFeed() {
           onClose={() => setTagDialogNoteId(null)}
         />
       )}
+      {pinDialogNoteId && (
+        <PinDialog
+          mode={pinDialogMode}
+          onSuccess={() => {
+            const noteId = pinDialogNoteId
+            setPinDialogNoteId(null)
+            toggleNoteLock(noteId)
+          }}
+          onCancel={() => setPinDialogNoteId(null)}
+        />
+      )}
       <div className="feed-header">
+        <CategoryFilter />
         {filterTag && (
           <div className="filter-indicator">
             <span>#{filterTag}</span>

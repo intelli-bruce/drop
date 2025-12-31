@@ -1,10 +1,13 @@
-import { useRef, useCallback, forwardRef, useImperativeHandle } from 'react'
+import { useRef, useCallback, forwardRef, useImperativeHandle, useState } from 'react'
 import { LexicalEditor, LexicalEditorHandle } from './LexicalEditor'
 import { AttachmentList } from './AttachmentList'
 import { LinkPreviews } from './LinkPreviews'
 import { TagList } from './TagList'
 import { TagInput, TagInputHandle } from './TagInput'
+import { LockedNoteOverlay } from './LockedNoteOverlay'
+import { PinDialog } from './PinDialog'
 import { useNotesStore } from '../stores/notes'
+import { useProfileStore } from '../stores/profile'
 import { formatRelativeTime } from '../lib/time-utils'
 import { useDragAndDrop } from '../hooks'
 import type { Note } from '@drop/shared'
@@ -26,7 +29,13 @@ export const NoteCard = forwardRef<NoteCardHandle, Props>(
   ({ note, isFocused, depth = 0, onEscapeFromNormal, onReply }, ref) => {
     const editorRef = useRef<LexicalEditorHandle>(null)
     const tagInputRef = useRef<TagInputHandle>(null)
-    const { updateNote, deleteNote, addAttachment, removeAttachment } = useNotesStore()
+    const [showPinDialog, setShowPinDialog] = useState(false)
+    const [pinDialogMode, setPinDialogMode] = useState<'setup' | 'unlock'>('setup')
+
+    const { updateNote, deleteNote, addAttachment, removeAttachment, toggleNoteLock, sessionUnlocked } = useNotesStore()
+    const hasPin = useProfileStore((s) => s.hasPin)
+
+    const isLocked = note.isLocked && !sessionUnlocked
 
     const handleAddFile = useCallback(
       (file: File) => {
@@ -62,60 +71,108 @@ export const NoteCard = forwardRef<NoteCardHandle, Props>(
 
     const indentStyle = depth > 0 ? { marginLeft: `${depth * 24}px` } : undefined
 
+    const handleLockToggle = () => {
+      if (!note.isLocked && !hasPin) {
+        // PIN이 없으면 먼저 설정하도록 유도
+        setPinDialogMode('setup')
+        setShowPinDialog(true)
+        return
+      }
+      // 잠금 해제하려면 PIN 확인 필요
+      if (note.isLocked) {
+        setPinDialogMode('unlock')
+        setShowPinDialog(true)
+        return
+      }
+      toggleNoteLock(note.id)
+    }
+
+    const handleUnlock = () => {
+      setPinDialogMode('unlock')
+      setShowPinDialog(true)
+    }
+
     return (
-      <div
-        className={`note-card ${isFocused ? 'focused' : ''} ${isDragOver ? 'drag-over' : ''} ${depth > 0 ? 'note-card-reply' : ''}`}
-        style={indentStyle}
-        data-note-id={note.id}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-      >
-        <div className="note-card-header">
-          <span className="note-time">{formatRelativeTime(note.createdAt)}</span>
-          <div className="note-card-actions">
-            {onReply && (
+      <>
+        <div
+          className={`note-card ${isFocused ? 'focused' : ''} ${isDragOver ? 'drag-over' : ''} ${depth > 0 ? 'note-card-reply' : ''} ${isLocked ? 'locked' : ''}`}
+          style={indentStyle}
+          data-note-id={note.id}
+          onDragOver={isLocked ? undefined : handleDragOver}
+          onDragLeave={isLocked ? undefined : handleDragLeave}
+          onDrop={isLocked ? undefined : handleDrop}
+        >
+          <div className="note-card-header">
+            <span className="note-time">{formatRelativeTime(note.createdAt)}</span>
+            <div className="note-card-actions">
               <button
-                className="reply-btn"
-                onClick={() => onReply(note.id)}
-                title="답글"
+                className={`lock-btn ${note.isLocked ? 'locked' : ''}`}
+                onClick={handleLockToggle}
+                title={note.isLocked ? '잠금 해제' : '잠금'}
               >
-                ↩
+                {note.isLocked ? '🔒' : '🔓'}
               </button>
-            )}
-            <button
-              className="delete-btn"
-              onClick={() => {
-                if (window.confirm('이 노트를 삭제하시겠습니까?')) {
-                  deleteNote(note.id)
-                }
-              }}
-            >
-              ×
-            </button>
+              {onReply && !isLocked && (
+                <button
+                  className="reply-btn"
+                  onClick={() => onReply(note.id)}
+                  title="답글"
+                >
+                  ↩
+                </button>
+              )}
+              {!isLocked && (
+                <button
+                  className="delete-btn"
+                  onClick={() => {
+                    if (window.confirm('이 노트를 삭제하시겠습니까?')) {
+                      deleteNote(note.id)
+                    }
+                  }}
+                >
+                  ×
+                </button>
+              )}
+            </div>
           </div>
+          {isLocked ? (
+            <LockedNoteOverlay onUnlock={handleUnlock} />
+          ) : (
+            <>
+              <div className="note-editor">
+                <LexicalEditor
+                  key={note.id}
+                  ref={editorRef}
+                  initialContent={note.content}
+                  onChange={handleChange}
+                  onEscape={onEscapeFromNormal}
+                  onAddFile={handleAddFile}
+                />
+              </div>
+              <AttachmentList attachments={note.attachments} onRemove={handleRemoveAttachment} />
+              <LinkPreviews content={note.content} attachments={note.attachments} />
+              <div className="note-tags-section">
+                <TagList noteId={note.id} tags={note.tags} />
+                <TagInput
+                  ref={tagInputRef}
+                  noteId={note.id}
+                  existingTagNames={note.tags.map((t) => t.name)}
+                />
+              </div>
+            </>
+          )}
         </div>
-        <div className="note-editor">
-          <LexicalEditor
-            key={note.id}
-            ref={editorRef}
-            initialContent={note.content}
-            onChange={handleChange}
-            onEscape={onEscapeFromNormal}
-            onAddFile={handleAddFile}
+        {showPinDialog && (
+          <PinDialog
+            mode={pinDialogMode}
+            onSuccess={() => {
+              setShowPinDialog(false)
+              toggleNoteLock(note.id)
+            }}
+            onCancel={() => setShowPinDialog(false)}
           />
-        </div>
-        <AttachmentList attachments={note.attachments} onRemove={handleRemoveAttachment} />
-        <LinkPreviews content={note.content} attachments={note.attachments} />
-        <div className="note-tags-section">
-          <TagList noteId={note.id} tags={note.tags} />
-          <TagInput
-            ref={tagInputRef}
-            noteId={note.id}
-            existingTagNames={note.tags.map((t) => t.name)}
-          />
-        </div>
-      </div>
+        )}
+      </>
     )
   }
 )

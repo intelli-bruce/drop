@@ -3,8 +3,9 @@ import { supabase, uploadAttachment } from '../../lib/supabase'
 import { attachmentRowToAttachment } from '@drop/shared'
 import type { AttachmentType, AttachmentRow } from '@drop/shared'
 import type { NotesState, AttachmentsSlice } from './types'
+import { calculateNoteCategories, categoriesChanged } from '../../lib/note-category-utils'
 
-export const createAttachmentsSlice: StateCreator<NotesState, [], [], AttachmentsSlice> = (set) => ({
+export const createAttachmentsSlice: StateCreator<NotesState, [], [], AttachmentsSlice> = (set, get) => ({
   addAttachment: async (noteId, file) => {
     console.info('[attachments] upload start', {
       noteId,
@@ -49,11 +50,38 @@ export const createAttachmentsSlice: StateCreator<NotesState, [], [], Attachment
     const attachment = attachmentRowToAttachment(data as AttachmentRow)
     console.info('[attachments] record created', { noteId, attachmentId: attachment.id })
 
-    set((state) => ({
-      notes: state.notes.map((n) =>
-        n.id === noteId ? { ...n, attachments: [...n.attachments, attachment] } : n
-      ),
-    }))
+    // 카테고리 업데이트
+    const note = get().notes.find((n) => n.id === noteId)
+    if (note) {
+      const updatedAttachments = [...note.attachments, attachment]
+      const categories = calculateNoteCategories(note.content, updatedAttachments)
+      const existing = { hasLink: note.hasLink, hasMedia: note.hasMedia, hasFiles: note.hasFiles }
+
+      if (categoriesChanged(existing, categories)) {
+        await supabase
+          .from('notes')
+          .update({
+            has_link: categories.hasLink,
+            has_media: categories.hasMedia,
+            has_files: categories.hasFiles,
+          })
+          .eq('id', noteId)
+      }
+
+      set((state) => ({
+        notes: state.notes.map((n) =>
+          n.id === noteId
+            ? {
+                ...n,
+                attachments: updatedAttachments,
+                hasLink: categories.hasLink,
+                hasMedia: categories.hasMedia,
+                hasFiles: categories.hasFiles,
+              }
+            : n
+        ),
+      }))
+    }
 
     return attachment
   },
@@ -79,12 +107,37 @@ export const createAttachmentsSlice: StateCreator<NotesState, [], [], Attachment
       return
     }
 
-    set((state) => ({
-      notes: state.notes.map((n) =>
-        n.id === noteId
-          ? { ...n, attachments: n.attachments.filter((a) => a.id !== attachmentId) }
-          : n
-      ),
-    }))
+    // 카테고리 재계산
+    const note = get().notes.find((n) => n.id === noteId)
+    if (note) {
+      const updatedAttachments = note.attachments.filter((a) => a.id !== attachmentId)
+      const categories = calculateNoteCategories(note.content, updatedAttachments)
+      const existing = { hasLink: note.hasLink, hasMedia: note.hasMedia, hasFiles: note.hasFiles }
+
+      if (categoriesChanged(existing, categories)) {
+        await supabase
+          .from('notes')
+          .update({
+            has_link: categories.hasLink,
+            has_media: categories.hasMedia,
+            has_files: categories.hasFiles,
+          })
+          .eq('id', noteId)
+      }
+
+      set((state) => ({
+        notes: state.notes.map((n) =>
+          n.id === noteId
+            ? {
+                ...n,
+                attachments: updatedAttachments,
+                hasLink: categories.hasLink,
+                hasMedia: categories.hasMedia,
+                hasFiles: categories.hasFiles,
+              }
+            : n
+        ),
+      }))
+    }
   },
 })

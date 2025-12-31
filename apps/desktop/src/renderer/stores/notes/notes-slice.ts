@@ -7,8 +7,9 @@ import {
 } from '@drop/shared'
 import type { NoteRow, AttachmentRow, TagRow, Attachment, Tag } from '@drop/shared'
 import type { NotesState, NotesSlice } from './types'
+import { calculateNoteCategories } from '../../lib/note-category-utils'
 
-export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (set) => ({
+export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (set, get) => ({
   notes: [],
   selectedNoteId: null,
   isLoading: false,
@@ -98,11 +99,12 @@ export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (s
     } = await supabase.auth.getUser()
     if (!user) {
       console.error('[notes] createNote: user not authenticated')
-      return { id: '', content: '', parentId: null, attachments: [], tags: [], createdAt: new Date(), updatedAt: new Date(), source: 'desktop' as const, isDeleted: false }
+      return { id: '', content: '', parentId: null, attachments: [], tags: [], createdAt: new Date(), updatedAt: new Date(), source: 'desktop' as const, isDeleted: false, hasLink: false, hasMedia: false, hasFiles: false, isLocked: false }
     }
 
     const id = crypto.randomUUID()
     const now = new Date()
+    const categories = calculateNoteCategories(initialContent, [])
     const optimisticNote = {
       id,
       content: initialContent,
@@ -113,6 +115,10 @@ export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (s
       updatedAt: now,
       source: 'desktop' as const,
       isDeleted: false,
+      hasLink: categories.hasLink,
+      hasMedia: categories.hasMedia,
+      hasFiles: categories.hasFiles,
+      isLocked: false,
     }
 
     set((state) => ({
@@ -129,6 +135,9 @@ export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (s
         parent_id: parentId ?? null,
         source: 'desktop',
         user_id: user.id,
+        has_link: categories.hasLink,
+        has_media: categories.hasMedia,
+        has_files: categories.hasFiles,
       })
       .select()
       .single()
@@ -151,9 +160,21 @@ export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (s
   },
 
   updateNote: async (id, content) => {
+    const existingNote = get().notes.find((n) => n.id === id)
+    if (!existingNote) return
+
+    // 카테고리 재계산 (has_link만 content에 영향받음)
+    const categories = calculateNoteCategories(content, existingNote.attachments)
+    const updateData: Record<string, unknown> = { content }
+
+    // has_link가 변경된 경우에만 업데이트
+    if (existingNote.hasLink !== categories.hasLink) {
+      updateData.has_link = categories.hasLink
+    }
+
     const { data, error } = await supabase
       .from('notes')
-      .update({ content })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single()
@@ -162,7 +183,9 @@ export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (s
 
     set((state) => ({
       notes: state.notes.map((n) =>
-        n.id === id ? { ...n, content, updatedAt: new Date(data.updated_at) } : n
+        n.id === id
+          ? { ...n, content, hasLink: categories.hasLink, updatedAt: new Date(data.updated_at) }
+          : n
       ),
     }))
   },

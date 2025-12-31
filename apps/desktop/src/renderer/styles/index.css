@@ -1243,3 +1243,189 @@ body {
   color: var(--text-secondary);
   font-size: 13px;
 }
+
+/* Lock Button */
+.lock-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background 0.1s;
+}
+
+.lock-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.lock-btn.locked {
+  color: var(--accent);
+}
+
+/* Locked Note */
+.note-card.locked {
+  opacity: 0.9;
+}
+
+.locked-note-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  gap: 12px;
+}
+
+.locked-note-icon {
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
+.locked-note-text {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin: 0;
+}
+
+.locked-note-btn {
+  padding: 6px 16px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.locked-note-btn:hover {
+  opacity: 0.9;
+}
+
+/* PIN Dialog */
+.pin-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.pin-dialog {
+  width: 280px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+}
+
+.pin-dialog-title {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text-primary);
+}
+
+.pin-dialog-input {
+  width: 100%;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 18px;
+  text-align: center;
+  letter-spacing: 8px;
+  margin-bottom: 12px;
+}
+
+.pin-dialog-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.pin-dialog-input::placeholder {
+  letter-spacing: normal;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.pin-dialog-error {
+  color: #ff4444;
+  font-size: 12px;
+  text-align: center;
+  margin: 0 0 12px 0;
+}
+
+.pin-dialog-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.pin-dialog-actions button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.pin-dialog-actions button[type="button"] {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.pin-dialog-actions button[type="submit"] {
+  background: var(--accent);
+  border: none;
+  color: white;
+}
+
+.pin-dialog-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Category Filter */
+.category-filter {
+  display: flex;
+  gap: 6px;
+  -webkit-app-region: no-drag;
+}
+
+.category-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.category-filter-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.category-filter-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.category-filter-icon {
+  font-size: 11px;
+}

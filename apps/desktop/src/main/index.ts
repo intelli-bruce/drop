@@ -565,6 +565,11 @@ async function fetchInstagramPost(postUrl: string): Promise<InstagramPostData | 
   return extractPostDataFromHtml(htmlSource, parsed, extraPayloads)
 }
 
+// YouTube oEmbed 캐시 (videoId -> data, 15분 TTL)
+const youtubeOEmbedCache = new Map<string, { data: YouTubeOEmbedData; timestamp: number }>()
+const youtubeOEmbedPending = new Map<string, Promise<YouTubeOEmbedData | null>>()
+const YOUTUBE_CACHE_TTL = 15 * 60 * 1000 // 15 minutes
+
 function extractYouTubeVideoId(url: string): string | null {
   try {
     const parsed = new URL(url)
@@ -606,56 +611,86 @@ async function fetchYouTubeOEmbed(videoUrl: string): Promise<YouTubeOEmbedData |
     return null
   }
 
+  // 캐시 확인
+  const cached = youtubeOEmbedCache.get(videoId)
+  if (cached && Date.now() - cached.timestamp < YOUTUBE_CACHE_TTL) {
+    console.info('[youtube] fetchOEmbed: cache hit', { videoId })
+    return cached.data
+  }
+
+  // 진행 중인 요청이 있으면 대기
+  const pending = youtubeOEmbedPending.get(videoId)
+  if (pending) {
+    console.info('[youtube] fetchOEmbed: waiting for pending request', { videoId })
+    return pending
+  }
+
   const canonicalUrl = `https://www.youtube.com/watch?v=${videoId}`
   const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(canonicalUrl)}&format=json`
 
   console.info('[youtube] fetching oEmbed:', oembedUrl)
 
-  const result = await fetchBufferWithRedirect(oembedUrl, {
-    headers: {
-      'User-Agent': USER_AGENT,
-      Accept: 'application/json',
-    },
-  })
+  // 요청을 Promise로 래핑하여 pending에 등록
+  const fetchPromise = (async (): Promise<YouTubeOEmbedData | null> => {
+    const result = await fetchBufferWithRedirect(oembedUrl, {
+      headers: {
+        'User-Agent': USER_AGENT,
+        Accept: 'application/json',
+      },
+    })
 
-  if (!result) {
-    console.warn('[youtube] oEmbed fetch failed')
-    return null
-  }
+    if (!result) {
+      console.warn('[youtube] oEmbed fetch failed')
+      return null
+    }
 
+    try {
+      const text = result.buffer.toString('utf8')
+      const data = JSON.parse(text) as {
+        title?: string
+        author_name?: string
+        author_url?: string
+        thumbnail_url?: string
+        thumbnail_width?: number
+        thumbnail_height?: number
+        html?: string
+      }
+
+      // Use maxresdefault thumbnail if available
+      let thumbnailUrl = data.thumbnail_url || ''
+      if (thumbnailUrl) {
+        // Try to get higher quality thumbnail
+        thumbnailUrl = `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`
+      }
+
+      const oembedData: YouTubeOEmbedData = {
+        title: data.title || '',
+        authorName: data.author_name || '',
+        authorUrl: data.author_url || '',
+        thumbnailUrl,
+        thumbnailWidth: data.thumbnail_width || 0,
+        thumbnailHeight: data.thumbnail_height || 0,
+        html: data.html || '',
+        videoId,
+        videoUrl: canonicalUrl,
+      }
+
+      // 캐시에 저장
+      youtubeOEmbedCache.set(videoId, { data: oembedData, timestamp: Date.now() })
+
+      return oembedData
+    } catch (error) {
+      console.error('[youtube] oEmbed parse error:', error)
+      return null
+    }
+  })()
+
+  // pending에 등록하고 완료 시 제거
+  youtubeOEmbedPending.set(videoId, fetchPromise)
   try {
-    const text = result.buffer.toString('utf8')
-    const data = JSON.parse(text) as {
-      title?: string
-      author_name?: string
-      author_url?: string
-      thumbnail_url?: string
-      thumbnail_width?: number
-      thumbnail_height?: number
-      html?: string
-    }
-
-    // Use maxresdefault thumbnail if available
-    let thumbnailUrl = data.thumbnail_url || ''
-    if (thumbnailUrl) {
-      // Try to get higher quality thumbnail
-      thumbnailUrl = `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`
-    }
-
-    return {
-      title: data.title || '',
-      authorName: data.author_name || '',
-      authorUrl: data.author_url || '',
-      thumbnailUrl,
-      thumbnailWidth: data.thumbnail_width || 0,
-      thumbnailHeight: data.thumbnail_height || 0,
-      html: data.html || '',
-      videoId,
-      videoUrl: canonicalUrl,
-    }
-  } catch (error) {
-    console.error('[youtube] oEmbed parse error:', error)
-    return null
+    return await fetchPromise
+  } finally {
+    youtubeOEmbedPending.delete(videoId)
   }
 }
 
