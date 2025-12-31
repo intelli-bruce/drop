@@ -746,6 +746,7 @@ function setupIpcHandlers(): void {
 let tray: Tray | null = null
 let mainWindow: BrowserWindow | null = null
 let quickCaptureWindow: BrowserWindow | null = null
+let isQuitting = false
 
 function getRendererUrl(hash = ''): string {
   if (process.env.ELECTRON_RENDERER_URL) {
@@ -816,6 +817,11 @@ function hideQuickCaptureWindow(): void {
 }
 
 function showMainWindow(): void {
+  // macOS: 독 아이콘 복원
+  if (process.platform === 'darwin') {
+    app.dock?.show()
+  }
+
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.show()
     mainWindow.focus()
@@ -900,6 +906,17 @@ function createWindow(): void {
 
   mainWindow.loadURL(getRendererUrl())
 
+  // macOS: Cmd+W로 창을 닫으면 숨기기만 함 (앱은 계속 실행)
+  // 단, app.quit() 호출 시에는 실제로 종료
+  mainWindow.on('close', (event) => {
+    if (process.platform === 'darwin' && !isQuitting) {
+      event.preventDefault()
+      mainWindow?.hide()
+      // 독에서도 숨김 (메뉴바 앱처럼 동작)
+      app.dock?.hide()
+    }
+  })
+
   mainWindow.on('closed', () => {
     mainWindow = null
   })
@@ -963,6 +980,11 @@ app.whenReady().then(() => {
   app.on('activate', () => {
     showMainWindow()
   })
+})
+
+// app.quit() 호출 시 isQuitting 플래그 설정
+app.on('before-quit', () => {
+  isQuitting = true
 })
 
 // 메뉴바 앱으로 동작: 창을 모두 닫아도 앱 종료하지 않음
