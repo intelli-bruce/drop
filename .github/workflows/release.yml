@@ -175,24 +175,23 @@ jobs:
       - name: Archive and Export IPA
         working-directory: apps/mobile/ios
         run: |
-          # Get the distribution certificate identity
-          CERT_IDENTITY=$(security find-identity -v -p codesigning | grep "Apple Distribution" | head -1 | sed 's/.*"\(.*\)".*/\1/')
-          echo "Using certificate: $CERT_IDENTITY"
-
+          # Archive without code signing (signing happens during export)
           xcodebuild -workspace Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
             -archivePath $RUNNER_TEMP/Runner.xcarchive \
+            -destination generic/platform=iOS \
             archive \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="$CERT_IDENTITY" \
-            DEVELOPMENT_TEAM=J2Y925QHNV \
-            OTHER_CODE_SIGN_FLAGS="--keychain $RUNNER_TEMP/app-signing.keychain-db"
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
 
+          # Export with signing using ExportOptions.plist
           xcodebuild -exportArchive \
             -archivePath $RUNNER_TEMP/Runner.xcarchive \
             -exportPath ../build/ios/ipa \
-            -exportOptionsPlist ExportOptions.plist
+            -exportOptionsPlist ExportOptions.plist \
+            -allowProvisioningUpdates
 
       - name: Upload to TestFlight
         env:
