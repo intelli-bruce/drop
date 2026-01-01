@@ -235,9 +235,10 @@ export function NoteFeed() {
     }, 50)
   }, [createNote])
 
-  // Cmd+N 단축키로 새 노트 생성
+  // n 단축키로 새 노트 생성 (텍스트 입력 중 제외)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (isTextInputTarget(e.target)) return
       if (!isCreateNoteShortcut(e)) return
       e.preventDefault()
       handleCreateNote()

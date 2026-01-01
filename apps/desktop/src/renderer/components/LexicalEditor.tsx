@@ -19,7 +19,14 @@ import {
   $convertToMarkdownString,
   TRANSFORMERS,
 } from '@lexical/markdown'
-import { EditorState, $getRoot, COMMAND_PRIORITY_HIGH, PASTE_COMMAND } from 'lexical'
+import {
+  EditorState,
+  $getRoot,
+  COMMAND_PRIORITY_HIGH,
+  COMMAND_PRIORITY_CRITICAL,
+  PASTE_COMMAND,
+  KEY_ENTER_COMMAND,
+} from 'lexical'
 import { resolveNoteEditorShortcut } from '../shortcuts/noteEditor'
 
 const URL_MATCHER =
@@ -77,16 +84,38 @@ const theme = {
 function EscapePlugin({ onEscape }: { onEscape: () => void }) {
   const [editor] = useLexicalComposerContext()
 
+  // Enter 키 처리 (Shift+Enter는 줄바꿈, Enter만 누르면 저장+나가기)
+  useEffect(() => {
+    return editor.registerCommand(
+      KEY_ENTER_COMMAND,
+      (event: KeyboardEvent | null) => {
+        if (!event) return false
+        // IME 조합 중이면 무시
+        if (event.isComposing) return false
+        // Shift+Enter는 기본 동작 (줄바꿈)
+        if (event.shiftKey) return false
+
+        // Enter만 누르면 저장+나가기
+        event.preventDefault()
+        const rootElement = editor.getRootElement()
+        rootElement?.blur()
+        onEscape()
+        return true
+      },
+      COMMAND_PRIORITY_CRITICAL
+    )
+  }, [editor, onEscape])
+
+  // Escape 키 처리
   useEffect(() => {
     const rootElement = editor.getRootElement()
     if (!rootElement) return
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // IME 조합 중이면 무시 (조합 취소만 되고, 다시 Esc 누르면 나감)
+      // IME 조합 중이면 무시
       if (e.isComposing) return
+      if (e.key !== 'Escape') return
 
-      const action = resolveNoteEditorShortcut(e)
-      if (action !== 'escape') return
       e.preventDefault()
       rootElement.blur()
       onEscape()
