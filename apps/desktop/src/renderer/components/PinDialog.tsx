@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { useProfileStore } from '../stores/profile'
-import { useNotesStore } from '../stores/notes'
 import { isValidPin } from '../lib/pin-utils'
 
+export type PinDialogMode = 'setup' | 'unlock-temp' | 'unlock-permanent' | 'unlock-all'
+
 interface Props {
-  mode: 'unlock' | 'setup'
+  mode: PinDialogMode
   onSuccess: () => void
   onCancel: () => void
 }
@@ -18,11 +19,23 @@ export function PinDialog({ mode, onSuccess, onCancel }: Props) {
 
   const verifyPin = useProfileStore((s) => s.verifyPin)
   const setNewPin = useProfileStore((s) => s.setPin)
-  const unlockSession = useNotesStore((s) => s.unlockSession)
 
   useEffect(() => {
     inputRef.current?.focus()
   }, [])
+
+  const getTitle = () => {
+    switch (mode) {
+      case 'setup':
+        return 'PIN 설정'
+      case 'unlock-temp':
+        return '일시 잠금 해제'
+      case 'unlock-permanent':
+        return '완전 잠금 해제'
+      case 'unlock-all':
+        return '전체 일시 해제'
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,18 +43,8 @@ export function PinDialog({ mode, onSuccess, onCancel }: Props) {
     setIsLoading(true)
 
     try {
-      if (mode === 'unlock') {
-        const valid = await verifyPin(pin)
-        if (valid) {
-          unlockSession()
-          onSuccess()
-        } else {
-          setError('PIN이 일치하지 않습니다')
-          setPin('')
-          inputRef.current?.focus()
-        }
-      } else {
-        // setup 모드
+      if (mode === 'setup') {
+        // PIN 설정 모드
         if (!isValidPin(pin)) {
           setError('PIN은 4-6자리 숫자여야 합니다')
           return
@@ -52,6 +55,16 @@ export function PinDialog({ mode, onSuccess, onCancel }: Props) {
         }
         await setNewPin(pin)
         onSuccess()
+      } else {
+        // unlock-temp, unlock-permanent, unlock-all: PIN 확인만
+        const valid = await verifyPin(pin)
+        if (valid) {
+          onSuccess()
+        } else {
+          setError('PIN이 일치하지 않습니다')
+          setPin('')
+          inputRef.current?.focus()
+        }
       }
     } catch (err) {
       setError('오류가 발생했습니다')
@@ -70,9 +83,7 @@ export function PinDialog({ mode, onSuccess, onCancel }: Props) {
   return (
     <div className="pin-dialog-backdrop" onClick={onCancel} onKeyDown={handleKeyDown}>
       <div className="pin-dialog" onClick={(e) => e.stopPropagation()}>
-        <h3 className="pin-dialog-title">
-          {mode === 'unlock' ? 'PIN 입력' : 'PIN 설정'}
-        </h3>
+        <h3 className="pin-dialog-title">{getTitle()}</h3>
         <form onSubmit={handleSubmit}>
           <input
             ref={inputRef}

@@ -6,7 +6,7 @@ import { NoteCard, NoteCardHandle } from './NoteCard'
 import { TagDialog } from './TagDialog'
 import { CategoryFilter } from './CategoryFilter'
 import { ViewModeSelector } from './ViewModeSelector'
-import { PinDialog } from './PinDialog'
+import { PinDialog, type PinDialogMode } from './PinDialog'
 import { isCreateNoteShortcut } from '../shortcuts/noteGlobal'
 import { resolveNoteFeedShortcut } from '../shortcuts/noteFeed'
 import { isOpenTagListShortcut } from '../shortcuts/tagList'
@@ -32,7 +32,10 @@ export function NoteFeed() {
     filterTag,
     setFilterTag,
     categoryFilter,
-    toggleNoteLock,
+    lockNote,
+    temporarilyUnlockNote,
+    temporarilyUnlockAll,
+    hasLockedNotes,
     // Trash & Archive
     viewMode,
     trashedNotes,
@@ -46,7 +49,8 @@ export function NoteFeed() {
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null)
   const [tagDialogNoteId, setTagDialogNoteId] = useState<string | null>(null)
   const [pinDialogNoteId, setPinDialogNoteId] = useState<string | null>(null)
-  const [pinDialogMode, setPinDialogMode] = useState<'setup' | 'unlock'>('setup')
+  const [pinDialogMode, setPinDialogMode] = useState<PinDialogMode>('setup')
+  const [showUnlockAllDialog, setShowUnlockAllDialog] = useState(false)
   const hasPin = useProfileStore((s) => s.hasPin)
   const cardRefs = useRef<Map<string, NoteCardHandle>>(new Map())
   const feedRef = useRef<HTMLDivElement>(null)
@@ -285,19 +289,20 @@ export function NoteFeed() {
         return
       }
 
-      // 잠금 해제하려면 PIN 확인 필요
+      // 잠금 해제하려면 PIN 확인 필요 (일시 해제)
       if (note.isLocked) {
-        setPinDialogMode('unlock')
+        setPinDialogMode('unlock-temp')
         setPinDialogNoteId(noteId)
         return
       }
 
-      toggleNoteLock(noteId)
+      // 잠금 설정
+      lockNote(noteId)
     }
 
     window.addEventListener('keydown', handleLockKeyDown)
     return () => window.removeEventListener('keydown', handleLockKeyDown)
-  }, [flatNotes, focusedIndex, notes, hasPin, toggleNoteLock])
+  }, [flatNotes, focusedIndex, notes, hasPin, lockNote])
 
   // d 단축키로 삭제 (휴지통으로)
   useEffect(() => {
@@ -556,9 +561,23 @@ export function NoteFeed() {
           onSuccess={() => {
             const noteId = pinDialogNoteId
             setPinDialogNoteId(null)
-            toggleNoteLock(noteId)
+            if (pinDialogMode === 'setup') {
+              lockNote(noteId)
+            } else if (pinDialogMode === 'unlock-temp') {
+              temporarilyUnlockNote(noteId)
+            }
           }}
           onCancel={() => setPinDialogNoteId(null)}
+        />
+      )}
+      {showUnlockAllDialog && (
+        <PinDialog
+          mode="unlock-all"
+          onSuccess={() => {
+            setShowUnlockAllDialog(false)
+            temporarilyUnlockAll()
+          }}
+          onCancel={() => setShowUnlockAllDialog(false)}
         />
       )}
       <div className="feed-header">
@@ -566,6 +585,15 @@ export function NoteFeed() {
         {viewMode === 'active' && (
           <>
             <CategoryFilter />
+            {hasLockedNotes() && (
+              <button
+                className="unlock-all-btn"
+                onClick={() => setShowUnlockAllDialog(true)}
+                title="모든 잠긴 노트 일시 해제"
+              >
+                🔓 전체 해제
+              </button>
+            )}
             {filterTag && (
               <div className="filter-indicator">
                 <span>#{filterTag}</span>

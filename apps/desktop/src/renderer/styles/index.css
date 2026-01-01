@@ -1304,6 +1304,45 @@ body {
   opacity: 0.9;
 }
 
+.locked-note-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.locked-note-btn.primary {
+  background: var(--accent);
+}
+
+.locked-note-btn.secondary {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.locked-note-btn.secondary:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+/* Unlock All Button */
+.unlock-all-btn {
+  padding: 4px 10px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.unlock-all-btn:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
 /* PIN Dialog */
 .pin-dialog-backdrop {
   position: fixed;

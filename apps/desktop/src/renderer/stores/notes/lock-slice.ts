@@ -3,37 +3,68 @@ import { supabase } from '../../lib/supabase'
 import type { NotesState, LockSlice, CategoryFilterSlice } from './types'
 
 export const createLockSlice: StateCreator<NotesState, [], [], LockSlice> = (set, get) => ({
-  sessionUnlocked: false,
+  temporarilyUnlockedNoteIds: new Set<string>(),
 
-  unlockSession: () => {
-    set({ sessionUnlocked: true })
+  temporarilyUnlockNote: (noteId: string) => {
+    set((state) => {
+      const newSet = new Set(state.temporarilyUnlockedNoteIds)
+      newSet.add(noteId)
+      return { temporarilyUnlockedNoteIds: newSet }
+    })
   },
 
-  lockSession: () => {
-    set({ sessionUnlocked: false })
+  relockNote: (noteId: string) => {
+    set((state) => {
+      const newSet = new Set(state.temporarilyUnlockedNoteIds)
+      newSet.delete(noteId)
+      return { temporarilyUnlockedNoteIds: newSet }
+    })
   },
 
-  toggleNoteLock: async (noteId: string) => {
-    const note = get().notes.find((n) => n.id === noteId)
-    if (!note) return
+  temporarilyUnlockAll: () => {
+    const lockedNoteIds = get()
+      .notes.filter((note) => note.isLocked)
+      .map((note) => note.id)
+    set({ temporarilyUnlockedNoteIds: new Set(lockedNoteIds) })
+  },
 
-    const newLockState = !note.isLocked
+  relockAll: () => {
+    set({ temporarilyUnlockedNoteIds: new Set() })
+  },
 
-    const { error } = await supabase
-      .from('notes')
-      .update({ is_locked: newLockState })
-      .eq('id', noteId)
+  permanentlyUnlockNote: async (noteId: string) => {
+    const { error } = await supabase.from('notes').update({ is_locked: false }).eq('id', noteId)
 
     if (error) {
-      console.error('[lock] toggleNoteLock failed', error)
+      console.error('[lock] permanentlyUnlockNote failed', error)
+      return
+    }
+
+    set((state) => {
+      const newSet = new Set(state.temporarilyUnlockedNoteIds)
+      newSet.delete(noteId)
+      return {
+        notes: state.notes.map((n) => (n.id === noteId ? { ...n, isLocked: false } : n)),
+        temporarilyUnlockedNoteIds: newSet,
+      }
+    })
+  },
+
+  lockNote: async (noteId: string) => {
+    const { error } = await supabase.from('notes').update({ is_locked: true }).eq('id', noteId)
+
+    if (error) {
+      console.error('[lock] lockNote failed', error)
       return
     }
 
     set((state) => ({
-      notes: state.notes.map((n) =>
-        n.id === noteId ? { ...n, isLocked: newLockState } : n
-      ),
+      notes: state.notes.map((n) => (n.id === noteId ? { ...n, isLocked: true } : n)),
     }))
+  },
+
+  hasLockedNotes: () => {
+    return get().notes.some((note) => note.isLocked)
   },
 })
 
