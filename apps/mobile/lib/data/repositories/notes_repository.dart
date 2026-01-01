@@ -15,13 +15,13 @@ class NotesRepository {
 
   NotesRepository(this._client);
 
-  /// Load all notes with attachments and tags
+  /// Load all notes with attachments and tags (including archived and deleted)
   Future<List<Note>> loadNotes() async {
-    // Load notes
+    // Load all notes (including archived and trash)
+    // Filter by view mode in the provider
     final noteRows = await _client
         .from('notes')
         .select()
-        .eq('is_deleted', false)
         .order('created_at', ascending: false);
 
     final noteIds = noteRows.map((n) => n['id'] as String).toList();
@@ -97,15 +97,79 @@ class NotesRepository {
     await _client.from('notes').update({'content': content}).eq('id', id);
   }
 
-  /// Soft delete a note
+  /// Soft delete a note (move to trash)
   Future<void> deleteNote(String id) async {
-    await _client.from('notes').update({'is_deleted': true}).eq('id', id);
+    await _client.from('notes').update({
+      'is_deleted': true,
+      'deleted_at': DateTime.now().toUtc().toIso8601String(),
+      'archived_at': null, // Remove from archive if it was archived
+    }).eq('id', id);
+  }
+
+  /// Archive a note
+  Future<void> archiveNote(String id) async {
+    await _client.from('notes').update({
+      'archived_at': DateTime.now().toUtc().toIso8601String(),
+    }).eq('id', id);
+  }
+
+  /// Unarchive a note (move back to active)
+  Future<void> unarchiveNote(String id) async {
+    await _client.from('notes').update({
+      'archived_at': null,
+    }).eq('id', id);
+  }
+
+  /// Restore a note from trash
+  Future<void> restoreNote(String id) async {
+    await _client.from('notes').update({
+      'is_deleted': false,
+      'deleted_at': null,
+    }).eq('id', id);
+  }
+
+  /// Permanently delete a note
+  Future<void> permanentlyDeleteNote(String id) async {
+    await _client.from('notes').delete().eq('id', id);
+  }
+
+  /// Empty trash (permanently delete all trashed notes)
+  Future<void> emptyTrash() async {
+    final user = _client.auth.currentUser;
+    if (user == null) return;
+
+    await _client
+        .from('notes')
+        .delete()
+        .eq('user_id', user.id)
+        .not('deleted_at', 'is', null);
+  }
+
+  /// Update note categories based on content and attachments
+  Future<void> updateNoteCategories(
+    String id, {
+    required bool hasLink,
+    required bool hasMedia,
+    required bool hasFiles,
+  }) async {
+    await _client.from('notes').update({
+      'has_link': hasLink,
+      'has_media': hasMedia,
+      'has_files': hasFiles,
+    }).eq('id', id);
+  }
+
+  /// Lock/unlock a note
+  Future<void> setNoteLocked(String id, bool isLocked) async {
+    await _client.from('notes').update({
+      'is_locked': isLocked,
+    }).eq('id', id);
   }
 
   /// Subscribe to realtime changes
   RealtimeChannel subscribeToChanges({
     required void Function(Note note) onInsert,
-    required void Function(String id, String content, DateTime updatedAt) onUpdate,
+    required void Function(Note note) onUpdate,
     required void Function(String id) onDelete,
   }) {
     return _client
@@ -123,16 +187,9 @@ class NotesRepository {
               final note = Note.fromRow(NoteRow.fromJson(newRecord));
               onInsert(note);
             } else if (eventType == PostgresChangeEvent.update) {
-              final isDeleted = newRecord['is_deleted'] as bool? ?? false;
-              if (isDeleted) {
-                onDelete(newRecord['id'] as String);
-              } else {
-                onUpdate(
-                  newRecord['id'] as String,
-                  newRecord['content'] as String? ?? '',
-                  DateTime.parse(newRecord['updated_at'] as String),
-                );
-              }
+              // Pass the full note with all updated fields
+              final note = Note.fromRow(NoteRow.fromJson(newRecord));
+              onUpdate(note);
             } else if (eventType == PostgresChangeEvent.delete) {
               onDelete(oldRecord['id'] as String);
             }

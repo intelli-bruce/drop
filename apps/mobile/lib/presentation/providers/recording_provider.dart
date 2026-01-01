@@ -191,9 +191,9 @@ class RecordingNotifier extends _$RecordingNotifier {
     try {
       await _recorder.cancelRecording();
 
-      // Delete the placeholder note
+      // Permanently delete the placeholder note (not soft-delete)
       if (noteId != null) {
-        await ref.read(notesProvider.notifier).deleteNote(noteId);
+        await ref.read(notesProvider.notifier).permanentlyDeleteNote(noteId);
       }
 
       // Clean up audio file

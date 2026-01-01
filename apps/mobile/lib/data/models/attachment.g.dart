@@ -47,4 +47,5 @@ const _$AttachmentTypeEnumMap = {
   AttachmentType.file: 'file',
   AttachmentType.text: 'text',
   AttachmentType.instagram: 'instagram',
+  AttachmentType.youtube: 'youtube',
 };

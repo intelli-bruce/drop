@@ -7,6 +7,8 @@ import 'package:drop_mobile/presentation/providers/recording_provider.dart';
 import 'package:drop_mobile/presentation/providers/share_intent_provider.dart';
 import 'package:drop_mobile/presentation/widgets/note_card.dart';
 import 'package:drop_mobile/presentation/widgets/note_composer_sheet.dart';
+import 'package:drop_mobile/presentation/widgets/view_mode_selector.dart';
+import 'package:drop_mobile/presentation/widgets/category_filter.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -86,6 +88,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     });
 
+    final viewMode = ref.watch(viewModeProvider);
+
     return Scaffold(
       backgroundColor: const Color(0xFF1A1A1A),
       appBar: AppBar(
@@ -98,8 +102,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        actions: [
+          if (viewMode == NoteViewMode.trash)
+            TextButton(
+              onPressed: () => _showEmptyTrashDialog(context, ref),
+              child: const Text(
+                '비우기',
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+        ],
       ),
-      body: notesAsync.when(
+      body: Column(
+        children: [
+          // View Mode Selector
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: ViewModeSelector(),
+          ),
+          // Category Filter (only in active mode)
+          if (viewMode == NoteViewMode.active)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: CategoryFilter(),
+            ),
+          // Notes content
+          Expanded(
+            child: notesAsync.when(
         loading: () => const Center(
           child: CircularProgressIndicator(),
         ),
@@ -131,45 +160,53 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ],
           ),
         ),
-        data: (notes) {
-          if (notes.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.note_add_outlined,
-                    size: 64,
-                    color: Colors.grey[600],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No notes yet',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.grey[400],
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Tap + to create your first note',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[600],
-                        ),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return const _NoteFeed();
-        },
+              data: (notes) => const _NoteFeed(),
+            ),
+          ),
+        ],
       ),
-      floatingActionButton: _ActionButtons(
-        isRecording: recordingState.isRecording,
-        onAddPressed: () => _openComposer(context),
-        onRecordPressed: () => _startRecording(),
+      floatingActionButton: viewMode == NoteViewMode.active
+          ? _ActionButtons(
+              isRecording: recordingState.isRecording,
+              onAddPressed: () => _openComposer(context),
+              onRecordPressed: () => _startRecording(),
+            )
+          : null,
+    );
+  }
+
+  Future<void> _showEmptyTrashDialog(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF2A2A2A),
+        title: const Text(
+          '휴지통 비우기',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          '휴지통의 모든 노트가 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.',
+          style: TextStyle(color: Colors.grey),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              '비우기',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
       ),
     );
+
+    if (confirmed == true) {
+      await ref.read(notesProvider.notifier).emptyTrash();
+    }
   }
 
   Future<void> _openComposer(BuildContext context, {String? parentId}) async {
@@ -195,8 +232,13 @@ class _NoteFeed extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final grouped = ref.watch(notesGroupedByDateProvider);
+    final viewMode = ref.watch(viewModeProvider);
+    final grouped = ref.watch(filteredNotesGroupedByDateProvider);
     final sortedDates = grouped.keys.toList();
+
+    if (sortedDates.isEmpty) {
+      return _EmptyState(viewMode: viewMode);
+    }
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -224,6 +266,7 @@ class _NoteFeed extends ConsumerWidget {
                   child: NoteCard(
                     note: item.note,
                     depth: item.depth,
+                    viewMode: viewMode,
                     onEdit: () => _openEditComposer(context, item.note),
                     onReply: () => _openReplyComposer(context, item.note.id),
                   ),
@@ -285,7 +328,6 @@ class _ActionButtons extends StatelessWidget {
         if (!isRecording)
           FloatingActionButton(
             heroTag: 'record',
-            mini: true,
             onPressed: onRecordPressed,
             backgroundColor: const Color(0xFF2A2A2A),
             child: const Icon(Icons.mic),
@@ -298,6 +340,60 @@ class _ActionButtons extends StatelessWidget {
           child: const Icon(Icons.add),
         ),
       ],
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final NoteViewMode viewMode;
+
+  const _EmptyState({required this.viewMode});
+
+  @override
+  Widget build(BuildContext context) {
+    final (icon, title, subtitle) = switch (viewMode) {
+      NoteViewMode.active => (
+          Icons.note_add_outlined,
+          '노트가 없습니다',
+          '+ 버튼을 눌러 첫 번째 노트를 만드세요',
+        ),
+      NoteViewMode.archived => (
+          Icons.archive_outlined,
+          '보관된 노트가 없습니다',
+          '보관한 노트가 여기에 표시됩니다',
+        ),
+      NoteViewMode.trash => (
+          Icons.delete_outline,
+          '휴지통이 비어 있습니다',
+          '삭제한 노트가 여기에 표시됩니다',
+        ),
+    };
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            size: 64,
+            color: Colors.grey[600],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Colors.grey[400],
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.grey[600],
+                ),
+          ),
+        ],
+      ),
     );
   }
 }

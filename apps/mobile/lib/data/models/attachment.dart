@@ -16,6 +16,8 @@ enum AttachmentType {
   text,
   @JsonValue('instagram')
   instagram,
+  @JsonValue('youtube')
+  youtube,
 }
 
 /// Database row type (snake_case)
@@ -89,6 +91,18 @@ abstract class Attachment with _$Attachment {
 
   /// Check if this is an Instagram embed
   bool get isInstagram => type == AttachmentType.instagram;
+
+  /// Check if this is a YouTube embed
+  bool get isYoutube => type == AttachmentType.youtube;
+
+  /// Check if this is a link-type attachment (Instagram or YouTube)
+  bool get isLink => isInstagram || isYoutube;
+
+  /// Check if this is a media attachment (image, video, or audio)
+  bool get isMedia => isImage || isVideo || type == AttachmentType.audio;
+
+  /// Check if this is a file attachment (file or text)
+  bool get isFile => type == AttachmentType.file || type == AttachmentType.text;
 
   /// Get formatted file size
   String get formattedSize {

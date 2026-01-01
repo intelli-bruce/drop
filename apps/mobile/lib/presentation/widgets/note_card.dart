@@ -14,6 +14,7 @@ import 'package:drop_mobile/presentation/widgets/waveform_view.dart';
 class NoteCard extends ConsumerWidget {
   final Note note;
   final int depth;
+  final NoteViewMode viewMode;
   final VoidCallback? onEdit;
   final VoidCallback? onReply;
 
@@ -21,6 +22,7 @@ class NoteCard extends ConsumerWidget {
     super.key,
     required this.note,
     this.depth = 0,
+    this.viewMode = NoteViewMode.active,
     this.onEdit,
     this.onReply,
   });
@@ -174,50 +176,24 @@ class NoteCard extends ConsumerWidget {
               ),
             ],
           ),
-          Row(
-            children: [
-              if (!isRecording && !isTranscribing) ...[
-                // Reply button
-                GestureDetector(
-                  onTap:
-                      onReply ??
-                      () async {
-                        await ref
-                            .read(notesProvider.notifier)
-                            .createNote(parentId: note.id);
-                      },
-                  child: const Padding(
-                    padding: EdgeInsets.all(4),
-                    child: Icon(
-                      Icons.reply,
-                      color: Color(0xFF888888),
-                      size: 18,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-              ],
-              // Delete/Cancel button
-              GestureDetector(
-                onTap: isRecording
-                    ? () =>
-                          ref.read(recordingProvider.notifier).cancelRecording()
-                    : isTranscribing
-                    ? null
-                    : () => _showDeleteConfirmation(context, ref),
-                child: Padding(
-                  padding: const EdgeInsets.all(4),
-                  child: Icon(
-                    Icons.close,
-                    color: isTranscribing
-                        ? const Color(0xFF444444)
-                        : const Color(0xFF888888),
-                    size: 18,
-                  ),
+          if (isRecording || isTranscribing)
+            GestureDetector(
+              onTap: isRecording
+                  ? () => ref.read(recordingProvider.notifier).cancelRecording()
+                  : null,
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Icon(
+                  Icons.close,
+                  color: isTranscribing
+                      ? const Color(0xFF444444)
+                      : const Color(0xFF888888),
+                  size: 18,
                 ),
               ),
-            ],
-          ),
+            )
+          else
+            _buildActionButtons(context, ref),
         ],
       ),
     );
@@ -592,7 +568,123 @@ class NoteCard extends ConsumerWidget {
         return Icons.text_snippet;
       case AttachmentType.instagram:
         return Icons.camera_alt;
+      case AttachmentType.youtube:
+        return Icons.play_circle_outline;
     }
+  }
+
+  Widget _buildActionButtons(BuildContext context, WidgetRef ref) {
+    switch (viewMode) {
+      case NoteViewMode.active:
+        return Row(
+          children: [
+            // Reply button
+            GestureDetector(
+              onTap: onReply ??
+                  () async {
+                    await ref
+                        .read(notesProvider.notifier)
+                        .createNote(parentId: note.id);
+                  },
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(Icons.reply, color: Color(0xFF888888), size: 18),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Archive button
+            GestureDetector(
+              onTap: () => _archiveNote(context, ref),
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(Icons.archive_outlined, color: Color(0xFF888888), size: 18),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Delete button
+            GestureDetector(
+              onTap: () => _showDeleteConfirmation(context, ref),
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(Icons.close, color: Color(0xFF888888), size: 18),
+              ),
+            ),
+          ],
+        );
+
+      case NoteViewMode.archived:
+        return Row(
+          children: [
+            // Unarchive button
+            GestureDetector(
+              onTap: () => _unarchiveNote(context, ref),
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(Icons.unarchive_outlined, color: Color(0xFF888888), size: 18),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Delete button
+            GestureDetector(
+              onTap: () => _showDeleteConfirmation(context, ref),
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(Icons.close, color: Color(0xFF888888), size: 18),
+              ),
+            ),
+          ],
+        );
+
+      case NoteViewMode.trash:
+        return Row(
+          children: [
+            // Restore button
+            GestureDetector(
+              onTap: () => _restoreNote(context, ref),
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(Icons.restore, color: Color(0xFF888888), size: 18),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Permanent delete button
+            GestureDetector(
+              onTap: () => _showPermanentDeleteConfirmation(context, ref),
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(Icons.delete_forever, color: Colors.red, size: 18),
+              ),
+            ),
+          ],
+        );
+    }
+  }
+
+  void _archiveNote(BuildContext context, WidgetRef ref) {
+    ref.read(notesProvider.notifier).archiveNote(note.id);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('노트가 보관함으로 이동되었습니다'),
+        action: SnackBarAction(
+          label: '취소',
+          onPressed: () => ref.read(notesProvider.notifier).unarchiveNote(note.id),
+        ),
+      ),
+    );
+  }
+
+  void _unarchiveNote(BuildContext context, WidgetRef ref) {
+    ref.read(notesProvider.notifier).unarchiveNote(note.id);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('노트가 보관함에서 해제되었습니다')),
+    );
+  }
+
+  void _restoreNote(BuildContext context, WidgetRef ref) {
+    ref.read(notesProvider.notifier).restoreNote(note.id);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('노트가 복원되었습니다')),
+    );
   }
 
   void _showDeleteConfirmation(BuildContext context, WidgetRef ref) {
@@ -602,7 +694,7 @@ class NoteCard extends ConsumerWidget {
         backgroundColor: const Color(0xFF2A2A2A),
         title: const Text('노트 삭제', style: TextStyle(color: Colors.white)),
         content: const Text(
-          '이 노트를 삭제하시겠습니까?',
+          '이 노트를 휴지통으로 이동하시겠습니까?',
           style: TextStyle(color: Color(0xFFE0E0E0)),
         ),
         actions: [
@@ -614,8 +706,44 @@ class NoteCard extends ConsumerWidget {
             onPressed: () {
               Navigator.pop(context);
               ref.read(notesProvider.notifier).deleteNote(note.id);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('노트가 휴지통으로 이동되었습니다'),
+                  action: SnackBarAction(
+                    label: '취소',
+                    onPressed: () => ref.read(notesProvider.notifier).restoreNote(note.id),
+                  ),
+                ),
+              );
             },
             child: const Text('삭제', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPermanentDeleteConfirmation(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF2A2A2A),
+        title: const Text('영구 삭제', style: TextStyle(color: Colors.white)),
+        content: const Text(
+          '이 노트를 영구적으로 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
+          style: TextStyle(color: Color(0xFFE0E0E0)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ref.read(notesProvider.notifier).permanentlyDeleteNote(note.id);
+            },
+            child: const Text('영구 삭제', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),

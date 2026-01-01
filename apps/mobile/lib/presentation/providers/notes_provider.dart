@@ -35,12 +35,16 @@ class NotesNotifier extends _$NotesNotifier {
         if (current.any((n) => n.id == note.id)) return;
         state = AsyncData([note, ...current]);
       },
-      onUpdate: (id, content, updatedAt) {
+      onUpdate: (updatedNote) {
         final current = state.value ?? [];
         state = AsyncData(
           current.map((n) {
-            if (n.id == id) {
-              return n.copyWith(content: content, updatedAt: updatedAt);
+            if (n.id == updatedNote.id) {
+              // Preserve attachments and tags from current state
+              return updatedNote.copyWith(
+                attachments: n.attachments,
+                tags: n.tags,
+              );
             }
             return n;
           }).toList(),
@@ -135,22 +139,219 @@ class NotesNotifier extends _$NotesNotifier {
     );
   }
 
-  /// Delete a note
+  /// Delete a note (move to trash)
   Future<void> deleteNote(String id) async {
     final repository = ref.read(notesRepositoryProvider);
 
     // Optimistic update
     final current = state.value ?? [];
-    final deletedNote = current.firstWhere((n) => n.id == id);
-    state = AsyncData(current.where((n) => n.id != id).toList());
+    final noteIndex = current.indexWhere((n) => n.id == id);
+    if (noteIndex == -1) return;
+
+    final oldNote = current[noteIndex];
+    final updatedNote = oldNote.copyWith(
+      isDeleted: true,
+      deletedAt: DateTime.now(),
+      archivedAt: null,
+    );
+
+    state = AsyncData(
+      current.map((n) => n.id == id ? updatedNote : n).toList(),
+    );
 
     try {
       await repository.deleteNote(id);
     } catch (e) {
       // Rollback on error
+      state = AsyncData(
+        (state.value ?? []).map((n) => n.id == id ? oldNote : n).toList(),
+      );
+      rethrow;
+    }
+  }
+
+  /// Archive a note
+  Future<void> archiveNote(String id) async {
+    final repository = ref.read(notesRepositoryProvider);
+
+    final current = state.value ?? [];
+    final noteIndex = current.indexWhere((n) => n.id == id);
+    if (noteIndex == -1) return;
+
+    final oldNote = current[noteIndex];
+    final updatedNote = oldNote.copyWith(
+      archivedAt: DateTime.now(),
+    );
+
+    state = AsyncData(
+      current.map((n) => n.id == id ? updatedNote : n).toList(),
+    );
+
+    try {
+      await repository.archiveNote(id);
+    } catch (e) {
+      state = AsyncData(
+        (state.value ?? []).map((n) => n.id == id ? oldNote : n).toList(),
+      );
+      rethrow;
+    }
+  }
+
+  /// Unarchive a note (move back to active)
+  Future<void> unarchiveNote(String id) async {
+    final repository = ref.read(notesRepositoryProvider);
+
+    final current = state.value ?? [];
+    final noteIndex = current.indexWhere((n) => n.id == id);
+    if (noteIndex == -1) return;
+
+    final oldNote = current[noteIndex];
+    final updatedNote = oldNote.copyWith(archivedAt: null);
+
+    state = AsyncData(
+      current.map((n) => n.id == id ? updatedNote : n).toList(),
+    );
+
+    try {
+      await repository.unarchiveNote(id);
+    } catch (e) {
+      state = AsyncData(
+        (state.value ?? []).map((n) => n.id == id ? oldNote : n).toList(),
+      );
+      rethrow;
+    }
+  }
+
+  /// Restore a note from trash
+  Future<void> restoreNote(String id) async {
+    final repository = ref.read(notesRepositoryProvider);
+
+    final current = state.value ?? [];
+    final noteIndex = current.indexWhere((n) => n.id == id);
+    if (noteIndex == -1) return;
+
+    final oldNote = current[noteIndex];
+    final updatedNote = oldNote.copyWith(
+      isDeleted: false,
+      deletedAt: null,
+    );
+
+    state = AsyncData(
+      current.map((n) => n.id == id ? updatedNote : n).toList(),
+    );
+
+    try {
+      await repository.restoreNote(id);
+    } catch (e) {
+      state = AsyncData(
+        (state.value ?? []).map((n) => n.id == id ? oldNote : n).toList(),
+      );
+      rethrow;
+    }
+  }
+
+  /// Permanently delete a note
+  Future<void> permanentlyDeleteNote(String id) async {
+    final repository = ref.read(notesRepositoryProvider);
+
+    final current = state.value ?? [];
+    final deletedNote = current.firstWhere((n) => n.id == id);
+    state = AsyncData(current.where((n) => n.id != id).toList());
+
+    try {
+      await repository.permanentlyDeleteNote(id);
+    } catch (e) {
       state = AsyncData([deletedNote, ...(state.value ?? [])]);
       rethrow;
     }
+  }
+
+  /// Empty trash (permanently delete all trashed notes)
+  Future<void> emptyTrash() async {
+    final repository = ref.read(notesRepositoryProvider);
+
+    final current = state.value ?? [];
+    final trashedNotes = current.where((n) => n.isInTrash).toList();
+    state = AsyncData(current.where((n) => !n.isInTrash).toList());
+
+    try {
+      await repository.emptyTrash();
+    } catch (e) {
+      state = AsyncData([...trashedNotes, ...(state.value ?? [])]);
+      rethrow;
+    }
+  }
+
+  /// Lock/unlock a note
+  Future<void> setNoteLocked(String id, bool isLocked) async {
+    final repository = ref.read(notesRepositoryProvider);
+
+    final current = state.value ?? [];
+    final noteIndex = current.indexWhere((n) => n.id == id);
+    if (noteIndex == -1) return;
+
+    final oldNote = current[noteIndex];
+    final updatedNote = oldNote.copyWith(isLocked: isLocked);
+
+    state = AsyncData(
+      current.map((n) => n.id == id ? updatedNote : n).toList(),
+    );
+
+    try {
+      await repository.setNoteLocked(id, isLocked);
+    } catch (e) {
+      state = AsyncData(
+        (state.value ?? []).map((n) => n.id == id ? oldNote : n).toList(),
+      );
+      rethrow;
+    }
+  }
+
+  /// Update note categories based on content and attachments
+  Future<void> updateNoteCategories(String id) async {
+    final repository = ref.read(notesRepositoryProvider);
+
+    final current = state.value ?? [];
+    final noteIndex = current.indexWhere((n) => n.id == id);
+    if (noteIndex == -1) return;
+
+    final note = current[noteIndex];
+
+    // Calculate category flags
+    final hasLink = _hasUrl(note.content) ||
+        note.attachments.any((a) => a.isLink);
+    final hasMedia = note.attachments.any((a) => a.isMedia);
+    final hasFiles = note.attachments.any((a) => a.isFile);
+
+    final updatedNote = note.copyWith(
+      hasLink: hasLink,
+      hasMedia: hasMedia,
+      hasFiles: hasFiles,
+    );
+
+    state = AsyncData(
+      current.map((n) => n.id == id ? updatedNote : n).toList(),
+    );
+
+    try {
+      await repository.updateNoteCategories(
+        id,
+        hasLink: hasLink,
+        hasMedia: hasMedia,
+        hasFiles: hasFiles,
+      );
+    } catch (e) {
+      state = AsyncData(
+        (state.value ?? []).map((n) => n.id == id ? note : n).toList(),
+      );
+      rethrow;
+    }
+  }
+
+  /// Check if content contains a URL
+  bool _hasUrl(String content) {
+    final urlPattern = RegExp(r'https?://[^\s<>"{}|\\^`\[\]]+');
+    return urlPattern.hasMatch(content);
   }
 }
 
@@ -227,4 +428,89 @@ String _formatDateKey(DateTime date) {
   }
 
   return '${date.year}년 ${date.month}월 ${date.day}일';
+}
+
+/// Current view mode state
+@riverpod
+class ViewModeNotifier extends _$ViewModeNotifier {
+  @override
+  NoteViewMode build() => NoteViewMode.active;
+
+  void setViewMode(NoteViewMode mode) {
+    state = mode;
+  }
+}
+
+/// Current category filter state
+@riverpod
+class CategoryFilterNotifier extends _$CategoryFilterNotifier {
+  @override
+  NoteCategory build() => NoteCategory.all;
+
+  void setCategory(NoteCategory category) {
+    state = category;
+  }
+}
+
+/// Provides filtered notes based on view mode and category
+@riverpod
+List<Note> filteredNotes(Ref ref) {
+  final notes = ref.watch(notesProvider).value ?? [];
+  final viewMode = ref.watch(viewModeProvider);
+  final category = ref.watch(categoryFilterProvider);
+
+  return notes
+      .where((n) => n.matchesViewMode(viewMode))
+      .where((n) => n.matchesCategory(category))
+      .toList();
+}
+
+/// Provides filtered notes grouped by date with thread depth
+@riverpod
+Map<String, List<NoteListItem>> filteredNotesGroupedByDate(Ref ref) {
+  final notes = ref.watch(filteredNotesProvider);
+  final flattened = _flattenNotes(notes);
+  final grouped = <String, List<NoteListItem>>{};
+
+  for (final item in flattened) {
+    final dateKey = _formatDateKey(item.note.createdAt);
+    grouped.putIfAbsent(dateKey, () => []).add(item);
+  }
+
+  return grouped;
+}
+
+/// Count of notes in trash
+@riverpod
+int trashCount(Ref ref) {
+  final notes = ref.watch(notesProvider).value ?? [];
+  return notes.where((n) => n.isInTrash).length;
+}
+
+/// Count of archived notes
+@riverpod
+int archivedCount(Ref ref) {
+  final notes = ref.watch(notesProvider).value ?? [];
+  return notes.where((n) => n.isArchived).length;
+}
+
+/// Session-based unlocked notes (cleared when app restarts)
+@riverpod
+class UnlockedNotesNotifier extends _$UnlockedNotesNotifier {
+  @override
+  Set<String> build() => {};
+
+  void unlock(String noteId) {
+    state = {...state, noteId};
+  }
+
+  void lock(String noteId) {
+    state = {...state}..remove(noteId);
+  }
+
+  void lockAll() {
+    state = {};
+  }
+
+  bool isUnlocked(String noteId) => state.contains(noteId);
 }
