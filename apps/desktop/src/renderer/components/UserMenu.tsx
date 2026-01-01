@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useAuthStore } from '../stores/auth'
 import { supabase } from '../lib/supabase'
 
@@ -7,17 +8,37 @@ export function UserMenu() {
   const [isOpen, setIsOpen] = useState(false)
   const [tokenCopied, setTokenCopied] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 })
 
   // Close menu when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      const target = event.target as Node
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(target) &&
+        triggerRef.current &&
+        !triggerRef.current.contains(target)
+      ) {
         setIsOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  // Calculate dropdown position when opening
+  const handleToggle = () => {
+    if (!isOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect()
+      setDropdownPos({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right,
+      })
+    }
+    setIsOpen(!isOpen)
+  }
 
   if (!user) return null
 
@@ -41,22 +62,12 @@ export function UserMenu() {
     }
   }
 
-  return (
-    <div className="user-menu" ref={menuRef}>
-      <button
-        className="user-menu-trigger"
-        onClick={() => setIsOpen(!isOpen)}
-        aria-label="User menu"
-      >
-        {userAvatar ? (
-          <img src={userAvatar} alt={userName} className="user-avatar" />
-        ) : (
-          <div className="user-avatar-placeholder">{initials}</div>
-        )}
-      </button>
-
-      {isOpen && (
-        <div className="user-menu-dropdown">
+  const dropdown = isOpen && createPortal(
+    <div
+      className="user-menu-dropdown"
+      ref={menuRef}
+      style={{ top: dropdownPos.top, right: dropdownPos.right }}
+    >
           <div className="user-menu-header">
             {userAvatar ? (
               <img src={userAvatar} alt={userName} className="user-avatar-large" />
@@ -88,25 +99,44 @@ export function UserMenu() {
             {tokenCopied ? 'Copied!' : 'Copy MCP Token'}
           </button>
 
-          <button className="user-menu-item" onClick={handleSignOut}>
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-            Sign out
-          </button>
-        </div>
-      )}
+      <button className="user-menu-item" onClick={handleSignOut}>
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+          <polyline points="16 17 21 12 16 7" />
+          <line x1="21" y1="12" x2="9" y2="12" />
+        </svg>
+        Sign out
+      </button>
+    </div>,
+    document.body
+  )
+
+  return (
+    <>
+      <div className="user-menu">
+        <button
+          ref={triggerRef}
+          className="user-menu-trigger"
+          onClick={handleToggle}
+          aria-label="User menu"
+        >
+          {userAvatar ? (
+            <img src={userAvatar} alt={userName} className="user-avatar" />
+          ) : (
+            <div className="user-avatar-placeholder">{initials}</div>
+          )}
+        </button>
+      </div>
+      {dropdown}
 
       <style>{`
         .user-menu {
@@ -157,15 +187,16 @@ export function UserMenu() {
         }
 
         .user-menu-dropdown {
-          position: absolute;
-          top: calc(100% + 8px);
-          right: 0;
+          position: fixed;
           min-width: 240px;
           background: #2a2a2a;
           border: 1px solid #3a3a3a;
           border-radius: 12px;
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
           overflow: hidden;
+          -webkit-app-region: no-drag;
+          pointer-events: auto;
+          z-index: 99999;
         }
 
         .user-menu-header {
@@ -238,6 +269,8 @@ export function UserMenu() {
           cursor: pointer;
           transition: all 0.2s;
           text-align: left;
+          -webkit-app-region: no-drag;
+          pointer-events: auto;
         }
 
         .user-menu-item:hover {
@@ -249,6 +282,6 @@ export function UserMenu() {
           flex-shrink: 0;
         }
       `}</style>
-    </div>
+    </>
   )
 }
