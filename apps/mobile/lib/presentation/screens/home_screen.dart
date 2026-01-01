@@ -6,10 +6,12 @@ import 'package:drop_mobile/presentation/providers/notes_provider.dart';
 import 'package:drop_mobile/presentation/providers/recording_provider.dart';
 import 'package:drop_mobile/presentation/providers/share_intent_provider.dart';
 import 'package:drop_mobile/presentation/providers/deep_link_provider.dart';
+import 'package:drop_mobile/presentation/providers/selection_provider.dart';
 import 'package:drop_mobile/presentation/widgets/note_card.dart';
 import 'package:drop_mobile/presentation/widgets/note_composer_sheet.dart';
 import 'package:drop_mobile/presentation/widgets/view_mode_selector.dart';
 import 'package:drop_mobile/presentation/widgets/category_filter.dart';
+import 'package:drop_mobile/presentation/widgets/selection_action_bar.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -81,6 +83,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final notesAsync = ref.watch(notesProvider);
     final recordingState = ref.watch(recordingProvider);
+    final selectionState = ref.watch(selectionProvider);
+    final isSelectionMode = selectionState.isSelectionMode;
 
     // Listen for new shared content
     ref.listen<SharedContent>(shareIntentProvider, (previous, next) {
@@ -116,86 +120,131 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF1A1A1A),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1A1A1A),
-        elevation: 0,
-        title: const Text(
-          'DROP',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        actions: [
-          if (viewMode == NoteViewMode.trash)
-            TextButton(
-              onPressed: () => _showEmptyTrashDialog(context, ref),
-              child: const Text(
-                '비우기',
-                style: TextStyle(color: Colors.red),
-              ),
-            ),
-        ],
-      ),
+      appBar: isSelectionMode
+          ? _buildSelectionAppBar(context, ref, selectionState)
+          : _buildNormalAppBar(context, ref, viewMode),
       body: Column(
         children: [
-          // View Mode Selector
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: ViewModeSelector(),
-          ),
-          // Category Filter (only in active mode)
-          if (viewMode == NoteViewMode.active)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: CategoryFilter(),
-            ),
-          // Notes content
+          // Notes content (includes ViewModeSelector and CategoryFilter as scrollable headers)
           Expanded(
             child: notesAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(),
-        ),
-        error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, color: Colors.red, size: 48),
-              const SizedBox(height: 16),
-              Text(
-                'An error occurred',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.white,
+              loading: () => const Center(
+                child: CircularProgressIndicator(),
+              ),
+              error: (error, stack) => Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                    const SizedBox(height: 16),
+                    Text(
+                      'An error occurred',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: Colors.white,
+                          ),
                     ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                error.toString(),
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey,
+                    const SizedBox(height: 8),
+                    Text(
+                      error.toString(),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.grey,
+                          ),
+                      textAlign: TextAlign.center,
                     ),
-                textAlign: TextAlign.center,
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => ref.invalidate(notesProvider),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => ref.invalidate(notesProvider),
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
-        ),
-              data: (notes) => const _NoteFeed(),
+              data: (notes) => _NoteFeed(isSelectionMode: isSelectionMode),
             ),
           ),
+          // Selection Action Bar
+          if (isSelectionMode) const SelectionActionBar(),
         ],
       ),
-      floatingActionButton: viewMode == NoteViewMode.active
+      floatingActionButton: !isSelectionMode && viewMode == NoteViewMode.active
           ? _ActionButtons(
               isRecording: recordingState.isRecording,
               onAddPressed: () => _openComposer(context),
               onRecordPressed: () => _startRecording(),
             )
           : null,
+    );
+  }
+
+  AppBar _buildNormalAppBar(BuildContext context, WidgetRef ref, NoteViewMode viewMode) {
+    return AppBar(
+      backgroundColor: const Color(0xFF1A1A1A),
+      elevation: 0,
+      title: const Text(
+        'DROP',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      actions: [
+        // Selection mode button
+        IconButton(
+          icon: const Icon(Icons.checklist, color: Colors.white70),
+          onPressed: () {
+            ref.read(selectionProvider.notifier).enterSelectionMode();
+          },
+          tooltip: '선택',
+        ),
+        if (viewMode == NoteViewMode.trash)
+          TextButton(
+            onPressed: () => _showEmptyTrashDialog(context, ref),
+            child: const Text(
+              '비우기',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+      ],
+    );
+  }
+
+  AppBar _buildSelectionAppBar(BuildContext context, WidgetRef ref, SelectionState selectionState) {
+    final filteredNotes = ref.watch(filteredNotesGroupedByDateProvider);
+    final allNoteIds = filteredNotes.values.expand((items) => items.map((item) => item.note.id)).toList();
+    final allSelected = allNoteIds.isNotEmpty && allNoteIds.every((id) => selectionState.selectedIds.contains(id));
+
+    return AppBar(
+      backgroundColor: const Color(0xFF1A1A1A),
+      elevation: 0,
+      leading: IconButton(
+        icon: const Icon(Icons.close, color: Colors.white),
+        onPressed: () {
+          ref.read(selectionProvider.notifier).exitSelectionMode();
+        },
+      ),
+      title: Text(
+        '${selectionState.selectedCount}개 선택',
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w500,
+          fontSize: 16,
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            if (allSelected) {
+              ref.read(selectionProvider.notifier).deselectAll();
+            } else {
+              ref.read(selectionProvider.notifier).selectAll(allNoteIds);
+            }
+          },
+          child: Text(
+            allSelected ? '선택 해제' : '전체 선택',
+            style: const TextStyle(color: Color(0xFF4A9EFF)),
+          ),
+        ),
+      ],
     );
   }
 
@@ -252,30 +301,61 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 }
 
 class _NoteFeed extends ConsumerWidget {
-  const _NoteFeed();
+  final bool isSelectionMode;
+
+  const _NoteFeed({required this.isSelectionMode});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final viewMode = ref.watch(viewModeProvider);
     final grouped = ref.watch(filteredNotesGroupedByDateProvider);
     final sortedDates = grouped.keys.toList();
+    final selectionState = ref.watch(selectionProvider);
+
+    // Build header widgets (ViewModeSelector + CategoryFilter)
+    final headerWidgets = <Widget>[
+      if (!isSelectionMode)
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: ViewModeSelector(),
+        ),
+      if (!isSelectionMode && viewMode == NoteViewMode.active)
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: CategoryFilter(),
+        ),
+    ];
 
     if (sortedDates.isEmpty) {
-      return _EmptyState(viewMode: viewMode);
+      return Column(
+        children: [
+          ...headerWidgets,
+          Expanded(child: _EmptyState(viewMode: viewMode)),
+        ],
+      );
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: sortedDates.length,
+      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+      itemCount: sortedDates.length + 1, // +1 for header
       itemBuilder: (context, index) {
-        final date = sortedDates[index];
+        // Header item (ViewModeSelector + CategoryFilter)
+        if (index == 0) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: headerWidgets,
+          );
+        }
+
+        final dateIndex = index - 1;
+        final date = sortedDates[dateIndex];
         final dateNotes = grouped[date]!;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: EdgeInsets.only(bottom: 12, top: index > 0 ? 24 : 0),
+              padding: EdgeInsets.only(bottom: 12, top: dateIndex > 0 ? 24 : 8),
               child: Text(
                 date,
                 style: const TextStyle(
@@ -291,8 +371,19 @@ class _NoteFeed extends ConsumerWidget {
                     note: item.note,
                     depth: item.depth,
                     viewMode: viewMode,
+                    isSelectionMode: isSelectionMode,
+                    isSelected: selectionState.selectedIds.contains(item.note.id),
                     onEdit: () => _openEditComposer(context, item.note),
                     onReply: () => _openReplyComposer(context, item.note.id),
+                    onLongPress: () {
+                      if (!isSelectionMode) {
+                        HapticFeedback.mediumImpact();
+                        ref.read(selectionProvider.notifier).enterSelectionMode(item.note.id);
+                      }
+                    },
+                    onSelect: () {
+                      ref.read(selectionProvider.notifier).toggleSelection(item.note.id);
+                    },
                   ),
                 )),
           ],

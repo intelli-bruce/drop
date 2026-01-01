@@ -4,6 +4,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:drop_mobile/core/utils/time_utils.dart';
 import 'package:drop_mobile/data/models/models.dart';
 import 'package:drop_mobile/data/repositories/attachments_repository.dart';
@@ -18,6 +19,10 @@ class NoteCard extends ConsumerWidget {
   final NoteViewMode viewMode;
   final VoidCallback? onEdit;
   final VoidCallback? onReply;
+  final bool isSelectionMode;
+  final bool isSelected;
+  final VoidCallback? onLongPress;
+  final VoidCallback? onSelect;
 
   const NoteCard({
     super.key,
@@ -26,6 +31,10 @@ class NoteCard extends ConsumerWidget {
     this.viewMode = NoteViewMode.active,
     this.onEdit,
     this.onReply,
+    this.isSelectionMode = false,
+    this.isSelected = false,
+    this.onLongPress,
+    this.onSelect,
   });
 
   @override
@@ -35,9 +44,12 @@ class NoteCard extends ConsumerWidget {
     final isRecording = isRecordingThisNote && recordingState.isRecording;
     final isTranscribing = isRecordingThisNote && recordingState.isTranscribing;
 
-    final cardContent = Container(
+    final cardContent = AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
       decoration: BoxDecoration(
-        color: const Color(0xFF2A2A2A),
+        color: isSelected
+            ? const Color(0xFF4A9EFF).withValues(alpha: 0.15)
+            : const Color(0xFF2A2A2A),
         borderRadius: BorderRadius.circular(8),
         border: isRecording
             ? Border.all(color: Colors.red.withValues(alpha: 0.5), width: 2)
@@ -46,6 +58,8 @@ class NoteCard extends ConsumerWidget {
                 color: const Color(0xFF4A9EFF).withValues(alpha: 0.5),
                 width: 2,
               )
+            : isSelected
+            ? Border.all(color: const Color(0xFF4A9EFF).withValues(alpha: 0.5), width: 2)
             : null,
       ),
       child: Column(
@@ -93,8 +107,34 @@ class NoteCard extends ConsumerWidget {
       ),
     );
 
+    // Card with optional checkbox for selection mode
+    final cardWithCheckbox = Row(
+      children: [
+        if (isSelectionMode) _buildCheckbox(),
+        Expanded(child: cardContent),
+      ],
+    );
+
+    // Wrap with Slidable for swipe actions (disabled in selection mode)
+    final slidableCard = isSelectionMode
+        ? cardWithCheckbox
+        : Slidable(
+            key: ValueKey(note.id),
+            endActionPane: _buildEndActionPane(context, ref),
+            startActionPane: _buildStartActionPane(context, ref),
+            child: cardContent,
+          );
+
     return GestureDetector(
-      onTap: (isRecording || isTranscribing) ? null : onEdit,
+      onTap: (isRecording || isTranscribing)
+          ? null
+          : isSelectionMode
+              ? onSelect
+              : null,
+      onDoubleTap: (isRecording || isTranscribing || isSelectionMode)
+          ? null
+          : onEdit,
+      onLongPress: (isRecording || isTranscribing) ? null : onLongPress,
       child: Padding(
         padding: EdgeInsets.only(left: depth * 24.0),
         child: depth > 0
@@ -110,13 +150,133 @@ class NoteCard extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(1),
                       ),
                     ),
-                    Expanded(child: cardContent),
+                    Expanded(child: slidableCard),
                   ],
                 ),
               )
-            : cardContent,
+            : slidableCard,
       ),
     );
+  }
+
+  Widget _buildCheckbox() {
+    return Container(
+      width: 40,
+      padding: const EdgeInsets.all(8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        width: 24,
+        height: 24,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isSelected ? const Color(0xFF4A9EFF) : Colors.transparent,
+          border: Border.all(
+            color: isSelected ? const Color(0xFF4A9EFF) : const Color(0xFF666666),
+            width: 2,
+          ),
+        ),
+        child: isSelected
+            ? const Icon(Icons.check, size: 16, color: Colors.white)
+            : null,
+      ),
+    );
+  }
+
+  ActionPane? _buildEndActionPane(BuildContext context, WidgetRef ref) {
+    switch (viewMode) {
+      case NoteViewMode.active:
+        return ActionPane(
+          motion: const BehindMotion(),
+          children: [
+            SlidableAction(
+              onPressed: (_) => _archiveNote(context, ref),
+              backgroundColor: const Color(0xFF2E7D32),
+              foregroundColor: Colors.white,
+              icon: Icons.archive_outlined,
+              label: '보관',
+            ),
+            SlidableAction(
+              onPressed: (_) => _deleteNote(context, ref),
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              icon: Icons.delete_outline,
+              label: '삭제',
+            ),
+          ],
+        );
+      case NoteViewMode.archived:
+        return ActionPane(
+          motion: const BehindMotion(),
+          children: [
+            SlidableAction(
+              onPressed: (_) => _unarchiveNote(context, ref),
+              backgroundColor: const Color(0xFF1976D2),
+              foregroundColor: Colors.white,
+              icon: Icons.unarchive_outlined,
+              label: '해제',
+            ),
+            SlidableAction(
+              onPressed: (_) => _deleteNote(context, ref),
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              icon: Icons.delete_outline,
+              label: '삭제',
+            ),
+          ],
+        );
+      case NoteViewMode.trash:
+        return ActionPane(
+          motion: const BehindMotion(),
+          children: [
+            SlidableAction(
+              onPressed: (_) => _showPermanentDeleteConfirmation(context, ref),
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              icon: Icons.delete_forever,
+              label: '영구삭제',
+            ),
+          ],
+        );
+    }
+  }
+
+  ActionPane? _buildStartActionPane(BuildContext context, WidgetRef ref) {
+    switch (viewMode) {
+      case NoteViewMode.active:
+        return ActionPane(
+          motion: const BehindMotion(),
+          children: [
+            SlidableAction(
+              onPressed: (_) {
+                if (onReply != null) {
+                  onReply!();
+                } else {
+                  ref.read(notesProvider.notifier).createNote(parentId: note.id);
+                }
+              },
+              backgroundColor: const Color(0xFF4A9EFF),
+              foregroundColor: Colors.white,
+              icon: Icons.reply,
+              label: '댓글',
+            ),
+          ],
+        );
+      case NoteViewMode.archived:
+        return null;
+      case NoteViewMode.trash:
+        return ActionPane(
+          motion: const BehindMotion(),
+          children: [
+            SlidableAction(
+              onPressed: (_) => _restoreNote(context, ref),
+              backgroundColor: const Color(0xFF2E7D32),
+              foregroundColor: Colors.white,
+              icon: Icons.restore,
+              label: '복원',
+            ),
+          ],
+        );
+    }
   }
 
   Widget _buildHeader(
@@ -192,9 +352,7 @@ class NoteCard extends ConsumerWidget {
                   size: 18,
                 ),
               ),
-            )
-          else
-            _buildActionButtons(context, ref),
+            ),
         ],
       ),
     );
@@ -598,93 +756,6 @@ class NoteCard extends ConsumerWidget {
     }
   }
 
-  Widget _buildActionButtons(BuildContext context, WidgetRef ref) {
-    switch (viewMode) {
-      case NoteViewMode.active:
-        return Row(
-          children: [
-            // Reply button
-            GestureDetector(
-              onTap: onReply ??
-                  () async {
-                    await ref
-                        .read(notesProvider.notifier)
-                        .createNote(parentId: note.id);
-                  },
-              child: const Padding(
-                padding: EdgeInsets.all(4),
-                child: Icon(Icons.reply, color: Color(0xFF888888), size: 18),
-              ),
-            ),
-            const SizedBox(width: 8),
-            // Archive button
-            GestureDetector(
-              onTap: () => _archiveNote(context, ref),
-              child: const Padding(
-                padding: EdgeInsets.all(4),
-                child: Icon(Icons.archive_outlined, color: Color(0xFF888888), size: 18),
-              ),
-            ),
-            const SizedBox(width: 8),
-            // Delete button
-            GestureDetector(
-              onTap: () => _showDeleteConfirmation(context, ref),
-              child: const Padding(
-                padding: EdgeInsets.all(4),
-                child: Icon(Icons.close, color: Color(0xFF888888), size: 18),
-              ),
-            ),
-          ],
-        );
-
-      case NoteViewMode.archived:
-        return Row(
-          children: [
-            // Unarchive button
-            GestureDetector(
-              onTap: () => _unarchiveNote(context, ref),
-              child: const Padding(
-                padding: EdgeInsets.all(4),
-                child: Icon(Icons.unarchive_outlined, color: Color(0xFF888888), size: 18),
-              ),
-            ),
-            const SizedBox(width: 8),
-            // Delete button
-            GestureDetector(
-              onTap: () => _showDeleteConfirmation(context, ref),
-              child: const Padding(
-                padding: EdgeInsets.all(4),
-                child: Icon(Icons.close, color: Color(0xFF888888), size: 18),
-              ),
-            ),
-          ],
-        );
-
-      case NoteViewMode.trash:
-        return Row(
-          children: [
-            // Restore button
-            GestureDetector(
-              onTap: () => _restoreNote(context, ref),
-              child: const Padding(
-                padding: EdgeInsets.all(4),
-                child: Icon(Icons.restore, color: Color(0xFF888888), size: 18),
-              ),
-            ),
-            const SizedBox(width: 8),
-            // Permanent delete button
-            GestureDetector(
-              onTap: () => _showPermanentDeleteConfirmation(context, ref),
-              child: const Padding(
-                padding: EdgeInsets.all(4),
-                child: Icon(Icons.delete_forever, color: Colors.red, size: 18),
-              ),
-            ),
-          ],
-        );
-    }
-  }
-
   void _archiveNote(BuildContext context, WidgetRef ref) {
     ref.read(notesProvider.notifier).archiveNote(note.id);
     ScaffoldMessenger.of(context).showSnackBar(
@@ -712,38 +783,15 @@ class NoteCard extends ConsumerWidget {
     );
   }
 
-  void _showDeleteConfirmation(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF2A2A2A),
-        title: const Text('노트 삭제', style: TextStyle(color: Colors.white)),
-        content: const Text(
-          '이 노트를 휴지통으로 이동하시겠습니까?',
-          style: TextStyle(color: Color(0xFFE0E0E0)),
+  void _deleteNote(BuildContext context, WidgetRef ref) {
+    ref.read(notesProvider.notifier).deleteNote(note.id);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('노트가 휴지통으로 이동되었습니다'),
+        action: SnackBarAction(
+          label: '취소',
+          onPressed: () => ref.read(notesProvider.notifier).restoreNote(note.id),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ref.read(notesProvider.notifier).deleteNote(note.id);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('노트가 휴지통으로 이동되었습니다'),
-                  action: SnackBarAction(
-                    label: '취소',
-                    onPressed: () => ref.read(notesProvider.notifier).restoreNote(note.id),
-                  ),
-                ),
-              );
-            },
-            child: const Text('삭제', style: TextStyle(color: Colors.red)),
-          ),
-        ],
       ),
     );
   }

@@ -50,6 +50,7 @@ dependencies:
   receive_sharing_intent: ^1.8.1
   app_links: ^6.4.1
   video_player: ^2.10.1
+  flutter_slidable: ^4.0.3
 
 dev_dependencies:
   flutter_test:
