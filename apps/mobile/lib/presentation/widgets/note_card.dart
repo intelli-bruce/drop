@@ -10,6 +10,7 @@ import 'package:drop_mobile/data/repositories/attachments_repository.dart';
 import 'package:drop_mobile/presentation/providers/notes_provider.dart';
 import 'package:drop_mobile/presentation/providers/recording_provider.dart';
 import 'package:drop_mobile/presentation/widgets/waveform_view.dart';
+import 'package:drop_mobile/presentation/widgets/media_viewer.dart';
 
 class NoteCard extends ConsumerWidget {
   final Note note;
@@ -84,7 +85,7 @@ class NoteCard extends ConsumerWidget {
               ),
             ),
             // Attachments
-            if (note.attachments.isNotEmpty) _buildAttachments(),
+            if (note.attachments.isNotEmpty) _buildAttachments(context),
             // Tags
             if (note.tags.isNotEmpty) _buildTags(),
           ],
@@ -311,7 +312,7 @@ class NoteCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildAttachments() {
+  Widget _buildAttachments(BuildContext context) {
     // Separate attachments by type for better layout
     final imageAttachments = note.attachments
         .where((a) => a.type == AttachmentType.image)
@@ -344,7 +345,7 @@ class NoteCard extends ConsumerWidget {
         children: [
           // Image/Video Gallery Grid
           if (imageAttachments.isNotEmpty || videoAttachments.isNotEmpty)
-            _buildMediaGallery([...imageAttachments, ...videoAttachments]),
+            _buildMediaGallery(context, [...imageAttachments, ...videoAttachments]),
 
           // Instagram attachments
           if (instagramAttachments.isNotEmpty)
@@ -370,53 +371,70 @@ class NoteCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildMediaGallery(List<Attachment> mediaAttachments) {
+  Widget _buildMediaGallery(BuildContext context, List<Attachment> mediaAttachments) {
     if (mediaAttachments.isEmpty) return const SizedBox.shrink();
 
     // Different layouts based on count
     if (mediaAttachments.length == 1) {
-      return _buildSingleMediaPreview(mediaAttachments.first);
+      return _buildSingleMediaPreview(context, mediaAttachments, 0);
     } else if (mediaAttachments.length == 2) {
-      return _buildTwoMediaGrid(mediaAttachments);
+      return _buildTwoMediaGrid(context, mediaAttachments);
     } else {
-      return _buildMultiMediaGrid(mediaAttachments);
+      return _buildMultiMediaGrid(context, mediaAttachments);
     }
   }
 
-  Widget _buildSingleMediaPreview(Attachment attachment) {
+  Widget _buildSingleMediaPreview(BuildContext context, List<Attachment> allMedia, int index) {
     return Padding(
       padding: const EdgeInsets.all(12),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: AspectRatio(
-          aspectRatio: 16 / 9,
-          child: _buildMediaPreview(attachment, isThumbnail: false),
+      child: GestureDetector(
+        onTap: () => _openMediaViewer(context, allMedia, index),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: AspectRatio(
+            aspectRatio: 16 / 9,
+            child: _buildMediaPreview(allMedia[index], isThumbnail: false),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildTwoMediaGrid(List<Attachment> attachments) {
+  void _openMediaViewer(BuildContext context, List<Attachment> mediaAttachments, int initialIndex) {
+    MediaViewer.show(
+      context,
+      mediaAttachments: mediaAttachments,
+      initialIndex: initialIndex,
+    );
+  }
+
+  Widget _buildTwoMediaGrid(BuildContext context, List<Attachment> attachments) {
     return Padding(
       padding: const EdgeInsets.all(12),
       child: Row(
         children: [
           Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: _buildMediaPreview(attachments[0], isThumbnail: true),
+            child: GestureDetector(
+              onTap: () => _openMediaViewer(context, attachments, 0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: _buildMediaPreview(attachments[0], isThumbnail: true),
+                ),
               ),
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: _buildMediaPreview(attachments[1], isThumbnail: true),
+            child: GestureDetector(
+              onTap: () => _openMediaViewer(context, attachments, 1),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: _buildMediaPreview(attachments[1], isThumbnail: true),
+                ),
               ),
             ),
           ),
@@ -425,7 +443,7 @@ class NoteCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildMultiMediaGrid(List<Attachment> attachments) {
+  Widget _buildMultiMediaGrid(BuildContext context, List<Attachment> attachments) {
     final displayCount = attachments.length > 4 ? 3 : attachments.length;
     final hasMore = attachments.length > 4;
     final remaining = attachments.length - 3;
@@ -446,27 +464,30 @@ class NoteCard extends ConsumerWidget {
           final attachment = attachments[index];
           final isLast = index == displayCount - 1;
 
-          return ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                _buildMediaPreview(attachment, isThumbnail: true),
-                if (hasMore && isLast)
-                  Container(
-                    color: Colors.black54,
-                    child: Center(
-                      child: Text(
-                        '+$remaining',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
+          return GestureDetector(
+            onTap: () => _openMediaViewer(context, attachments, index),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _buildMediaPreview(attachment, isThumbnail: true),
+                  if (hasMore && isLast)
+                    Container(
+                      color: Colors.black54,
+                      child: Center(
+                        child: Text(
+                          '+$remaining',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           );
         },
