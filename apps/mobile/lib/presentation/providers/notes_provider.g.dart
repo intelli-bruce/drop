@@ -272,7 +272,7 @@ final class FilteredNotesProvider
   }
 }
 
-String _$filteredNotesHash() => r'aa2f5435ca2985400e7768b1c02696967bfab781';
+String _$filteredNotesHash() => r'b0e00984b5942453b0a794b7b705d4e745133362';
 
 /// Provides filtered notes grouped by date with thread depth
 

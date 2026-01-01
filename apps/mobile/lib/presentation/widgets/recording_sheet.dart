@@ -4,9 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drop_mobile/presentation/providers/recording_provider.dart';
 import 'package:drop_mobile/presentation/widgets/waveform_view.dart';
 
-/// Recording sheet for inline recording (deprecated - use NoteCard recording instead)
-/// Kept for potential future use in reply recording scenarios.
-class RecordingSheet extends ConsumerWidget {
+/// Recording sheet that handles the entire recording flow
+class RecordingSheet extends ConsumerStatefulWidget {
   final String? parentId;
 
   const RecordingSheet({
@@ -15,7 +14,26 @@ class RecordingSheet extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RecordingSheet> createState() => _RecordingSheetState();
+}
+
+class _RecordingSheetState extends ConsumerState<RecordingSheet> {
+  bool _hasStartedRecording = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Start recording automatically when sheet opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_hasStartedRecording) {
+        _hasStartedRecording = true;
+        ref.read(recordingProvider.notifier).startRecording(parentId: widget.parentId);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final recordingState = ref.watch(recordingProvider);
     final isRecording = recordingState.isRecording;
     final isTranscribing = recordingState.isTranscribing;
@@ -131,7 +149,7 @@ class RecordingSheet extends ConsumerWidget {
                   ref.read(recordingProvider.notifier).stopRecording();
                   Navigator.pop(context);
                 } else {
-                  ref.read(recordingProvider.notifier).startRecording(parentId: parentId);
+                  ref.read(recordingProvider.notifier).startRecording(parentId: widget.parentId);
                 }
               },
               child: Container(

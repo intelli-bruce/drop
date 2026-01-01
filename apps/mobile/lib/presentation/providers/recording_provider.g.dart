@@ -44,7 +44,7 @@ final class RecordingNotifierProvider
   }
 }
 
-String _$recordingNotifierHash() => r'f47468e1e908502803b4cad63a33200c9fbe103c';
+String _$recordingNotifierHash() => r'd55ec36578b1b87137bf366d46dbd17bdfaea09c';
 
 /// Provider for managing audio recording and transcription
 

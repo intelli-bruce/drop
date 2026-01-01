@@ -42,4 +42,5 @@ const _$NoteSourceEnumMap = {
   NoteSource.mobile: 'mobile',
   NoteSource.desktop: 'desktop',
   NoteSource.web: 'web',
+  NoteSource.mcp: 'mcp',
 };

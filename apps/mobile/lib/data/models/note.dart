@@ -12,6 +12,8 @@ enum NoteSource {
   desktop,
   @JsonValue('web')
   web,
+  @JsonValue('mcp')
+  mcp,
 }
 
 /// Database row type (snake_case)

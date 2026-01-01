@@ -5,6 +5,7 @@ import 'package:drop_mobile/data/models/models.dart';
 import 'package:drop_mobile/presentation/providers/notes_provider.dart';
 import 'package:drop_mobile/presentation/providers/recording_provider.dart';
 import 'package:drop_mobile/presentation/providers/share_intent_provider.dart';
+import 'package:drop_mobile/presentation/providers/deep_link_provider.dart';
 import 'package:drop_mobile/presentation/widgets/note_card.dart';
 import 'package:drop_mobile/presentation/widgets/note_composer_sheet.dart';
 import 'package:drop_mobile/presentation/widgets/view_mode_selector.dart';
@@ -19,14 +20,28 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _sharedContentHandled = false;
+  bool _deepLinkHandled = false;
 
   @override
   void initState() {
     super.initState();
-    // Check for shared content after the first frame
+    // Check for shared content and deep links after the first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkForSharedContent();
+      _checkForDeepLink();
     });
+  }
+
+  void _checkForDeepLink() {
+    if (_deepLinkHandled) return;
+
+    final deepLinkState = ref.read(deepLinkProvider);
+    debugPrint('[HomeScreen] Checking deep link: ${deepLinkState.action}, handled: ${deepLinkState.handled}');
+    if (deepLinkState.action == DeepLinkAction.record && !deepLinkState.handled) {
+      _deepLinkHandled = true;
+      ref.read(deepLinkProvider.notifier).markHandled();
+      _startRecording();
+    }
   }
 
   void _checkForSharedContent() {
@@ -73,6 +88,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (next.hasContent && !_sharedContentHandled) {
         _sharedContentHandled = true;
         _openComposerWithSharedContent(next);
+      }
+    });
+
+    // Listen for deep links (app already running, widget tapped)
+    ref.listen<DeepLinkState>(deepLinkProvider, (previous, next) {
+      debugPrint('[HomeScreen] Deep link changed: ${next.action}, handled: ${next.handled}');
+      if (next.action == DeepLinkAction.record && !next.handled) {
+        ref.read(deepLinkProvider.notifier).markHandled();
+        _startRecording();
       }
     });
 
@@ -329,7 +353,7 @@ class _ActionButtons extends StatelessWidget {
           FloatingActionButton(
             heroTag: 'record',
             onPressed: onRecordPressed,
-            backgroundColor: const Color(0xFF2A2A2A),
+            backgroundColor: const Color(0xFF4A9EFF),
             child: const Icon(Icons.mic),
           ),
         if (!isRecording) const SizedBox(height: 12),
