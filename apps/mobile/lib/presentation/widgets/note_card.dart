@@ -524,6 +524,7 @@ class NoteCard extends ConsumerWidget {
 
   Widget _buildAttachmentChip(Attachment attachment) {
     return Container(
+      constraints: const BoxConstraints(maxWidth: 200),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: const Color(0xFF242424),
@@ -539,9 +540,12 @@ class NoteCard extends ConsumerWidget {
             size: 14,
           ),
           const SizedBox(width: 4),
-          Text(
-            attachment.filename ?? attachment.type.name,
-            style: const TextStyle(color: Color(0xFF888888), fontSize: 12),
+          Flexible(
+            child: Text(
+              attachment.filename ?? attachment.type.name,
+              style: const TextStyle(color: Color(0xFF888888), fontSize: 12),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),

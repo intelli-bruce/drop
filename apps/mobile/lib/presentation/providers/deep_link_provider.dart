@@ -64,10 +64,15 @@ class DeepLink extends _$DeepLink {
   }
 
   void _handleUri(Uri uri) {
+    // Only handle drop:// scheme, ignore others (e.g., sharemedia-*)
+    if (uri.scheme != 'drop') {
+      return;
+    }
+
     debugPrint('[DeepLink] Handling URI: $uri');
 
     // Handle drop://record
-    if (uri.scheme == 'drop' && uri.host == 'record') {
+    if (uri.host == 'record') {
       state = const DeepLinkState(
         action: DeepLinkAction.record,
         handled: false,
