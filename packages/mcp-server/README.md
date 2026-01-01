@@ -1,0 +1,110 @@
+# drop-mcp
+
+MCP server for DROP notes. Access your notes from AI assistants like Claude.
+
+## Installation
+
+```bash
+npm install -g drop-mcp
+```
+
+## Configuration
+
+### Getting Your Token
+
+1. Open the DROP app
+2. Go to Profile → Copy MCP Token
+
+### Claude Code / Desktop
+
+Add to `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "drop": {
+      "command": "drop-mcp",
+      "env": {
+        "DROP_TOKEN": "your-token"
+      }
+    }
+  }
+}
+```
+
+## Available Tools
+
+### Notes
+
+- `list_notes` - List recent notes with pagination
+- `get_note` - Get a single note with tags and attachments
+- `create_note` - Create a new note
+- `update_note` - Update an existing note
+- `delete_note` - Soft-delete a note (move to trash)
+- `archive_note` - Archive a note
+
+### Search
+
+- `search_notes` - Search notes by text content
+- `search_by_date_range` - Search notes within a date range
+
+### Tags
+
+- `list_tags` - List all tags with note counts
+- `get_notes_by_tag` - Get all notes with a specific tag
+- `add_tags_to_note` - Add tags to a note
+- `remove_tags_from_note` - Remove tags from a note
+
+### Attachments
+
+- `upload_attachment` - Upload an attachment (base64)
+- `upload_from_path` - Upload a local file by path
+- `list_attachments` - List all attachments for a note
+- `delete_attachment` - Delete an attachment
+
+## Examples
+
+### List recent notes
+
+```
+Use the list_notes tool to show my recent notes
+```
+
+### Search notes
+
+```
+Search my notes for "meeting"
+```
+
+### Create a note with tags
+
+```
+Create a note with content "Remember to buy groceries" and add the tag "todo"
+```
+
+### Upload an image
+
+```
+Upload the file at /path/to/image.png to note <note-id>
+```
+
+## Development
+
+```bash
+# Clone the repository
+git clone https://github.com/intellieffect/drop.git
+cd drop/packages/mcp-server
+
+# Install dependencies
+pnpm install
+
+# Build
+pnpm build
+
+# Run locally
+SUPABASE_URL=... SUPABASE_ANON_KEY=... SUPABASE_REFRESH_TOKEN=... pnpm start
+```
+
+## License
+
+MIT

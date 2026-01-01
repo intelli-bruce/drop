@@ -1,0 +1,32 @@
+# Source files (dist is published)
+src/
+
+# Development files
+*.ts
+!*.d.ts
+tsconfig.json
+.eslintrc*
+.prettierrc*
+
+# Scripts with credentials
+run.sh
+*.sh
+
+# Environment files
+.env
+.env.*
+
+# Test files
+*.test.ts
+*.spec.ts
+__tests__/
+test/
+tests/
+
+# IDE
+.vscode/
+.idea/
+
+# Build artifacts (except dist)
+node_modules/
+*.log

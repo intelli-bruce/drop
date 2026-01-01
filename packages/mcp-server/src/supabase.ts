@@ -1,11 +1,11 @@
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js'
 
-// 환경 변수에서 설정 로드 (.mcp.json의 env에서 전달됨)
-const SUPABASE_URL =
-  process.env.SUPABASE_URL || 'https://REDACTED_SUPABASE_HOST'
-const SUPABASE_ANON_KEY =
-  process.env.SUPABASE_ANON_KEY || 'REDACTED_SUPABASE_KEY'
-const REFRESH_TOKEN = process.env.SUPABASE_REFRESH_TOKEN
+// DROP Supabase 프로젝트 설정 (고정)
+const SUPABASE_URL = 'https://REDACTED_SUPABASE_HOST'
+const SUPABASE_ANON_KEY = 'REDACTED_SUPABASE_KEY'
+
+// 사용자 인증 토큰 (환경변수 필수)
+const REFRESH_TOKEN = process.env.DROP_TOKEN
 
 let supabaseInstance: SupabaseClient | null = null
 let currentUser: User | null = null
@@ -21,9 +21,9 @@ export async function getSupabase(): Promise<SupabaseClient> {
 
   if (!REFRESH_TOKEN) {
     throw new Error(
-      'SUPABASE_REFRESH_TOKEN not set.\n' +
-        '1. Desktop 앱 → 프로필 → Copy MCP Token\n' +
-        '2. .mcp.json의 env에 SUPABASE_REFRESH_TOKEN 추가'
+      'DROP_TOKEN not set.\n' +
+        '1. DROP 앱 → 프로필 → Copy MCP Token\n' +
+        '2. .mcp.json의 env에 DROP_TOKEN 추가'
     )
   }
 
