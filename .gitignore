@@ -9,3 +9,6 @@ release
 .env.production
 .env.*
 supabase/.env
+
+# Serena MCP plugin
+.serena/
