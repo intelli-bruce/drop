@@ -1,5 +1,5 @@
 import { useNotesStore } from '../stores/notes'
-import type { NoteViewMode } from '../stores/notes'
+import type { NoteViewMode } from '../stores/notes/types'
 
 export function ViewModeSelector() {
   const viewMode = useNotesStore((s) => s.viewMode)

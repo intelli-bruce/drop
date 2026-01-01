@@ -11,7 +11,7 @@ import { useProfileStore } from '../stores/profile'
 import { formatRelativeTime } from '../lib/time-utils'
 import { useDragAndDrop } from '../hooks'
 import type { Note } from '@drop/shared'
-import type { NoteViewMode } from '../stores/notes'
+import type { NoteViewMode } from '../stores/notes/types'
 
 interface Props {
   note: Note

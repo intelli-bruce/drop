@@ -11,6 +11,19 @@ import {
   Tray,
   type ClientRequestConstructorOptions,
 } from 'electron'
+
+// Handle EPIPE errors that occur when stdout is closed (e.g., tray app without terminal)
+process.on('uncaughtException', (error) => {
+  if ((error as NodeJS.ErrnoException).code === 'EPIPE') {
+    return // Silently ignore broken pipe errors
+  }
+  // Re-throw other errors to maintain default behavior
+  console.error('[main] Uncaught exception:', error)
+})
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[main] Unhandled rejection at:', promise, 'reason:', reason)
+})
 import { join } from 'path'
 import {
   type InstagramMediaItem,

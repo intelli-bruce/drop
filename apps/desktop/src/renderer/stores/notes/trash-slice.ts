@@ -59,9 +59,11 @@ export const createTrashSlice: StateCreator<NotesState, [], [], TrashSlice> = (s
     }
 
     const tagMap = new Map<string, TagRow[]>()
-    for (const row of (noteTagRows || []) as Array<{ note_id: string; tag_id: string; tags: TagRow }>) {
+    for (const row of noteTagRows || []) {
+      const tag = row.tags as unknown as TagRow | null
+      if (!tag) continue
       const list = tagMap.get(row.note_id) || []
-      list.push(row.tags)
+      list.push(tag)
       tagMap.set(row.note_id, list)
     }
 
@@ -169,9 +171,11 @@ export const createTrashSlice: StateCreator<NotesState, [], [], TrashSlice> = (s
     }
 
     const tagMap = new Map<string, TagRow[]>()
-    for (const row of (noteTagRows || []) as Array<{ note_id: string; tag_id: string; tags: TagRow }>) {
+    for (const row of noteTagRows || []) {
+      const tag = row.tags as unknown as TagRow | null
+      if (!tag) continue
       const list = tagMap.get(row.note_id) || []
-      list.push(row.tags)
+      list.push(tag)
       tagMap.set(row.note_id, list)
     }
 
