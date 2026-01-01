@@ -1,0 +1,33 @@
+{
+  "name": "@drop/mcp-server",
+  "version": "0.0.1",
+  "description": "MCP server for DROP notes access",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "drop-mcp-server": "./dist/index.js",
+    "drop-mcp-login": "./dist/login.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "auth": "tsx src/login.ts",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "@supabase/supabase-js": "^2.47.0",
+    "dotenv": "^16.4.0",
+    "open": "^10.0.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.2"
+  },
+  "peerDependencies": {
+    "zod": "^3.25.0"
+  }
+}

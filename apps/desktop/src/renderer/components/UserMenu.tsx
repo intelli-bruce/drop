@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
 import { useAuthStore } from '../stores/auth'
+import { supabase } from '../lib/supabase'
 
 export function UserMenu() {
   const { user, signOut } = useAuthStore()
   const [isOpen, setIsOpen] = useState(false)
+  const [tokenCopied, setTokenCopied] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   // Close menu when clicking outside
@@ -27,6 +29,16 @@ export function UserMenu() {
   const handleSignOut = async () => {
     setIsOpen(false)
     await signOut()
+  }
+
+  const handleCopyMcpToken = async () => {
+    const { data } = await supabase.auth.getSession()
+    const token = data.session?.refresh_token
+    if (token) {
+      await navigator.clipboard.writeText(token)
+      setTokenCopied(true)
+      setTimeout(() => setTokenCopied(false), 2000)
+    }
   }
 
   return (
@@ -58,6 +70,23 @@ export function UserMenu() {
           </div>
 
           <div className="user-menu-divider" />
+
+          <button className="user-menu-item" onClick={handleCopyMcpToken}>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg>
+            {tokenCopied ? 'Copied!' : 'Copy MCP Token'}
+          </button>
 
           <button className="user-menu-item" onClick={handleSignOut}>
             <svg
