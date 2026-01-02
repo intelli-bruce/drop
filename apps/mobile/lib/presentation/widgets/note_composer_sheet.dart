@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:drop_mobile/data/models/models.dart';
 import 'package:drop_mobile/data/repositories/attachments_repository.dart';
@@ -27,6 +28,7 @@ class NoteComposerSheet extends ConsumerStatefulWidget {
 
 class _NoteComposerSheetState extends ConsumerState<NoteComposerSheet> {
   late final TextEditingController _controller;
+  final ImagePicker _imagePicker = ImagePicker();
   bool _isSaving = false;
   List<SharedMediaFile> _pendingMedia = [];
 
@@ -62,6 +64,51 @@ class _NoteComposerSheetState extends ConsumerState<NoteComposerSheet> {
     });
   }
 
+  Future<void> _pickFromCamera() async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+      );
+      if (image != null) {
+        setState(() {
+          _pendingMedia.add(
+            SharedMediaFile(path: image.path, type: SharedMediaType.image),
+          );
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to access camera: $e')));
+      }
+    }
+  }
+
+  Future<void> _pickFromGallery() async {
+    try {
+      final List<XFile> images = await _imagePicker.pickMultiImage(
+        imageQuality: 85,
+      );
+      if (images.isNotEmpty) {
+        setState(() {
+          for (final image in images) {
+            _pendingMedia.add(
+              SharedMediaFile(path: image.path, type: SharedMediaType.image),
+            );
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to access gallery: $e')));
+      }
+    }
+  }
+
   Future<void> _save() async {
     if (_isSaving) return;
 
@@ -74,16 +121,14 @@ class _NoteComposerSheetState extends ConsumerState<NoteComposerSheet> {
 
     try {
       if (_isEditing) {
-        await ref.read(notesProvider.notifier).updateNote(
-              widget.note!.id,
-              content,
-            );
+        await ref
+            .read(notesProvider.notifier)
+            .updateNote(widget.note!.id, content);
       } else {
         // Create note first
-        final note = await ref.read(notesProvider.notifier).createNote(
-              content: content,
-              parentId: widget.parentId,
-            );
+        final note = await ref
+            .read(notesProvider.notifier)
+            .createNote(content: content, parentId: widget.parentId);
 
         // Upload attachments
         final attachmentsRepo = ref.read(attachmentsRepositoryProvider);
@@ -98,10 +143,9 @@ class _NoteComposerSheetState extends ConsumerState<NoteComposerSheet> {
                   noteId: note.id,
                   file: file,
                 );
-                ref.read(notesProvider.notifier).addAttachmentToNote(
-                      note.id,
-                      attachment,
-                    );
+                ref
+                    .read(notesProvider.notifier)
+                    .addAttachmentToNote(note.id, attachment);
                 break;
               case SharedMediaType.video:
                 final attachment = await attachmentsRepo.createFileAttachment(
@@ -109,10 +153,9 @@ class _NoteComposerSheetState extends ConsumerState<NoteComposerSheet> {
                   file: file,
                   type: 'video',
                 );
-                ref.read(notesProvider.notifier).addAttachmentToNote(
-                      note.id,
-                      attachment,
-                    );
+                ref
+                    .read(notesProvider.notifier)
+                    .addAttachmentToNote(note.id, attachment);
                 break;
               case SharedMediaType.file:
                 final attachment = await attachmentsRepo.createFileAttachment(
@@ -120,10 +163,9 @@ class _NoteComposerSheetState extends ConsumerState<NoteComposerSheet> {
                   file: file,
                   type: 'file',
                 );
-                ref.read(notesProvider.notifier).addAttachmentToNote(
-                      note.id,
-                      attachment,
-                    );
+                ref
+                    .read(notesProvider.notifier)
+                    .addAttachmentToNote(note.id, attachment);
                 break;
               case SharedMediaType.text:
               case SharedMediaType.url:
@@ -139,9 +181,9 @@ class _NoteComposerSheetState extends ConsumerState<NoteComposerSheet> {
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to save: $e')));
       }
     } finally {
       if (mounted) {
@@ -256,6 +298,26 @@ class _NoteComposerSheetState extends ConsumerState<NoteComposerSheet> {
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 12),
+          // Media picker buttons (only show when not editing)
+          if (!_isEditing) ...[
+            Row(
+              children: [
+                _buildMediaButton(
+                  icon: Icons.camera_alt,
+                  label: 'Camera',
+                  onPressed: _isSaving ? null : _pickFromCamera,
+                ),
+                const SizedBox(width: 12),
+                _buildMediaButton(
+                  icon: Icons.photo_library,
+                  label: 'Gallery',
+                  onPressed: _isSaving ? null : _pickFromGallery,
+                ),
+                const Spacer(),
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -275,17 +337,48 @@ class _NoteComposerSheetState extends ConsumerState<NoteComposerSheet> {
     );
   }
 
+  Widget _buildMediaButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback? onPressed,
+  }) {
+    return Material(
+      color: const Color(0xFF2A2A2A),
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: onPressed == null ? Colors.grey : Colors.white70,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: onPressed == null ? Colors.grey : Colors.white70,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildMediaPreview(SharedMediaFile media) {
     switch (media.type) {
       case SharedMediaType.image:
         final file = File(media.path);
         if (file.existsSync()) {
-          return Image.file(
-            file,
-            width: 100,
-            height: 100,
-            fit: BoxFit.cover,
-          );
+          return Image.file(file, width: 100, height: 100, fit: BoxFit.cover);
         }
         return _buildPlaceholder(Icons.image);
       case SharedMediaType.video:
@@ -325,11 +418,7 @@ class _NoteComposerSheetState extends ConsumerState<NoteComposerSheet> {
       width: 100,
       height: 100,
       color: const Color(0xFF2A2A2A),
-      child: Icon(
-        icon,
-        color: Colors.grey,
-        size: 32,
-      ),
+      child: Icon(icon, color: Colors.grey, size: 32),
     );
   }
 }
