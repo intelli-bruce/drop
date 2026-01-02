@@ -6,9 +6,9 @@ import { NoteCard, NoteCardHandle } from './NoteCard'
 import { TagDialog } from './TagDialog'
 import { CategoryFilter } from './CategoryFilter'
 import { ViewModeSelector } from './ViewModeSelector'
-import { SearchInput } from './SearchInput'
+import { SearchDialog } from './SearchDialog'
 import { PinDialog, type PinDialogMode } from './PinDialog'
-import { isCreateNoteShortcut } from '../shortcuts/noteGlobal'
+import { isCreateNoteShortcut, isSearchShortcut } from '../shortcuts/noteGlobal'
 import { resolveNoteFeedShortcut } from '../shortcuts/noteFeed'
 import { isOpenTagListShortcut } from '../shortcuts/tagList'
 import { isToggleLockShortcut } from '../shortcuts/noteLock'
@@ -33,7 +33,6 @@ export function NoteFeed() {
     filterTag,
     setFilterTag,
     categoryFilter,
-    searchQuery,
     lockNote,
     temporarilyUnlockNote,
     temporarilyUnlockAll,
@@ -46,12 +45,14 @@ export function NoteFeed() {
     emptyTrash,
     archiveNote,
     unarchiveNote,
+    updateNotePriority,
   } = useNotesStore()
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null)
   const [tagDialogNoteId, setTagDialogNoteId] = useState<string | null>(null)
   const [pinDialogNoteId, setPinDialogNoteId] = useState<string | null>(null)
   const [pinDialogMode, setPinDialogMode] = useState<PinDialogMode>('setup')
   const [showUnlockAllDialog, setShowUnlockAllDialog] = useState(false)
+  const [showSearchDialog, setShowSearchDialog] = useState(false)
   const hasPin = useProfileStore((s) => s.hasPin)
   const cardRefs = useRef<Map<string, NoteCardHandle>>(new Map())
   const feedRef = useRef<HTMLDivElement>(null)
@@ -61,6 +62,8 @@ export function NoteFeed() {
   const flatNotesRef = useRef<Array<{ note: Note; depth: number }>>([])
   const deleteNoteRef = useRef<(id: string) => void>(deleteNote)
   const handleReplyRef = useRef<(parentId: string) => Promise<void>>(() => Promise.resolve())
+  const updateNotePriorityRef =
+    useRef<(id: string, priority: number) => Promise<void>>(updateNotePriority)
 
   // 새 노트 생성 + 첨부물 추가 헬퍼 (useDragAndDrop에서 사용하기 위해 먼저 정의)
   const createNoteWithFile = useCallback(
@@ -104,13 +107,8 @@ export function NoteFeed() {
       result = result.filter((note) => note.hasFiles)
     }
 
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase()
-      result = result.filter((note) => note.content.toLowerCase().includes(query))
-    }
-
     return result
-  }, [viewMode, baseNotes, filterTag, categoryFilter, searchQuery])
+  }, [viewMode, baseNotes, filterTag, categoryFilter])
 
   // flatNotes 계산 (메모이제이션)
   const flatNotes = useMemo(() => {
@@ -179,6 +177,10 @@ export function NoteFeed() {
     handleReplyRef.current = handleReply
   }, [handleReply])
 
+  useEffect(() => {
+    updateNotePriorityRef.current = updateNotePriority
+  }, [updateNotePriority])
+
   const handleEscapeFromNormal = useCallback((index: number) => {
     setFocusedIndex(index)
     feedRef.current?.focus()
@@ -242,6 +244,20 @@ export function NoteFeed() {
     }, 50)
   }, [createNote])
 
+  const handleSearchSelect = useCallback(
+    (noteId: string) => {
+      const index = noteIndexMap.get(noteId)
+      if (index !== undefined) {
+        setFocusedIndex(index)
+        setTimeout(() => {
+          const element = cardElementRefs.current.get(noteId)
+          element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }, 50)
+      }
+    },
+    [noteIndexMap]
+  )
+
   // n 단축키로 새 노트 생성 (텍스트 입력 중 제외)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -254,6 +270,17 @@ export function NoteFeed() {
     window.addEventListener('keydown', handleGlobalKeyDown)
     return () => window.removeEventListener('keydown', handleGlobalKeyDown)
   }, [handleCreateNote])
+
+  useEffect(() => {
+    const handleSearchKeyDown = (e: KeyboardEvent) => {
+      if (!isSearchShortcut(e)) return
+      e.preventDefault()
+      setShowSearchDialog(true)
+    }
+
+    window.addEventListener('keydown', handleSearchKeyDown)
+    return () => window.removeEventListener('keydown', handleSearchKeyDown)
+  }, [])
 
   // t 단축키로 태그 다이얼로그 열기 (텍스트 입력 중 제외)
   useEffect(() => {
@@ -342,7 +369,9 @@ export function NoteFeed() {
 
       e.preventDefault()
       e.stopPropagation()
-      archiveNote(noteId)
+      if (window.confirm('이 노트를 보관하시겠습니까?')) {
+        archiveNote(noteId)
+      }
     }
 
     window.addEventListener('keydown', handleArchiveKeyDown)
@@ -452,6 +481,27 @@ export function NoteFeed() {
           handleReplyRef.current(item.note.id)
           setFocusedIndex(null)
         }
+        return
+      }
+
+      if (action?.startsWith('setPriority')) {
+        if (currentFocusedIndex === null) return
+        e.preventDefault()
+        const item = currentFlatNotes[currentFocusedIndex]
+        if (item) {
+          const priority = parseInt(action.slice(-1), 10)
+          updateNotePriorityRef.current(item.note.id, priority)
+        }
+        return
+      }
+
+      if (action === 'copyFocused') {
+        if (currentFocusedIndex === null) return
+        e.preventDefault()
+        const item = currentFlatNotes[currentFocusedIndex]
+        if (item) {
+          navigator.clipboard.writeText(item.note.content)
+        }
       }
     }
 
@@ -558,6 +608,12 @@ export function NoteFeed() {
           onClose={() => setTagDialogNoteId(null)}
         />
       )}
+      {showSearchDialog && (
+        <SearchDialog
+          onClose={() => setShowSearchDialog(false)}
+          onSelectNote={handleSearchSelect}
+        />
+      )}
       {pinDialogNoteId && (
         <PinDialog
           mode={pinDialogMode}
@@ -587,7 +643,13 @@ export function NoteFeed() {
         <ViewModeSelector />
         {viewMode === 'active' && (
           <>
-            <SearchInput />
+            <button
+              className="search-btn"
+              onClick={() => setShowSearchDialog(true)}
+              title="검색 (⌘K)"
+            >
+              🔍 검색
+            </button>
             <CategoryFilter />
             {hasLockedNotes() && (
               <button

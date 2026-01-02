@@ -7,6 +7,11 @@ export type NoteFeedShortcutAction =
   | 'openFocused'
   | 'deleteFocused'
   | 'replyToFocused'
+  | 'copyFocused'
+  | 'setPriority0'
+  | 'setPriority1'
+  | 'setPriority2'
+  | 'setPriority3'
 
 export function resolveNoteFeedShortcut(event: KeyEventLike): NoteFeedShortcutAction | null {
   switch (event.key) {
@@ -28,6 +33,17 @@ export function resolveNoteFeedShortcut(event: KeyEventLike): NoteFeedShortcutAc
     case 'Delete':
     case 'Backspace':
       return 'deleteFocused'
+    case 'c':
+    case 'ㅊ': // 한글 c
+      return 'copyFocused'
+    case '0':
+      return 'setPriority0'
+    case '1':
+      return 'setPriority1'
+    case '2':
+      return 'setPriority2'
+    case '3':
+      return 'setPriority3'
     default:
       return null
   }

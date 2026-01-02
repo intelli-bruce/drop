@@ -6,7 +6,6 @@ import { createInstagramSlice } from './instagram-slice'
 import { createYouTubeSlice } from './youtube-slice'
 import { createLockSlice, createCategoryFilterSlice } from './lock-slice'
 import { createTrashSlice } from './trash-slice'
-import { createSearchSlice } from './search-slice'
 import type { NotesState } from './types'
 export type { NotesState, NoteViewMode } from './types'
 
@@ -19,5 +18,4 @@ export const useNotesStore = create<NotesState>()((...a) => ({
   ...createLockSlice(...a),
   ...createCategoryFilterSlice(...a),
   ...createTrashSlice(...a),
-  ...createSearchSlice(...a),
 }))

@@ -11,11 +11,12 @@ export function TagDialog({ noteId, existingTagNames, onClose }: Props) {
   const { allTags, addTagToNote } = useNotesStore()
   const [inputValue, setInputValue] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
+  const [addedTags, setAddedTags] = useState<string[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
-  // 기존 태그 제외, 입력값으로 필터링
-  const availableTags = allTags.filter((tag) => !existingTagNames.includes(tag.name))
+  const excludedTags = [...existingTagNames, ...addedTags]
+  const availableTags = allTags.filter((tag) => !excludedTags.includes(tag.name))
   const filteredTags = inputValue
     ? availableTags.filter((tag) => tag.name.toLowerCase().includes(inputValue.toLowerCase()))
     : availableTags
@@ -42,12 +43,15 @@ export function TagDialog({ noteId, existingTagNames, onClose }: Props) {
 
   const handleSelect = useCallback(
     (tagName: string) => {
-      if (tagName.trim()) {
-        addTagToNote(noteId, tagName.trim())
-        onClose()
+      const trimmed = tagName.trim()
+      if (trimmed) {
+        addTagToNote(noteId, trimmed)
+        setAddedTags((prev) => [...prev, trimmed.toLowerCase()])
+        setInputValue('')
+        setSelectedIndex(0)
       }
     },
-    [noteId, addTagToNote, onClose]
+    [noteId, addTagToNote]
   )
 
   const handleKeyDown = useCallback(
@@ -86,7 +90,7 @@ export function TagDialog({ noteId, existingTagNames, onClose }: Props) {
         }
       }
     },
-    [totalItems, selectedIndex, filteredTags, showCreateOption, trimmedInput, handleSelect, onClose]
+    [totalItems, selectedIndex, filteredTags, showCreateOption, trimmedInput, handleSelect]
   )
 
   const handleBackdropClick = useCallback(
@@ -101,6 +105,15 @@ export function TagDialog({ noteId, existingTagNames, onClose }: Props) {
   return (
     <div className="tag-dialog-backdrop" onClick={handleBackdropClick}>
       <div className="tag-dialog">
+        {addedTags.length > 0 && (
+          <div className="tag-dialog-added">
+            {addedTags.map((name) => (
+              <span key={name} className="tag-dialog-added-tag">
+                #{name}
+              </span>
+            ))}
+          </div>
+        )}
         <input
           ref={inputRef}
           type="text"

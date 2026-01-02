@@ -97,12 +97,6 @@ export interface TrashSlice {
   unarchiveNote: (noteId: string) => Promise<void>
 }
 
-// Search slice
-export interface SearchSlice {
-  searchQuery: string | null
-  setSearchQuery: (query: string | null) => void
-}
-
 // Combined store state
 export interface NotesState
   extends
@@ -113,5 +107,4 @@ export interface NotesState
     YouTubeSlice,
     LockSlice,
     CategoryFilterSlice,
-    TrashSlice,
-    SearchSlice {}
+    TrashSlice {}
