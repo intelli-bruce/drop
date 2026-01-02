@@ -1,12 +1,17 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:drop_mobile/data/models/models.dart';
+import 'package:drop_mobile/data/repositories/attachments_repository.dart';
 import 'package:drop_mobile/presentation/providers/notes_provider.dart';
 import 'package:drop_mobile/presentation/providers/recording_provider.dart';
 import 'package:drop_mobile/presentation/providers/share_intent_provider.dart';
 import 'package:drop_mobile/presentation/providers/deep_link_provider.dart';
 import 'package:drop_mobile/presentation/providers/selection_provider.dart';
+import 'package:drop_mobile/presentation/widgets/action_buttons.dart';
 import 'package:drop_mobile/presentation/widgets/note_card.dart';
 import 'package:drop_mobile/presentation/widgets/note_composer_sheet.dart';
 import 'package:drop_mobile/presentation/widgets/view_mode_selector.dart';
@@ -23,6 +28,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _sharedContentHandled = false;
   bool _deepLinkHandled = false;
+  final ImagePicker _imagePicker = ImagePicker();
 
   @override
   void initState() {
@@ -167,10 +173,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       ),
       floatingActionButton: !isSelectionMode && viewMode == NoteViewMode.active
-          ? _ActionButtons(
+          ? ActionButtons(
               isRecording: recordingState.isRecording,
               onAddPressed: () => _openComposer(context),
               onRecordPressed: () => _startRecording(),
+              onCameraPressed: () => _captureFromCamera(),
+              onGalleryPressed: () => _pickFromGallery(),
             )
           : null,
     );
@@ -298,6 +306,84 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     HapticFeedback.mediumImpact();
     ref.read(recordingProvider.notifier).startRecording();
   }
+
+  Future<void> _captureFromCamera() async {
+    HapticFeedback.mediumImpact();
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+      );
+      if (image != null) {
+        await _createNoteWithMedia([image]);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to access camera: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _pickFromGallery() async {
+    HapticFeedback.mediumImpact();
+    try {
+      final List<XFile> images = await _imagePicker.pickMultiImage(
+        imageQuality: 85,
+      );
+      if (images.isNotEmpty) {
+        await _createNoteWithMedia(images);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to access gallery: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _createNoteWithMedia(List<XFile> images) async {
+    try {
+      // Create note first (empty content for media-only note)
+      final note = await ref
+          .read(notesProvider.notifier)
+          .createNote(content: '', parentId: null);
+
+      // Upload attachments
+      final attachmentsRepo = ref.read(attachmentsRepositoryProvider);
+      for (final image in images) {
+        try {
+          final file = File(image.path);
+          if (!await file.exists()) continue;
+
+          final attachment = await attachmentsRepo.createImageAttachment(
+            noteId: note.id,
+            file: file,
+          );
+          ref.read(notesProvider.notifier).addAttachmentToNote(note.id, attachment);
+        } catch (e) {
+          debugPrint('Failed to upload attachment: $e');
+        }
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${images.length}개 이미지로 노트 생성됨'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to create note: $e')),
+        );
+      }
+    }
+  }
 }
 
 class _NoteFeed extends ConsumerWidget {
@@ -419,42 +505,6 @@ class _NoteFeed extends ConsumerWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (context) => NoteComposerSheet(parentId: parentId),
-    );
-  }
-}
-
-class _ActionButtons extends StatelessWidget {
-  final bool isRecording;
-  final VoidCallback onAddPressed;
-  final VoidCallback onRecordPressed;
-
-  const _ActionButtons({
-    required this.isRecording,
-    required this.onAddPressed,
-    required this.onRecordPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Record button - hidden when recording (controls are in NoteCard)
-        if (!isRecording)
-          FloatingActionButton(
-            heroTag: 'record',
-            onPressed: onRecordPressed,
-            backgroundColor: const Color(0xFF4A9EFF),
-            child: const Icon(Icons.mic),
-          ),
-        if (!isRecording) const SizedBox(height: 12),
-        FloatingActionButton(
-          heroTag: 'add',
-          onPressed: onAddPressed,
-          backgroundColor: const Color(0xFF4A9EFF),
-          child: const Icon(Icons.add),
-        ),
-      ],
     );
   }
 }
