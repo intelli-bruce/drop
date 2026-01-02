@@ -167,7 +167,8 @@ jobs:
             --release \
             --no-codesign \
             --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
-            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
+            --dart-define=OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
 
       - name: List Certificates
         run: |
