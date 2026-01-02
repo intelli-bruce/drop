@@ -4,6 +4,7 @@ import { callMcpRpc } from '../supabase.js'
 
 interface Note {
   id: string
+  display_id: number
   content: string
   source: string
   parent_id: string | null
@@ -57,6 +58,7 @@ export function registerNotesTools(server: McpServer) {
 
         const notes = result.notes.map((note) => ({
           id: note.id,
+          displayId: note.display_id,
           content: note.content,
           source: note.source,
           parentId: note.parent_id,
@@ -103,6 +105,7 @@ export function registerNotesTools(server: McpServer) {
 
         const result = {
           id: note.id,
+          displayId: note.display_id,
           content: note.content,
           source: note.source,
           parentId: note.parent_id,
@@ -158,7 +161,7 @@ export function registerNotesTools(server: McpServer) {
             {
               type: 'text' as const,
               text: JSON.stringify(
-                { id: note.id, content: note.content, createdAt: note.created_at },
+                { id: note.id, displayId: note.display_id, content: note.content, createdAt: note.created_at },
                 null,
                 2
               ),
@@ -193,7 +196,7 @@ export function registerNotesTools(server: McpServer) {
             {
               type: 'text' as const,
               text: JSON.stringify(
-                { id: note.id, content: note.content, updatedAt: note.updated_at },
+                { id: note.id, displayId: note.display_id, content: note.content, updatedAt: note.updated_at },
                 null,
                 2
               ),

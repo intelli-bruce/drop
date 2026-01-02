@@ -4,6 +4,7 @@ import { callMcpRpc } from '../supabase.js'
 
 interface Note {
   id: string
+  display_id: number
   content: string
   created_at: string
   has_link: boolean
@@ -54,6 +55,7 @@ export function registerSearchTools(server: McpServer) {
 
           return {
             id: note.id,
+            displayId: note.display_id,
             content: note.content,
             createdAt: note.created_at,
             matchedText,
@@ -115,8 +117,14 @@ export function registerSearchTools(server: McpServer) {
         }
 
         const notesWithKst = result.notes.map((note) => ({
-          ...note,
-          created_at_kst: toKst(note.created_at),
+          id: note.id,
+          displayId: note.display_id,
+          content: note.content,
+          createdAt: note.created_at,
+          createdAtKst: toKst(note.created_at),
+          hasLink: note.has_link,
+          hasMedia: note.has_media,
+          hasFiles: note.has_files,
         }))
 
         return {

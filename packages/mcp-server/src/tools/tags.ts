@@ -14,6 +14,7 @@ interface ListTagsResult {
 
 interface Note {
   id: string
+  display_id: number
   content: string
   created_at: string
   has_link: boolean
@@ -80,12 +81,22 @@ export function registerTagsTools(server: McpServer) {
           p_limit: limit,
         })
 
+        const notes = result.notes.map((note) => ({
+          id: note.id,
+          displayId: note.display_id,
+          content: note.content,
+          createdAt: note.created_at,
+          hasLink: note.has_link,
+          hasMedia: note.has_media,
+          hasFiles: note.has_files,
+        }))
+
         return {
           content: [
             {
               type: 'text' as const,
               text: JSON.stringify(
-                { tagName: result.tag_name, notes: result.notes, total: result.notes.length },
+                { tagName: result.tag_name, notes, total: notes.length },
                 null,
                 2
               ),
