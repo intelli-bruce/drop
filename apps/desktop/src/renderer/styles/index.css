@@ -61,14 +61,22 @@ body {
 }
 
 .date-group {
-  margin-bottom: 32px;
+  margin-bottom: 48px;
+}
+
+.date-group:not(:first-child) {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-color);
 }
 
 .date-label {
   font-size: 13px;
   color: var(--text-secondary);
-  margin-bottom: 12px;
-  font-weight: 500;
+  margin-bottom: 16px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .feed:focus {
