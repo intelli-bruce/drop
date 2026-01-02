@@ -1,7 +1,7 @@
 .PHONY: help install setup test test-db clean \
         electron-rebuild electron-dev electron-dev-local electron-dev-remote \
         electron-build electron-build-local electron-build-remote \
-        flutter-setup flutter-dev flutter-dev-remote flutter-build \
+        flutter-setup flutter-dev flutter-dev-remote flutter-build flutter-build-ipa flutter-testflight \
         flutter-analyze flutter-test flutter-codegen flutter-clean
 
 .DEFAULT_GOAL := help
@@ -33,6 +33,8 @@ help:
 	@echo "    make flutter-dev          - 로컬 Supabase로 Flutter 실행"
 	@echo "    make flutter-dev-remote   - 리모트 Supabase로 Flutter 실행"
 	@echo "    make flutter-build        - iOS 시뮬레이터용 빌드"
+	@echo "    make flutter-build-ipa    - TestFlight용 IPA 빌드 (remote 자동)"
+	@echo "    make flutter-testflight   - TestFlight 빌드+배포 (remote 자동)"
 	@echo "    make flutter-analyze      - Flutter 코드 분석"
 	@echo "    make flutter-test         - Flutter 테스트"
 	@echo "    make flutter-codegen      - Flutter 코드 재생성"
@@ -126,10 +128,26 @@ flutter-build:
 		--dart-define=SUPABASE_ANON_KEY=REDACTED_SUPABASE_KEY_LOCAL
 
 # Flutter IPA 빌드 (리모트 Supabase - TestFlight용)
+# NOTE: TestFlight 배포는 항상 remote 환경 사용 (로컬 빌드 옵션 없음)
 flutter-build-ipa:
+	@echo "🚀 Building IPA for TestFlight (remote Supabase environment)..."
 	cd apps/mobile && flutter build ipa \
 		--dart-define=SUPABASE_URL=https://REDACTED_SUPABASE_HOST \
 		--dart-define=SUPABASE_ANON_KEY=REDACTED_SUPABASE_KEY
+	@echo "✅ IPA built successfully at: apps/mobile/build/ios/ipa/"
+
+# TestFlight 배포 (빌드 + 업로드 통합 명령)
+# 사용법: make flutter-testflight
+# NOTE: 항상 remote Supabase 환경 사용 (명시적 설정 불필요)
+# 환경변수: APPLE_ID, APPLE_APP_PASSWORD (from ~/.zshrc)
+flutter-testflight: flutter-build-ipa
+	@echo "📤 Uploading to TestFlight..."
+	xcrun altool --upload-app \
+		--type ios \
+		--file "apps/mobile/build/ios/ipa/drop_mobile.ipa" \
+		-u "$(APPLE_ID)" \
+		-p "$(APPLE_APP_PASSWORD)"
+	@echo "✅ Upload complete! Check App Store Connect for processing status."
 
 # Flutter 코드 분석
 flutter-analyze:
