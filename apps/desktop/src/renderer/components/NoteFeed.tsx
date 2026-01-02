@@ -237,7 +237,8 @@ export function NoteFeed() {
     if (focusedIndex !== null && flatNotes[focusedIndex]) {
       const noteId = flatNotes[focusedIndex].note.id
       const element = cardElementRefs.current.get(noteId)
-      element?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      // Use 'auto' for instant scrolling to avoid jank during rapid navigation
+      element?.scrollIntoView({ behavior: 'auto', block: 'nearest' })
     }
   }, [focusedIndex, flatNotes])
 
