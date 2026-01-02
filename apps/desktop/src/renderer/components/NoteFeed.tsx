@@ -198,22 +198,25 @@ export function NoteFeed() {
     }
   }, [])
 
-  // 날짜별 그룹화 (메모이제이션)
   const grouped = useMemo(() => {
     const groups: { date: string; items: typeof flatNotes }[] = []
-    const map: Record<string, typeof flatNotes> = {}
 
     for (const item of flatNotes) {
-      const date = new Date(item.note.createdAt).toLocaleDateString('ko-KR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
-      if (!map[date]) {
-        map[date] = []
-        groups.push({ date, items: map[date] })
+      if (item.depth > 0 && groups.length > 0) {
+        groups[groups.length - 1].items.push(item)
+      } else {
+        const date = new Date(item.note.createdAt).toLocaleDateString('ko-KR', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })
+        const lastGroup = groups[groups.length - 1]
+        if (lastGroup?.date === date) {
+          lastGroup.items.push(item)
+        } else {
+          groups.push({ date, items: [item] })
+        }
       }
-      map[date].push(item)
     }
     return groups
   }, [flatNotes])
