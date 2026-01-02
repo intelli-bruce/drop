@@ -10,5 +10,8 @@ release
 .env.*
 supabase/.env
 
+# MCP config (contains tokens)
+.mcp.json
+
 # Serena MCP plugin
 .serena/
