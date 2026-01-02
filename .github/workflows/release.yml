@@ -94,6 +94,10 @@ jobs:
         working-directory: apps/mobile
         run: flutter pub get
 
+      - name: Setup secrets
+        working-directory: apps/mobile
+        run: cp lib/core/config/secrets.dart.example lib/core/config/secrets.dart
+
       - name: Generate code
         working-directory: apps/mobile
         run: dart run build_runner build --delete-conflicting-outputs
