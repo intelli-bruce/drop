@@ -4,6 +4,10 @@ import SwiftUI
 @main
 struct DropWidgetBundle: WidgetBundle {
     var body: some Widget {
-        DropWidget()
+        RecordWidget()
+        MemoWidget()
+        CameraWidget()
+        GalleryWidget()
+        QuickActionsWidget()
     }
 }

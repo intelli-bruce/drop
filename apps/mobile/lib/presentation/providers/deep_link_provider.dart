@@ -8,6 +8,9 @@ part 'deep_link_provider.g.dart';
 enum DeepLinkAction {
   none,
   record,
+  memo,
+  camera,
+  gallery,
 }
 
 @immutable
@@ -71,12 +74,32 @@ class DeepLink extends _$DeepLink {
 
     debugPrint('[DeepLink] Handling URI: $uri');
 
-    // Handle drop://record
-    if (uri.host == 'record') {
-      state = const DeepLinkState(
-        action: DeepLinkAction.record,
-        handled: false,
-      );
+    // Handle drop:// schemes
+    switch (uri.host) {
+      case 'record':
+        state = const DeepLinkState(
+          action: DeepLinkAction.record,
+          handled: false,
+        );
+        break;
+      case 'memo':
+        state = const DeepLinkState(
+          action: DeepLinkAction.memo,
+          handled: false,
+        );
+        break;
+      case 'camera':
+        state = const DeepLinkState(
+          action: DeepLinkAction.camera,
+          handled: false,
+        );
+        break;
+      case 'gallery':
+        state = const DeepLinkState(
+          action: DeepLinkAction.gallery,
+          handled: false,
+        );
+        break;
     }
   }
 

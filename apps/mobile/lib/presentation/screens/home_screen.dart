@@ -45,10 +45,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     final deepLinkState = ref.read(deepLinkProvider);
     debugPrint('[HomeScreen] Checking deep link: ${deepLinkState.action}, handled: ${deepLinkState.handled}');
-    if (deepLinkState.action == DeepLinkAction.record && !deepLinkState.handled) {
+    if (deepLinkState.action != DeepLinkAction.none && !deepLinkState.handled) {
       _deepLinkHandled = true;
       ref.read(deepLinkProvider.notifier).markHandled();
-      _startRecording();
+      _handleDeepLinkAction(deepLinkState.action);
+    }
+  }
+
+  void _handleDeepLinkAction(DeepLinkAction action) {
+    switch (action) {
+      case DeepLinkAction.record:
+        _startRecording();
+        break;
+      case DeepLinkAction.memo:
+        _openComposer(context);
+        break;
+      case DeepLinkAction.camera:
+        _captureFromCamera();
+        break;
+      case DeepLinkAction.gallery:
+        _pickFromGallery();
+        break;
+      case DeepLinkAction.none:
+        break;
     }
   }
 
@@ -104,9 +123,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // Listen for deep links (app already running, widget tapped)
     ref.listen<DeepLinkState>(deepLinkProvider, (previous, next) {
       debugPrint('[HomeScreen] Deep link changed: ${next.action}, handled: ${next.handled}');
-      if (next.action == DeepLinkAction.record && !next.handled) {
+      if (next.action != DeepLinkAction.none && !next.handled) {
         ref.read(deepLinkProvider.notifier).markHandled();
-        _startRecording();
+        _handleDeepLinkAction(next.action);
       }
     });
 
