@@ -21,6 +21,7 @@ enum NoteSource {
 abstract class NoteRow with _$NoteRow {
   const factory NoteRow({
     required String id,
+    @JsonKey(name: 'display_id') required int displayId,
     String? content,
     @JsonKey(name: 'parent_id') String? parentId,
     @JsonKey(name: 'created_at') required String createdAt,
@@ -60,6 +61,7 @@ abstract class Note with _$Note {
 
   const factory Note({
     required String id,
+    required int displayId,
     required String content,
     String? parentId,
     @Default([]) List<Attachment> attachments,
@@ -84,6 +86,7 @@ abstract class Note with _$Note {
   }) {
     return Note(
       id: row.id,
+      displayId: row.displayId,
       content: row.content ?? '',
       parentId: row.parentId,
       attachments: attachments,

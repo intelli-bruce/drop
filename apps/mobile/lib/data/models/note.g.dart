@@ -8,6 +8,7 @@ part of 'note.dart';
 
 _NoteRow _$NoteRowFromJson(Map<String, dynamic> json) => _NoteRow(
   id: json['id'] as String,
+  displayId: (json['display_id'] as num).toInt(),
   content: json['content'] as String?,
   parentId: json['parent_id'] as String?,
   createdAt: json['created_at'] as String,
@@ -24,6 +25,7 @@ _NoteRow _$NoteRowFromJson(Map<String, dynamic> json) => _NoteRow(
 
 Map<String, dynamic> _$NoteRowToJson(_NoteRow instance) => <String, dynamic>{
   'id': instance.id,
+  'display_id': instance.displayId,
   'content': instance.content,
   'parent_id': instance.parentId,
   'created_at': instance.createdAt,

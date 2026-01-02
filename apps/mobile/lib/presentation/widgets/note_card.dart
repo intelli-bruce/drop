@@ -325,6 +325,19 @@ class NoteCard extends ConsumerWidget {
                     ),
                   ),
                 ),
+              if (!isRecording && !isTranscribing)
+                Container(
+                  margin: const EdgeInsets.only(right: 6),
+                  child: Text(
+                    '#${note.displayId}',
+                    style: const TextStyle(
+                      color: Color(0xFF666666),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ),
               Text(
                 isRecording
                     ? '녹음 중...'
