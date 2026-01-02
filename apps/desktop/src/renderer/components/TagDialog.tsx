@@ -10,7 +10,8 @@ interface Props {
 export function TagDialog({ noteId, existingTagNames, onClose }: Props) {
   const { allTags, addTagToNote } = useNotesStore()
   const [inputValue, setInputValue] = useState('')
-  const [selectedIndex, setSelectedIndex] = useState(0)
+  const [focusedIndex, setFocusedIndex] = useState(0) // 키보드 네비게이션용
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null) // 마우스 호버용
   const [addedTags, setAddedTags] = useState<string[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
@@ -28,13 +29,13 @@ export function TagDialog({ noteId, existingTagNames, onClose }: Props) {
 
   const totalItems = filteredTags.length + (showCreateOption ? 1 : 0)
 
-  // 선택된 항목으로 스크롤
+  // 키보드 포커스된 항목으로 스크롤
   useEffect(() => {
     if (listRef.current) {
-      const selectedEl = listRef.current.querySelector('.tag-dialog-item.selected')
-      selectedEl?.scrollIntoView({ block: 'nearest' })
+      const focusedEl = listRef.current.querySelector('.tag-dialog-item.focused')
+      focusedEl?.scrollIntoView({ block: 'nearest' })
     }
-  }, [selectedIndex])
+  }, [focusedIndex])
 
   // 자동 포커스
   useEffect(() => {
@@ -48,7 +49,8 @@ export function TagDialog({ noteId, existingTagNames, onClose }: Props) {
         addTagToNote(noteId, trimmed)
         setAddedTags((prev) => [...prev, trimmed.toLowerCase()])
         setInputValue('')
-        setSelectedIndex(0)
+        setFocusedIndex(0)
+        setHoveredIndex(null)
       }
     },
     [noteId, addTagToNote]
@@ -64,13 +66,15 @@ export function TagDialog({ noteId, existingTagNames, onClose }: Props) {
 
       if (e.key === 'ArrowDown') {
         e.preventDefault()
-        setSelectedIndex((prev) => Math.min(prev + 1, totalItems - 1))
+        setFocusedIndex((prev) => Math.min(prev + 1, totalItems - 1))
+        setHoveredIndex(null) // 키보드 사용 시 마우스 호버 상태 초기화
         return
       }
 
       if (e.key === 'ArrowUp') {
         e.preventDefault()
-        setSelectedIndex((prev) => Math.max(prev - 1, 0))
+        setFocusedIndex((prev) => Math.max(prev - 1, 0))
+        setHoveredIndex(null) // 키보드 사용 시 마우스 호버 상태 초기화
         return
       }
 
@@ -79,18 +83,18 @@ export function TagDialog({ noteId, existingTagNames, onClose }: Props) {
         if (totalItems === 0) return
 
         // "새로 만들기" 옵션이 선택된 경우
-        if (showCreateOption && selectedIndex === filteredTags.length) {
+        if (showCreateOption && focusedIndex === filteredTags.length) {
           handleSelect(trimmedInput)
           return
         }
 
         // 기존 태그 선택
-        if (filteredTags[selectedIndex]) {
-          handleSelect(filteredTags[selectedIndex].name)
+        if (filteredTags[focusedIndex]) {
+          handleSelect(filteredTags[focusedIndex].name)
         }
       }
     },
-    [totalItems, selectedIndex, filteredTags, showCreateOption, trimmedInput, handleSelect]
+    [totalItems, focusedIndex, filteredTags, showCreateOption, trimmedInput, handleSelect, onClose]
   )
 
   const handleBackdropClick = useCallback(
@@ -122,17 +126,22 @@ export function TagDialog({ noteId, existingTagNames, onClose }: Props) {
           value={inputValue}
           onChange={(e) => {
             setInputValue(e.target.value)
-            setSelectedIndex(0)
+            setFocusedIndex(0)
+            setHoveredIndex(null)
           }}
           onKeyDown={handleKeyDown}
         />
-        <div ref={listRef} className="tag-dialog-list">
+        <div
+          ref={listRef}
+          className="tag-dialog-list"
+          onMouseLeave={() => setHoveredIndex(null)}
+        >
           {filteredTags.map((tag, index) => (
             <div
               key={tag.id}
-              className={`tag-dialog-item ${index === selectedIndex ? 'selected' : ''}`}
+              className={`tag-dialog-item ${index === focusedIndex ? 'focused' : ''} ${index === hoveredIndex ? 'hovered' : ''}`}
               onClick={() => handleSelect(tag.name)}
-              onMouseEnter={() => setSelectedIndex(index)}
+              onMouseEnter={() => setHoveredIndex(index)}
             >
               <span className="tag-dialog-hash">#</span>
               <span className="tag-dialog-name">{tag.name}</span>
@@ -140,9 +149,9 @@ export function TagDialog({ noteId, existingTagNames, onClose }: Props) {
           ))}
           {showCreateOption && (
             <div
-              className={`tag-dialog-item tag-dialog-create ${selectedIndex === filteredTags.length ? 'selected' : ''}`}
+              className={`tag-dialog-item tag-dialog-create ${focusedIndex === filteredTags.length ? 'focused' : ''} ${hoveredIndex === filteredTags.length ? 'hovered' : ''}`}
               onClick={() => handleSelect(trimmedInput)}
-              onMouseEnter={() => setSelectedIndex(filteredTags.length)}
+              onMouseEnter={() => setHoveredIndex(filteredTags.length)}
             >
               <span className="tag-dialog-create-icon">+</span>
               <span className="tag-dialog-create-text">

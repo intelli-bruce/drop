@@ -58,6 +58,7 @@ export function NoteFeed() {
   const hasPin = useProfileStore((s) => s.hasPin)
   const cardRefs = useRef<Map<string, NoteCardHandle>>(new Map())
   const feedRef = useRef<HTMLDivElement>(null)
+  const feedContentRef = useRef<HTMLDivElement>(null)
 
   // 이벤트 핸들러용 ref (의존성 분리) - 나중에 업데이트됨
   const focusedIndexRef = useRef<number | null>(focusedIndex)
@@ -250,13 +251,29 @@ export function NoteFeed() {
     }
   }
 
-  // 포커스된 카드로 스크롤
+  // 포커스된 카드로 스크롤 (카드 높이가 다양해도 매끄럽게)
   useEffect(() => {
     if (focusedIndex !== null && flatNotes[focusedIndex]) {
       const noteId = flatNotes[focusedIndex].note.id
       const element = cardElementRefs.current.get(noteId)
-      // Use 'auto' for instant scrolling to avoid jank during rapid navigation
-      element?.scrollIntoView({ behavior: 'auto', block: 'nearest' })
+      const container = feedContentRef.current
+      if (!element || !container) return
+
+      const elementRect = element.getBoundingClientRect()
+      const containerRect = container.getBoundingClientRect()
+
+      // 카드가 컨테이너 내에 완전히 보이는지 확인
+      const isFullyVisible =
+        elementRect.top >= containerRect.top && elementRect.bottom <= containerRect.bottom
+
+      if (!isFullyVisible) {
+        // 카드를 컨테이너의 1/3 위치에 배치 (더 자연스러운 위치)
+        const targetPosition = containerRect.height / 3
+        const scrollOffset =
+          elementRect.top - containerRect.top - targetPosition + container.scrollTop
+        // CSS scroll-behavior: smooth가 애니메이션 처리
+        container.scrollTop = scrollOffset
+      }
     }
   }, [focusedIndex, flatNotes])
 
@@ -285,10 +302,7 @@ export function NoteFeed() {
       const index = noteIndexMap.get(noteId)
       if (index !== undefined) {
         setFocusedIndex(index)
-        setTimeout(() => {
-          const element = cardElementRefs.current.get(noteId)
-          element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        }, 50)
+        // 스크롤은 focusedIndex 변경으로 인한 useEffect에서 처리됨
       }
     },
     [noteIndexMap]
@@ -729,7 +743,7 @@ export function NoteFeed() {
           </button>
         )}
       </div>
-      <div className="feed-content">
+      <div ref={feedContentRef} className="feed-content">
         {grouped.map(({ date, items }) => (
           <div key={date} className="date-group">
             <div className="date-label">{date}</div>

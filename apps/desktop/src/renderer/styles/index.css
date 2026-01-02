@@ -58,6 +58,7 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: 24px;
+  scroll-behavior: smooth;
 }
 
 .date-group {
@@ -1254,9 +1255,16 @@ body {
   transition: background 0.1s;
 }
 
-.tag-dialog-item:hover,
-.tag-dialog-item.selected {
+/* 마우스 호버 시 시각적 하이라이트 */
+.tag-dialog-item.hovered {
   background: var(--bg-secondary);
+}
+
+/* 키보드 포커스 시 더 강한 시각적 표시 */
+.tag-dialog-item.focused {
+  background: var(--bg-tertiary, var(--bg-secondary));
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 .tag-dialog-hash {
