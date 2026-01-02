@@ -466,7 +466,7 @@ export function NoteFeed() {
         const item = currentFlatNotes[currentFocusedIndex]
         if (item) {
           cardRefs.current.get(item.note.id)?.focus()
-          setFocusedIndex(null)
+          // Keep focusedIndex so navigation continues from this position after editing
         }
         return
       }
