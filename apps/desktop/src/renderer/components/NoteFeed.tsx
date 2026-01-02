@@ -47,6 +47,7 @@ export function NoteFeed() {
     unarchiveNote,
     updateNotePriority,
     selectedNoteId,
+    selectNote,
   } = useNotesStore()
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null)
   const [tagDialogNoteId, setTagDialogNoteId] = useState<string | null>(null)
@@ -246,8 +247,11 @@ export function NoteFeed() {
       if (index !== undefined) {
         setFocusedIndex(index)
       }
+      // Clear selectedNoteId after navigation to prevent unwanted focus jumps
+      // when noteIndexMap changes (e.g., real-time updates)
+      selectNote(null)
     }
-  }, [selectedNoteId, noteIndexMap])
+  }, [selectedNoteId, noteIndexMap, selectNote])
 
   // 새 노트 생성 후 해당 노트 편집 모드로
   const handleCreateNote = useCallback(async () => {
