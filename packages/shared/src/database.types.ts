@@ -1,6 +1,3 @@
-WARN: environment variable is unset: GOOGLE_CLIENT_ID
-WARN: environment variable is unset: SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET
-Initialising login role...
 export type Json =
   | string
   | number
@@ -10,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.1"
-  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -130,8 +122,11 @@ export type Database = {
       }
       notes: {
         Row: {
+          archived_at: string | null
           content: string | null
           created_at: string
+          deleted_at: string | null
+          display_id: number
           has_files: boolean
           has_link: boolean
           has_media: boolean
@@ -139,13 +134,17 @@ export type Database = {
           is_deleted: boolean | null
           is_locked: boolean
           parent_id: string | null
+          priority: number
           source: string
           updated_at: string
           user_id: string | null
         }
         Insert: {
+          archived_at?: string | null
           content?: string | null
           created_at?: string
+          deleted_at?: string | null
+          display_id: number
           has_files?: boolean
           has_link?: boolean
           has_media?: boolean
@@ -153,13 +152,17 @@ export type Database = {
           is_deleted?: boolean | null
           is_locked?: boolean
           parent_id?: string | null
+          priority?: number
           source: string
           updated_at?: string
           user_id?: string | null
         }
         Update: {
+          archived_at?: string | null
           content?: string | null
           created_at?: string
+          deleted_at?: string | null
+          display_id?: number
           has_files?: boolean
           has_link?: boolean
           has_media?: boolean
@@ -167,6 +170,7 @@ export type Database = {
           is_deleted?: boolean | null
           is_locked?: boolean
           parent_id?: string | null
+          priority?: number
           source?: string
           updated_at?: string
           user_id?: string | null
@@ -185,18 +189,21 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          last_used_at: string | null
           name: string
           user_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
+          last_used_at?: string | null
           name: string
           user_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
+          last_used_at?: string | null
           name?: string
           user_id?: string | null
         }
@@ -206,6 +213,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          mcp_api_key: string | null
           pin_hash: string | null
           updated_at: string
           user_id: string
@@ -213,6 +221,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          mcp_api_key?: string | null
           pin_hash?: string | null
           updated_at?: string
           user_id: string
@@ -220,6 +229,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          mcp_api_key?: string | null
           pin_hash?: string | null
           updated_at?: string
           user_id?: string
@@ -231,7 +241,105 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_mcp_api_key: { Args: never; Returns: string }
+      get_mcp_api_key: { Args: never; Returns: string }
+      get_user_id_by_mcp_key: { Args: { api_key: string }; Returns: string }
+      mcp_add_tags_to_note: {
+        Args: { api_key: string; p_note_id: string; p_tag_names: string[] }
+        Returns: Json
+      }
+      mcp_archive_note: {
+        Args: { api_key: string; p_note_id: string }
+        Returns: Json
+      }
+      mcp_create_attachment: {
+        Args: {
+          api_key: string
+          p_filename: string
+          p_mime_type: string
+          p_note_id: string
+          p_size: number
+          p_storage_path: string
+          p_type: string
+        }
+        Returns: Json
+      }
+      mcp_create_note: {
+        Args: {
+          api_key: string
+          p_content: string
+          p_parent_id?: string
+          p_tag_names?: string[]
+        }
+        Returns: Json
+      }
+      mcp_delete_attachment: {
+        Args: { api_key: string; p_attachment_id: string }
+        Returns: Json
+      }
+      mcp_delete_note: {
+        Args: { api_key: string; p_note_id: string }
+        Returns: Json
+      }
+      mcp_get_attachment: {
+        Args: { api_key: string; p_attachment_id: string }
+        Returns: Json
+      }
+      mcp_get_note: {
+        Args: { api_key: string; p_note_id: string }
+        Returns: Json
+      }
+      mcp_get_notes_by_tag: {
+        Args: { api_key: string; p_limit?: number; p_tag_name: string }
+        Returns: Json
+      }
+      mcp_list_attachments: {
+        Args: { api_key: string; p_note_id: string }
+        Returns: Json
+      }
+      mcp_list_notes: {
+        Args: {
+          api_key: string
+          p_include_archived?: boolean
+          p_include_deleted?: boolean
+          p_limit?: number
+          p_offset?: number
+        }
+        Returns: Json
+      }
+      mcp_list_tags: {
+        Args: { api_key: string; p_limit?: number }
+        Returns: Json
+      }
+      mcp_remove_tags_from_note: {
+        Args: { api_key: string; p_note_id: string; p_tag_names: string[] }
+        Returns: Json
+      }
+      mcp_search_by_date_range: {
+        Args: {
+          api_key: string
+          p_end_date: string
+          p_limit?: number
+          p_start_date: string
+        }
+        Returns: Json
+      }
+      mcp_search_notes: {
+        Args: {
+          api_key: string
+          p_category?: string
+          p_limit?: number
+          p_query: string
+          p_tag_names?: string[]
+        }
+        Returns: Json
+      }
+      mcp_update_note: {
+        Args: { api_key: string; p_content: string; p_note_id: string }
+        Returns: Json
+      }
+      mcp_validate_key: { Args: { api_key: string }; Returns: string }
+      regenerate_mcp_api_key: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never
@@ -367,3 +475,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
