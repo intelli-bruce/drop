@@ -1,4 +1,5 @@
 import type { KeyEventLike } from './types'
+import { isPrimaryModifier } from './matchers'
 
 export type NoteFeedShortcutAction =
   | 'clearFocus'
@@ -7,6 +8,7 @@ export type NoteFeedShortcutAction =
   | 'openFocused'
   | 'deleteFocused'
   | 'replyToFocused'
+  | 'createSibling'
   | 'copyFocused'
   | 'setPriority0'
   | 'setPriority1'
@@ -26,6 +28,9 @@ export function resolveNoteFeedShortcut(event: KeyEventLike): NoteFeedShortcutAc
     case 'ㅏ': // 한글 k
       return 'focusPrev'
     case 'Enter':
+      if (isPrimaryModifier(event)) {
+        return 'createSibling'
+      }
       if (event.shiftKey) {
         return 'replyToFocused'
       }

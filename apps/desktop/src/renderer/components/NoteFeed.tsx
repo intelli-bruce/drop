@@ -64,6 +64,9 @@ export function NoteFeed() {
   const flatNotesRef = useRef<Array<{ note: Note; depth: number }>>([])
   const deleteNoteRef = useRef<(id: string) => void>(deleteNote)
   const handleReplyRef = useRef<(parentId: string) => Promise<void>>(() => Promise.resolve())
+  const handleCreateSiblingRef = useRef<(parentId: string | null) => Promise<void>>(() =>
+    Promise.resolve()
+  )
   const updateNotePriorityRef =
     useRef<(id: string, priority: number) => Promise<void>>(updateNotePriority)
 
@@ -162,6 +165,17 @@ export function NoteFeed() {
     [createNote]
   )
 
+  // 같은 레벨에 노트 생성 (형제 노트)
+  const handleCreateSibling = useCallback(
+    async (parentId: string | null) => {
+      const note = await createNote('', parentId ?? undefined)
+      setTimeout(() => {
+        cardRefs.current.get(note.id)?.focus()
+      }, 50)
+    },
+    [createNote]
+  )
+
   // refs 업데이트 (이벤트 핸들러에서 최신 값 참조용)
   useEffect(() => {
     focusedIndexRef.current = focusedIndex
@@ -178,6 +192,10 @@ export function NoteFeed() {
   useEffect(() => {
     handleReplyRef.current = handleReply
   }, [handleReply])
+
+  useEffect(() => {
+    handleCreateSiblingRef.current = handleCreateSibling
+  }, [handleCreateSibling])
 
   useEffect(() => {
     updateNotePriorityRef.current = updateNotePriority
@@ -497,6 +515,18 @@ export function NoteFeed() {
         const item = currentFlatNotes[currentFocusedIndex]
         if (item) {
           handleReplyRef.current(item.note.id)
+          setFocusedIndex(null)
+        }
+        return
+      }
+
+      if (action === 'createSibling') {
+        if (currentFocusedIndex === null) return
+        e.preventDefault()
+        const item = currentFlatNotes[currentFocusedIndex]
+        if (item) {
+          // 현재 노트의 parentId를 사용하여 같은 레벨에 노트 생성
+          handleCreateSiblingRef.current(item.note.parentId)
           setFocusedIndex(null)
         }
         return
