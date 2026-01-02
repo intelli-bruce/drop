@@ -64,6 +64,7 @@ class NotesNotifier extends _$NotesNotifier {
     // Optimistic update
     final optimisticNote = Note(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
+      displayId: 0, // Temporary placeholder, will be replaced by server response
       content: content,
       parentId: parentId,
       createdAt: DateTime.now(),
