@@ -136,4 +136,83 @@ export const createTagsSlice: StateCreator<NotesState, [], [], TagsSlice> = (set
   setFilterTag: (tagName) => {
     set({ filterTag: tagName })
   },
+
+  updateTag: async (tagId, newName) => {
+    const trimmedName = newName.trim().toLowerCase()
+    if (!trimmedName) return
+
+    try {
+      // 1. Update tag name in database
+      const { data: updatedTag, error } = await supabase
+        .from('tags')
+        .update({ name: trimmedName })
+        .eq('id', tagId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Failed to update tag:', error)
+        return
+      }
+
+      const tag = tagRowToTag(updatedTag as TagRow)
+
+      // 2. Update tag in allTags and all notes that have this tag
+      set((state) => ({
+        allTags: state.allTags.map((t) => (t.id === tagId ? tag : t)),
+        notes: state.notes.map((note) => ({
+          ...note,
+          tags: note.tags.map((t) => (t.id === tagId ? tag : t)),
+        })),
+        // If filterTag matches the old name, update it to the new name
+        filterTag:
+          state.filterTag &&
+          state.allTags.find((t) => t.id === tagId)?.name === state.filterTag
+            ? trimmedName
+            : state.filterTag,
+      }))
+    } catch (error) {
+      console.error('Failed to update tag:', error)
+    }
+  },
+
+  deleteTag: async (tagId) => {
+    try {
+      // 1. Delete all note_tags relationships first
+      const { error: linkError } = await supabase
+        .from('note_tags')
+        .delete()
+        .eq('tag_id', tagId)
+
+      if (linkError) {
+        console.error('Failed to delete tag relationships:', linkError)
+        return
+      }
+
+      // 2. Delete the tag itself
+      const { error } = await supabase.from('tags').delete().eq('id', tagId)
+
+      if (error) {
+        console.error('Failed to delete tag:', error)
+        return
+      }
+
+      // 3. Update state: remove tag from allTags and from all notes
+      set((state) => {
+        const deletedTag = state.allTags.find((t) => t.id === tagId)
+        return {
+          allTags: state.allTags.filter((t) => t.id !== tagId),
+          notes: state.notes.map((note) => ({
+            ...note,
+            tags: note.tags.filter((t) => t.id !== tagId),
+          })),
+          // Clear filter if it was filtering by the deleted tag
+          filterTag:
+            deletedTag && state.filterTag === deletedTag.name ? null : state.filterTag,
+        }
+      })
+    } catch (error) {
+      console.error('Failed to delete tag:', error)
+    }
+  },
 })

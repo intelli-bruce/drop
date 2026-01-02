@@ -1313,6 +1313,256 @@ body {
   font-size: 12px;
 }
 
+/* Tag Management Dialog */
+.tag-management-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 10vh;
+  z-index: 1000;
+}
+
+.tag-management-dialog {
+  width: 400px;
+  max-height: 70vh;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.tag-management-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tag-management-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.tag-management-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tag-management-close:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.tag-management-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tag-management-search-icon {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.tag-management-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+}
+
+.tag-management-search-input::placeholder {
+  color: var(--text-secondary);
+}
+
+.tag-management-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.tag-management-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.tag-management-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  transition: background 0.1s;
+}
+
+.tag-management-item:hover {
+  background: var(--bg-secondary);
+}
+
+.tag-management-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.tag-management-hash {
+  color: var(--accent);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.tag-management-name {
+  color: var(--text-primary);
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag-management-count {
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 2px 8px;
+  background: var(--bg-secondary);
+  border-radius: 10px;
+}
+
+.tag-management-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+  opacity: 0;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.tag-management-item:hover .tag-management-delete-btn {
+  opacity: 1;
+}
+
+.tag-management-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.tag-management-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.tag-management-edit-input {
+  flex: 1;
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 6px 10px;
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+}
+
+.tag-management-delete-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 12px;
+}
+
+.tag-management-delete-message {
+  color: var(--text-primary);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag-management-delete-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.tag-management-delete-cancel {
+  padding: 6px 12px;
+  background: var(--bg-secondary);
+  border: none;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tag-management-delete-cancel:hover {
+  background: var(--bg-tertiary, #3a3a3a);
+  color: var(--text-primary);
+}
+
+.tag-management-delete-confirm-btn {
+  padding: 6px 12px;
+  background: #ef4444;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tag-management-delete-confirm-btn:hover {
+  background: #dc2626;
+}
+
+.tag-management-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.tag-management-total {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
 /* Search Dialog */
 .search-dialog-backdrop {
   position: fixed;

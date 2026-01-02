@@ -2,11 +2,13 @@ import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useAuthStore } from '../stores/auth'
 import { supabase } from '../lib/supabase'
+import { TagManagementDialog } from './TagManagementDialog'
 
 export function UserMenu() {
   const { user, signOut } = useAuthStore()
   const [isOpen, setIsOpen] = useState(false)
   const [tokenCopied, setTokenCopied] = useState(false)
+  const [showTagManagement, setShowTagManagement] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 })
@@ -65,6 +67,11 @@ export function UserMenu() {
     }
   }
 
+  const handleOpenTagManagement = () => {
+    setIsOpen(false)
+    setShowTagManagement(true)
+  }
+
   const dropdown =
     isOpen &&
     createPortal(
@@ -86,6 +93,23 @@ export function UserMenu() {
         </div>
 
         <div className="user-menu-divider" />
+
+        <button className="user-menu-item" onClick={handleOpenTagManagement}>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+            <line x1="7" y1="7" x2="7.01" y2="7" />
+          </svg>
+          태그 관리
+        </button>
 
         <button className="user-menu-item" onClick={handleCopyMcpToken}>
           <svg
@@ -142,6 +166,9 @@ export function UserMenu() {
         </button>
       </div>
       {dropdown}
+      {showTagManagement && (
+        <TagManagementDialog onClose={() => setShowTagManagement(false)} />
+      )}
 
       <style>{`
         .user-menu {

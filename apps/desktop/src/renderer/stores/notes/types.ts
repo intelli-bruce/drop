@@ -24,6 +24,8 @@ export interface TagsSlice {
   addTagToNote: (noteId: string, tagName: string) => Promise<void>
   removeTagFromNote: (noteId: string, tagId: string) => Promise<void>
   setFilterTag: (tagName: string | null) => void
+  updateTag: (tagId: string, newName: string) => Promise<void>
+  deleteTag: (tagId: string) => Promise<void>
 }
 
 // Attachments slice

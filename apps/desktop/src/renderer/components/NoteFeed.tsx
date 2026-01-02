@@ -4,13 +4,14 @@ import { useNotesStore } from '../stores/notes'
 import { useProfileStore } from '../stores/profile'
 import { NoteCard, NoteCardHandle } from './NoteCard'
 import { TagDialog } from './TagDialog'
+import { TagManagementDialog } from './TagManagementDialog'
 import { CategoryFilter } from './CategoryFilter'
 import { ViewModeSelector } from './ViewModeSelector'
 import { SearchDialog } from './SearchDialog'
 import { PinDialog, type PinDialogMode } from './PinDialog'
 import { isCreateNoteShortcut, isSearchShortcut } from '../shortcuts/noteGlobal'
 import { resolveNoteFeedShortcut } from '../shortcuts/noteFeed'
-import { isOpenTagListShortcut } from '../shortcuts/tagList'
+import { isOpenTagListShortcut, isOpenTagManagementShortcut } from '../shortcuts/tagList'
 import { isToggleLockShortcut } from '../shortcuts/noteLock'
 import { isDeleteShortcut, isArchiveShortcut, isRestoreShortcut } from '../shortcuts/noteTrash'
 import { isTextInputTarget, getClosestNoteId } from '../lib/dom-utils'
@@ -51,6 +52,7 @@ export function NoteFeed() {
   } = useNotesStore()
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null)
   const [tagDialogNoteId, setTagDialogNoteId] = useState<string | null>(null)
+  const [showTagManagement, setShowTagManagement] = useState(false)
   const [pinDialogNoteId, setPinDialogNoteId] = useState<string | null>(null)
   const [pinDialogMode, setPinDialogMode] = useState<PinDialogMode>('setup')
   const [showUnlockAllDialog, setShowUnlockAllDialog] = useState(false)
@@ -318,7 +320,7 @@ export function NoteFeed() {
     return () => window.removeEventListener('keydown', handleSearchKeyDown)
   }, [])
 
-  // t 단축키로 태그 다이얼로그 열기 (텍스트 입력 중 제외)
+  // t 단축키로 노트별 태그 다이얼로그 열기 (텍스트 입력 중 제외)
   useEffect(() => {
     const handleTagListKeyDown = (e: KeyboardEvent) => {
       if (isTextInputTarget(e.target)) return
@@ -334,6 +336,20 @@ export function NoteFeed() {
     window.addEventListener('keydown', handleTagListKeyDown)
     return () => window.removeEventListener('keydown', handleTagListKeyDown)
   }, [flatNotes, focusedIndex])
+
+  // Cmd+T 단축키로 태그 관리 다이얼로그 열기
+  useEffect(() => {
+    const handleTagManagementKeyDown = (e: KeyboardEvent) => {
+      if (isTextInputTarget(e.target)) return
+      if (!isOpenTagManagementShortcut(e)) return
+      e.preventDefault()
+      e.stopPropagation()
+      setShowTagManagement(true)
+    }
+
+    window.addEventListener('keydown', handleTagManagementKeyDown)
+    return () => window.removeEventListener('keydown', handleTagManagementKeyDown)
+  }, [])
 
   // Cmd+L 단축키로 노트 잠금 토글
   useEffect(() => {
@@ -655,6 +671,9 @@ export function NoteFeed() {
           existingTagNames={tagDialogExistingTags}
           onClose={() => setTagDialogNoteId(null)}
         />
+      )}
+      {showTagManagement && (
+        <TagManagementDialog onClose={() => setShowTagManagement(false)} />
       )}
       {showSearchDialog && (
         <SearchDialog
