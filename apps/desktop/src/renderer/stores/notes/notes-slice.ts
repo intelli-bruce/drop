@@ -1,10 +1,6 @@
 import type { StateCreator } from 'zustand'
 import { supabase } from '../../lib/supabase'
-import {
-  tagRowToTag,
-  noteRowToNote,
-  attachmentRowToAttachment,
-} from '@drop/shared'
+import { tagRowToTag, noteRowToNote, attachmentRowToAttachment } from '@drop/shared'
 import type { NoteRow, AttachmentRow, TagRow, Attachment, Tag } from '@drop/shared'
 import type { NotesState, NotesSlice } from './types'
 import { calculateNoteCategories } from '../../lib/note-category-utils'
@@ -100,7 +96,24 @@ export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (s
     } = await supabase.auth.getUser()
     if (!user) {
       console.error('[notes] createNote: user not authenticated')
-      return { id: '', content: '', parentId: null, attachments: [], tags: [], createdAt: new Date(), updatedAt: new Date(), source: 'desktop' as const, isDeleted: false, hasLink: false, hasMedia: false, hasFiles: false, isLocked: false, deletedAt: null, archivedAt: null }
+      return {
+        id: '',
+        content: '',
+        parentId: null,
+        attachments: [],
+        tags: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        source: 'desktop' as const,
+        isDeleted: false,
+        hasLink: false,
+        hasMedia: false,
+        hasFiles: false,
+        isLocked: false,
+        deletedAt: null,
+        archivedAt: null,
+        priority: 0,
+      }
     }
 
     const id = crypto.randomUUID()
@@ -122,6 +135,7 @@ export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (s
       isLocked: false,
       deletedAt: null,
       archivedAt: null,
+      priority: 0,
     }
 
     set((state) => ({
@@ -211,46 +225,52 @@ export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (s
     set({ selectedNoteId: id })
   },
 
+  updateNotePriority: async (id, priority) => {
+    const { error } = await supabase.from('notes').update({ priority }).eq('id', id)
+
+    if (error) throw error
+
+    set((state) => ({
+      notes: state.notes.map((n) => (n.id === id ? { ...n, priority } : n)),
+    }))
+  },
+
   subscribeToChanges: () => {
     const channel = supabase
       .channel('notes-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'notes' },
-        async (payload) => {
-          const { eventType, new: newRow, old: oldRow } = payload
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, async (payload) => {
+        const { eventType, new: newRow, old: oldRow } = payload
 
-          if (eventType === 'INSERT') {
-            const note = noteRowToNote(newRow as NoteRow)
-            set((state) => {
-              // 이미 존재하면 무시 (로컬에서 생성한 경우)
-              if (state.notes.some((n) => n.id === note.id)) return state
-              return { notes: [note, ...state.notes] }
-            })
-          } else if (eventType === 'UPDATE') {
-            const row = newRow as NoteRow
-            // 삭제되거나 보관된 노트는 active 목록에서 제거
-            if (row.deleted_at || row.archived_at) {
-              set((state) => ({
-                notes: state.notes.filter((n) => n.id !== row.id),
-              }))
-            } else {
-              set((state) => ({
-                notes: state.notes.map((n) =>
-                  n.id === row.id
-                    ? { ...n, content: row.content ?? '', updatedAt: new Date(row.updated_at) }
-                    : n
-                ),
-              }))
-            }
-          } else if (eventType === 'DELETE') {
-            const id = (oldRow as { id: string }).id
+        if (eventType === 'INSERT') {
+          const note = noteRowToNote(newRow as NoteRow)
+          set((state) => {
+            // 이미 존재하면 무시 (로컬에서 생성한 경우)
+            if (state.notes.some((n) => n.id === note.id)) return state
+            return { notes: [note, ...state.notes] }
+          })
+        } else if (eventType === 'UPDATE') {
+          const row = newRow as NoteRow
+          // 삭제되거나 보관된 노트는 active 목록에서 제거
+          if (row.deleted_at || row.archived_at) {
             set((state) => ({
-              notes: state.notes.filter((n) => n.id !== id),
+              notes: state.notes.filter((n) => n.id !== row.id),
+            }))
+          } else {
+            set((state) => ({
+              notes: state.notes.map((n) =>
+                n.id === row.id
+                  ? { ...n, content: row.content ?? '', updatedAt: new Date(row.updated_at) }
+                  : n
+              ),
             }))
           }
+        } else if (eventType === 'DELETE') {
+          const id = (oldRow as { id: string }).id
+          set((state) => ({
+            notes: state.notes.filter((n) => n.id !== id),
+          }))
         }
-      )
+      })
       .subscribe()
 
     return () => {

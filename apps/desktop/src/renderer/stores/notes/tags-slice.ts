@@ -13,7 +13,7 @@ export const createTagsSlice: StateCreator<NotesState, [], [], TagsSlice> = (set
       const { data, error } = await supabase
         .from('tags')
         .select('*')
-        .order('name', { ascending: true })
+        .order('last_used_at', { ascending: false, nullsFirst: false })
 
       if (error) throw error
 
@@ -45,10 +45,12 @@ export const createTagsSlice: StateCreator<NotesState, [], [], TagsSlice> = (set
         .eq('name', trimmedName)
         .single()
 
+      const now = new Date().toISOString()
+
       if (!existingTag) {
         const { data: newTag, error: createError } = await supabase
           .from('tags')
-          .insert({ name: trimmedName, user_id: user.id })
+          .insert({ name: trimmedName, user_id: user.id, last_used_at: now })
           .select()
           .single()
 
@@ -57,6 +59,17 @@ export const createTagsSlice: StateCreator<NotesState, [], [], TagsSlice> = (set
           return
         }
         existingTag = newTag
+      } else {
+        const { data: updatedTag, error: updateError } = await supabase
+          .from('tags')
+          .update({ last_used_at: now })
+          .eq('id', existingTag.id)
+          .select()
+          .single()
+
+        if (!updateError && updatedTag) {
+          existingTag = updatedTag
+        }
       }
 
       const tag = tagRowToTag(existingTag as TagRow)
@@ -71,17 +84,27 @@ export const createTagsSlice: StateCreator<NotesState, [], [], TagsSlice> = (set
         return
       }
 
-      // 3. 로컬 상태 업데이트
-      set((state) => ({
-        notes: state.notes.map((n) =>
-          n.id === noteId && !n.tags.some((t) => t.id === tag.id)
-            ? { ...n, tags: [...n.tags, tag] }
-            : n
-        ),
-        allTags: state.allTags.some((t) => t.id === tag.id)
-          ? state.allTags
-          : [...state.allTags, tag].sort((a, b) => a.name.localeCompare(b.name)),
-      }))
+      set((state) => {
+        const updatedAllTags = state.allTags.some((t) => t.id === tag.id)
+          ? state.allTags.map((t) => (t.id === tag.id ? tag : t))
+          : [...state.allTags, tag]
+
+        const sortByLastUsed = (a: typeof tag, b: typeof tag) => {
+          if (!a.lastUsedAt && !b.lastUsedAt) return 0
+          if (!a.lastUsedAt) return 1
+          if (!b.lastUsedAt) return -1
+          return b.lastUsedAt.getTime() - a.lastUsedAt.getTime()
+        }
+
+        return {
+          notes: state.notes.map((n) =>
+            n.id === noteId && !n.tags.some((t) => t.id === tag.id)
+              ? { ...n, tags: [...n.tags, tag] }
+              : n
+          ),
+          allTags: updatedAllTags.sort(sortByLastUsed),
+        }
+      })
     } catch (error) {
       console.error('Failed to add tag to note:', error)
     }

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -59,7 +60,10 @@ class NoteCard extends ConsumerWidget {
                 width: 2,
               )
             : isSelected
-            ? Border.all(color: const Color(0xFF4A9EFF).withValues(alpha: 0.5), width: 2)
+            ? Border.all(
+                color: const Color(0xFF4A9EFF).withValues(alpha: 0.5),
+                width: 2,
+              )
             : null,
       ),
       child: Column(
@@ -129,8 +133,8 @@ class NoteCard extends ConsumerWidget {
       onTap: (isRecording || isTranscribing)
           ? null
           : isSelectionMode
-              ? onSelect
-              : null,
+          ? onSelect
+          : null,
       onDoubleTap: (isRecording || isTranscribing || isSelectionMode)
           ? null
           : onEdit,
@@ -171,7 +175,9 @@ class NoteCard extends ConsumerWidget {
           shape: BoxShape.circle,
           color: isSelected ? const Color(0xFF4A9EFF) : Colors.transparent,
           border: Border.all(
-            color: isSelected ? const Color(0xFF4A9EFF) : const Color(0xFF666666),
+            color: isSelected
+                ? const Color(0xFF4A9EFF)
+                : const Color(0xFF666666),
             width: 2,
           ),
         ),
@@ -251,7 +257,9 @@ class NoteCard extends ConsumerWidget {
                 if (onReply != null) {
                   onReply!();
                 } else {
-                  ref.read(notesProvider.notifier).createNote(parentId: note.id);
+                  ref
+                      .read(notesProvider.notifier)
+                      .createNote(parentId: note.id);
                 }
               },
               backgroundColor: const Color(0xFF4A9EFF),
@@ -503,7 +511,10 @@ class NoteCard extends ConsumerWidget {
         children: [
           // Image/Video Gallery Grid
           if (imageAttachments.isNotEmpty || videoAttachments.isNotEmpty)
-            _buildMediaGallery(context, [...imageAttachments, ...videoAttachments]),
+            _buildMediaGallery(context, [
+              ...imageAttachments,
+              ...videoAttachments,
+            ]),
 
           // Instagram attachments
           if (instagramAttachments.isNotEmpty)
@@ -529,7 +540,10 @@ class NoteCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildMediaGallery(BuildContext context, List<Attachment> mediaAttachments) {
+  Widget _buildMediaGallery(
+    BuildContext context,
+    List<Attachment> mediaAttachments,
+  ) {
     if (mediaAttachments.isEmpty) return const SizedBox.shrink();
 
     // Different layouts based on count
@@ -542,7 +556,11 @@ class NoteCard extends ConsumerWidget {
     }
   }
 
-  Widget _buildSingleMediaPreview(BuildContext context, List<Attachment> allMedia, int index) {
+  Widget _buildSingleMediaPreview(
+    BuildContext context,
+    List<Attachment> allMedia,
+    int index,
+  ) {
     return Padding(
       padding: const EdgeInsets.all(12),
       child: GestureDetector(
@@ -558,7 +576,11 @@ class NoteCard extends ConsumerWidget {
     );
   }
 
-  void _openMediaViewer(BuildContext context, List<Attachment> mediaAttachments, int initialIndex) {
+  void _openMediaViewer(
+    BuildContext context,
+    List<Attachment> mediaAttachments,
+    int initialIndex,
+  ) {
     MediaViewer.show(
       context,
       mediaAttachments: mediaAttachments,
@@ -566,7 +588,10 @@ class NoteCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildTwoMediaGrid(BuildContext context, List<Attachment> attachments) {
+  Widget _buildTwoMediaGrid(
+    BuildContext context,
+    List<Attachment> attachments,
+  ) {
     return Padding(
       padding: const EdgeInsets.all(12),
       child: Row(
@@ -601,7 +626,10 @@ class NoteCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildMultiMediaGrid(BuildContext context, List<Attachment> attachments) {
+  Widget _buildMultiMediaGrid(
+    BuildContext context,
+    List<Attachment> attachments,
+  ) {
     final displayCount = attachments.length > 4 ? 3 : attachments.length;
     final hasMore = attachments.length > 4;
     final remaining = attachments.length - 3;
@@ -763,7 +791,8 @@ class NoteCard extends ConsumerWidget {
         content: const Text('노트가 보관함으로 이동되었습니다'),
         action: SnackBarAction(
           label: '취소',
-          onPressed: () => ref.read(notesProvider.notifier).unarchiveNote(note.id),
+          onPressed: () =>
+              ref.read(notesProvider.notifier).unarchiveNote(note.id),
         ),
       ),
     );
@@ -771,16 +800,16 @@ class NoteCard extends ConsumerWidget {
 
   void _unarchiveNote(BuildContext context, WidgetRef ref) {
     ref.read(notesProvider.notifier).unarchiveNote(note.id);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('노트가 보관함에서 해제되었습니다')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('노트가 보관함에서 해제되었습니다')));
   }
 
   void _restoreNote(BuildContext context, WidgetRef ref) {
     ref.read(notesProvider.notifier).restoreNote(note.id);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('노트가 복원되었습니다')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('노트가 복원되었습니다')));
   }
 
   void _deleteNote(BuildContext context, WidgetRef ref) {
@@ -790,7 +819,8 @@ class NoteCard extends ConsumerWidget {
         content: const Text('노트가 휴지통으로 이동되었습니다'),
         action: SnackBarAction(
           label: '취소',
-          onPressed: () => ref.read(notesProvider.notifier).restoreNote(note.id),
+          onPressed: () =>
+              ref.read(notesProvider.notifier).restoreNote(note.id),
         ),
       ),
     );
@@ -838,35 +868,19 @@ class _ImagePreview extends ConsumerWidget {
     );
 
     return urlAsync.when(
-      data: (url) => Image.network(
-        url,
+      data: (url) => CachedNetworkImage(
+        imageUrl: url,
         fit: BoxFit.cover,
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Container(
-            color: const Color(0xFF1A1A1A),
-            child: Center(
-              child: CircularProgressIndicator(
-                value: loadingProgress.expectedTotalBytes != null
-                    ? loadingProgress.cumulativeBytesLoaded /
-                          loadingProgress.expectedTotalBytes!
-                    : null,
-              ),
-            ),
-          );
-        },
-        errorBuilder: (context, error, stackTrace) {
-          return Container(
-            color: const Color(0xFF1A1A1A),
-            child: const Center(
-              child: Icon(
-                Icons.broken_image,
-                color: Color(0xFF666666),
-                size: 32,
-              ),
-            ),
-          );
-        },
+        placeholder: (context, url) => Container(
+          color: const Color(0xFF1A1A1A),
+          child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        ),
+        errorWidget: (context, url, error) => Container(
+          color: const Color(0xFF1A1A1A),
+          child: const Center(
+            child: Icon(Icons.broken_image, color: Color(0xFF666666), size: 32),
+          ),
+        ),
       ),
       loading: () => Container(
         color: const Color(0xFF1A1A1A),

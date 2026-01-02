@@ -9,6 +9,7 @@ export interface NotesSlice {
   loadNotes: () => Promise<void>
   createNote: (initialContent?: string, parentId?: string) => Promise<Note>
   updateNote: (id: string, content: string) => Promise<void>
+  updateNotePriority: (id: string, priority: number) => Promise<void>
   deleteNote: (id: string) => Promise<void>
   selectNote: (id: string | null) => void
   subscribeToChanges: () => () => void
@@ -96,5 +97,21 @@ export interface TrashSlice {
   unarchiveNote: (noteId: string) => Promise<void>
 }
 
+// Search slice
+export interface SearchSlice {
+  searchQuery: string | null
+  setSearchQuery: (query: string | null) => void
+}
+
 // Combined store state
-export interface NotesState extends NotesSlice, TagsSlice, AttachmentsSlice, InstagramSlice, YouTubeSlice, LockSlice, CategoryFilterSlice, TrashSlice {}
+export interface NotesState
+  extends
+    NotesSlice,
+    TagsSlice,
+    AttachmentsSlice,
+    InstagramSlice,
+    YouTubeSlice,
+    LockSlice,
+    CategoryFilterSlice,
+    TrashSlice,
+    SearchSlice {}

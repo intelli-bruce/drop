@@ -1,12 +1,21 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
-import { getSupabase } from '../supabase.js'
+import { callMcpRpc } from '../supabase.js'
 
-/**
- * 검색 관련 Tools 등록
- */
+interface Note {
+  id: string
+  content: string
+  created_at: string
+  has_link: boolean
+  has_media: boolean
+  has_files: boolean
+}
+
+interface SearchResult {
+  notes: Note[]
+}
+
 export function registerSearchTools(server: McpServer) {
-  // search_notes - 텍스트 검색
   server.tool(
     'search_notes',
     'Search notes by text content',
@@ -21,69 +30,16 @@ export function registerSearchTools(server: McpServer) {
     },
     async ({ query, limit, category, tagNames }) => {
       try {
-        const supabase = await getSupabase()
+        const result = await callMcpRpc<SearchResult>('mcp_search_notes', {
+          p_query: query,
+          p_tag_names: tagNames || null,
+          p_category: category,
+          p_limit: limit,
+        })
 
-        // 기본 쿼리
-        let dbQuery = supabase
-          .from('notes')
-          .select(
-            `
-            id,
-            content,
-            created_at,
-            has_link,
-            has_media,
-            has_files,
-            note_tags(
-              tags(name)
-            )
-          `
-          )
-          .is('deleted_at', null)
-          .is('archived_at', null)
-          .ilike('content', `%${query}%`)
-          .order('created_at', { ascending: false })
-          .limit(limit)
-
-        // 카테고리 필터
-        if (category === 'links') {
-          dbQuery = dbQuery.eq('has_link', true)
-        } else if (category === 'media') {
-          dbQuery = dbQuery.eq('has_media', true)
-        } else if (category === 'files') {
-          dbQuery = dbQuery.eq('has_files', true)
-        }
-
-        const { data, error } = await dbQuery
-
-        if (error) {
-          return {
-            content: [{ type: 'text' as const, text: `Error: ${error.message}` }],
-            isError: true,
-          }
-        }
-
-        // 태그 이름 추출 헬퍼
-        const extractTagNames = (noteTags: unknown): string[] => {
-          if (!Array.isArray(noteTags)) return []
-          return noteTags
-            .map((nt: { tags: { name: string } | null }) => nt.tags?.name)
-            .filter((name): name is string => !!name)
-        }
-
-        // 태그 필터링 (post-query)
-        let filteredData = data
-        if (tagNames && tagNames.length > 0) {
-          filteredData = data?.filter((note) => {
-            const noteTags = extractTagNames(note.note_tags)
-            return tagNames.some((tag) => noteTags.includes(tag))
-          })
-        }
-
-        // 검색어 하이라이트 (간단한 구현)
-        const results = filteredData?.map((note) => {
+        const queryLower = query.toLowerCase()
+        const notes = result.notes.map((note) => {
           const contentLower = note.content.toLowerCase()
-          const queryLower = query.toLowerCase()
           const matchIndex = contentLower.indexOf(queryLower)
 
           let matchedText = ''
@@ -101,7 +57,6 @@ export function registerSearchTools(server: McpServer) {
             content: note.content,
             createdAt: note.created_at,
             matchedText,
-            tags: extractTagNames(note.note_tags),
           }
         })
 
@@ -109,15 +64,7 @@ export function registerSearchTools(server: McpServer) {
           content: [
             {
               type: 'text' as const,
-              text: JSON.stringify(
-                {
-                  query,
-                  notes: results,
-                  total: results?.length || 0,
-                },
-                null,
-                2
-              ),
+              text: JSON.stringify({ query, notes, total: notes.length }, null, 2),
             },
           ],
         }
@@ -130,7 +77,6 @@ export function registerSearchTools(server: McpServer) {
     }
   )
 
-  // search_by_date_range - 날짜 범위 검색 (KST 기준)
   server.tool(
     'search_by_date_range',
     'Search notes within a date range',
@@ -141,15 +87,10 @@ export function registerSearchTools(server: McpServer) {
     },
     async ({ startDate, endDate, limit }) => {
       try {
-        const supabase = await getSupabase()
-
-        // KST to UTC 변환 (KST = UTC+9)
-        // 날짜만 입력된 경우 (예: 2024-01-01) KST 기준으로 해석
         const toUtcStart = (dateStr: string): string => {
           if (dateStr.includes('T') || dateStr.includes('Z')) {
-            return dateStr // 이미 ISO 형식이면 그대로
+            return dateStr
           }
-          // KST 00:00:00 = UTC 전날 15:00:00
           const date = new Date(dateStr + 'T00:00:00+09:00')
           return date.toISOString()
         }
@@ -158,49 +99,22 @@ export function registerSearchTools(server: McpServer) {
           if (dateStr.includes('T') || dateStr.includes('Z')) {
             return dateStr
           }
-          // KST 23:59:59.999 = UTC 당일 14:59:59.999
           const date = new Date(dateStr + 'T23:59:59.999+09:00')
           return date.toISOString()
         }
 
-        const utcStart = toUtcStart(startDate)
-        const utcEnd = toUtcEnd(endDate)
+        const result = await callMcpRpc<SearchResult>('mcp_search_by_date_range', {
+          p_start_date: toUtcStart(startDate),
+          p_end_date: toUtcEnd(endDate),
+          p_limit: limit,
+        })
 
-        const { data, error } = await supabase
-          .from('notes')
-          .select(
-            `
-            id,
-            content,
-            created_at,
-            has_link,
-            has_media,
-            has_files
-          `
-          )
-          .is('deleted_at', null)
-          .is('archived_at', null)
-          .gte('created_at', utcStart)
-          .lte('created_at', utcEnd)
-          .order('created_at', { ascending: false })
-          .limit(limit)
-
-        if (error) {
-          return {
-            content: [{ type: 'text' as const, text: `Error: ${error.message}` }],
-            isError: true,
-          }
-        }
-
-        // 결과의 시간을 KST로 변환
         const toKst = (utcStr: string): string => {
           const date = new Date(utcStr)
-          return new Date(date.getTime() + 9 * 60 * 60 * 1000)
-            .toISOString()
-            .replace('Z', '+09:00')
+          return new Date(date.getTime() + 9 * 60 * 60 * 1000).toISOString().replace('Z', '+09:00')
         }
 
-        const notesWithKst = data?.map((note) => ({
+        const notesWithKst = result.notes.map((note) => ({
           ...note,
           created_at_kst: toKst(note.created_at),
         }))
@@ -213,7 +127,7 @@ export function registerSearchTools(server: McpServer) {
                 {
                   dateRange: { start: startDate, end: endDate, timezone: 'KST' },
                   notes: notesWithKst,
-                  total: notesWithKst?.length || 0,
+                  total: notesWithKst.length,
                 },
                 null,
                 2

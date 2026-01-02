@@ -20,9 +20,9 @@ export interface NoteRow {
   has_files: boolean
   // 잠금
   is_locked: boolean
-  // soft-delete & archive
   deleted_at: string | null
   archived_at: string | null
+  priority: number
 }
 
 export interface AttachmentRow {
@@ -46,6 +46,7 @@ export interface TagRow {
   name: string
   created_at: string
   user_id: string | null
+  last_used_at: string | null
 }
 
 export interface NoteTagRow {
@@ -86,9 +87,9 @@ export interface Note {
   hasFiles: boolean
   // 잠금
   isLocked: boolean
-  // soft-delete & archive
   deletedAt: Date | null
   archivedAt: Date | null
+  priority: number
 }
 
 export interface Attachment {
@@ -111,6 +112,7 @@ export interface Tag {
   id: string
   name: string
   createdAt: Date
+  lastUsedAt: Date | null
 }
 
 // Input types
@@ -143,6 +145,7 @@ export function tagRowToTag(row: TagRow): Tag {
     id: row.id,
     name: row.name,
     createdAt: new Date(row.created_at),
+    lastUsedAt: row.last_used_at ? new Date(row.last_used_at) : null,
   }
 }
 
@@ -167,6 +170,7 @@ export function noteRowToNote(
     isLocked: row.is_locked,
     deletedAt: row.deleted_at ? new Date(row.deleted_at) : null,
     archivedAt: row.archived_at ? new Date(row.archived_at) : null,
+    priority: row.priority ?? 0,
   }
 }
 

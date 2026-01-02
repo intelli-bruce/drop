@@ -6,6 +6,7 @@ import { NoteCard, NoteCardHandle } from './NoteCard'
 import { TagDialog } from './TagDialog'
 import { CategoryFilter } from './CategoryFilter'
 import { ViewModeSelector } from './ViewModeSelector'
+import { SearchInput } from './SearchInput'
 import { PinDialog, type PinDialogMode } from './PinDialog'
 import { isCreateNoteShortcut } from '../shortcuts/noteGlobal'
 import { resolveNoteFeedShortcut } from '../shortcuts/noteFeed'
@@ -32,11 +33,11 @@ export function NoteFeed() {
     filterTag,
     setFilterTag,
     categoryFilter,
+    searchQuery,
     lockNote,
     temporarilyUnlockNote,
     temporarilyUnlockAll,
     hasLockedNotes,
-    // Trash & Archive
     viewMode,
     trashedNotes,
     archivedNotes,
@@ -88,7 +89,6 @@ export function NoteFeed() {
     return notes
   }, [viewMode, notes, trashedNotes, archivedNotes])
 
-  // 태그 및 카테고리 필터링 (메모이제이션) - active 모드에서만 적용
   const filteredNotes = useMemo(() => {
     if (viewMode !== 'active') return baseNotes
 
@@ -103,8 +103,14 @@ export function NoteFeed() {
     } else if (categoryFilter === 'files') {
       result = result.filter((note) => note.hasFiles)
     }
+
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      result = result.filter((note) => note.content.toLowerCase().includes(query))
+    }
+
     return result
-  }, [viewMode, baseNotes, filterTag, categoryFilter])
+  }, [viewMode, baseNotes, filterTag, categoryFilter, searchQuery])
 
   // flatNotes 계산 (메모이제이션)
   const flatNotes = useMemo(() => {
@@ -178,19 +184,16 @@ export function NoteFeed() {
     feedRef.current?.focus()
   }, [])
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      // 텍스트 입력 영역에서 버블링된 이벤트 무시
-      if (isTextInputTarget(e.target)) return
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    // 텍스트 입력 영역에서 버블링된 이벤트 무시
+    if (isTextInputTarget(e.target)) return
 
-      // Escape로 포커스 해제 (피드에 직접 포커스가 있을 때만)
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        setFocusedIndex(null)
-      }
-    },
-    []
-  )
+    // Escape로 포커스 해제 (피드에 직접 포커스가 있을 때만)
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      setFocusedIndex(null)
+    }
+  }, [])
 
   // 날짜별 그룹화 (메모이제이션)
   const grouped = useMemo(() => {
@@ -584,6 +587,7 @@ export function NoteFeed() {
         <ViewModeSelector />
         {viewMode === 'active' && (
           <>
+            <SearchInput />
             <CategoryFilter />
             {hasLockedNotes() && (
               <button

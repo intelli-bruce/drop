@@ -1,12 +1,38 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
-import { getSupabase } from '../supabase.js'
+import { callMcpRpc } from '../supabase.js'
 
-/**
- * 태그 관련 Tools 등록
- */
+interface Tag {
+  id: string
+  name: string
+  note_count: number
+}
+
+interface ListTagsResult {
+  tags: Tag[]
+}
+
+interface Note {
+  id: string
+  content: string
+  created_at: string
+  has_link: boolean
+  has_media: boolean
+  has_files: boolean
+}
+
+interface GetNotesByTagResult {
+  tag_name: string
+  notes: Note[]
+}
+
+interface TagOperationResult {
+  success: boolean
+  added_tags?: string[]
+  removed_tags?: string[]
+}
+
 export function registerTagsTools(server: McpServer) {
-  // list_tags - 모든 태그 목록
   server.tool(
     'list_tags',
     'List all tags with note counts',
@@ -15,40 +41,19 @@ export function registerTagsTools(server: McpServer) {
     },
     async ({ limit }) => {
       try {
-        const supabase = await getSupabase()
+        const result = await callMcpRpc<ListTagsResult>('mcp_list_tags', { p_limit: limit })
 
-        const { data, error } = await supabase
-          .from('tags')
-          .select(
-            `
-            id,
-            name,
-            note_tags(count)
-          `
-          )
-          .limit(limit)
-
-        if (error) {
-          return {
-            content: [{ type: 'text' as const, text: `Error: ${error.message}` }],
-            isError: true,
-          }
-        }
-
-        const tags = data?.map((tag) => ({
+        const tags = result.tags.map((tag) => ({
           id: tag.id,
           name: tag.name,
-          noteCount: (tag.note_tags as unknown as { count: number }[])?.[0]?.count || 0,
+          noteCount: tag.note_count,
         }))
-
-        // 노트 수 기준으로 정렬
-        tags?.sort((a, b) => b.noteCount - a.noteCount)
 
         return {
           content: [
             {
               type: 'text' as const,
-              text: JSON.stringify({ tags, total: tags?.length || 0 }, null, 2),
+              text: JSON.stringify({ tags, total: tags.length }, null, 2),
             },
           ],
         }
@@ -61,7 +66,6 @@ export function registerTagsTools(server: McpServer) {
     }
   )
 
-  // get_notes_by_tag - 특정 태그의 노트 조회
   server.tool(
     'get_notes_by_tag',
     'Get all notes with a specific tag',
@@ -71,65 +75,17 @@ export function registerTagsTools(server: McpServer) {
     },
     async ({ tagName, limit }) => {
       try {
-        const supabase = await getSupabase()
-
-        // 태그 ID 조회
-        const { data: tag, error: tagError } = await supabase
-          .from('tags')
-          .select('id')
-          .eq('name', tagName)
-          .single()
-
-        if (tagError || !tag) {
-          return {
-            content: [{ type: 'text' as const, text: `Tag "${tagName}" not found` }],
-            isError: true,
-          }
-        }
-
-        // 해당 태그의 노트 조회
-        const { data, error } = await supabase
-          .from('note_tags')
-          .select(
-            `
-            notes(
-              id,
-              content,
-              created_at,
-              has_link,
-              has_media,
-              has_files
-            )
-          `
-          )
-          .eq('tag_id', tag.id)
-          .limit(limit)
-
-        if (error) {
-          return {
-            content: [{ type: 'text' as const, text: `Error: ${error.message}` }],
-            isError: true,
-          }
-        }
-
-        const notes = data
-          ?.map((nt) => nt.notes)
-          .filter(Boolean)
-          .filter(
-            (note): note is NonNullable<typeof note> =>
-              note !== null && !(note as { deleted_at?: string }).deleted_at
-          )
+        const result = await callMcpRpc<GetNotesByTagResult>('mcp_get_notes_by_tag', {
+          p_tag_name: tagName,
+          p_limit: limit,
+        })
 
         return {
           content: [
             {
               type: 'text' as const,
               text: JSON.stringify(
-                {
-                  tagName,
-                  notes,
-                  total: notes?.length || 0,
-                },
+                { tagName: result.tag_name, notes: result.notes, total: result.notes.length },
                 null,
                 2
               ),
@@ -145,7 +101,6 @@ export function registerTagsTools(server: McpServer) {
     }
   )
 
-  // add_tags_to_note - 노트에 태그 추가
   server.tool(
     'add_tags_to_note',
     'Add tags to a note',
@@ -155,35 +110,16 @@ export function registerTagsTools(server: McpServer) {
     },
     async ({ noteId, tagNames }) => {
       try {
-        const supabase = await getSupabase()
-
-        const addedTags: string[] = []
-
-        for (const tagName of tagNames) {
-          // 태그 upsert
-          const { data: tag, error: tagError } = await supabase
-            .from('tags')
-            .upsert({ name: tagName }, { onConflict: 'name,user_id' })
-            .select()
-            .single()
-
-          if (tagError || !tag) continue
-
-          // note_tags 연결
-          const { error } = await supabase
-            .from('note_tags')
-            .upsert({ note_id: noteId, tag_id: tag.id }, { onConflict: 'note_id,tag_id' })
-
-          if (!error) {
-            addedTags.push(tagName)
-          }
-        }
+        const result = await callMcpRpc<TagOperationResult>('mcp_add_tags_to_note', {
+          p_note_id: noteId,
+          p_tag_names: tagNames,
+        })
 
         return {
           content: [
             {
               type: 'text' as const,
-              text: `Added tags to note ${noteId}: ${addedTags.join(', ')}`,
+              text: `Added tags to note ${noteId}: ${result.added_tags?.join(', ') || 'none'}`,
             },
           ],
         }
@@ -196,7 +132,6 @@ export function registerTagsTools(server: McpServer) {
     }
   )
 
-  // remove_tags_from_note - 노트에서 태그 제거
   server.tool(
     'remove_tags_from_note',
     'Remove tags from a note',
@@ -206,37 +141,16 @@ export function registerTagsTools(server: McpServer) {
     },
     async ({ noteId, tagNames }) => {
       try {
-        const supabase = await getSupabase()
-
-        const removedTags: string[] = []
-
-        for (const tagName of tagNames) {
-          // 태그 ID 조회
-          const { data: tag } = await supabase
-            .from('tags')
-            .select('id')
-            .eq('name', tagName)
-            .single()
-
-          if (!tag) continue
-
-          // note_tags 삭제
-          const { error } = await supabase
-            .from('note_tags')
-            .delete()
-            .eq('note_id', noteId)
-            .eq('tag_id', tag.id)
-
-          if (!error) {
-            removedTags.push(tagName)
-          }
-        }
+        const result = await callMcpRpc<TagOperationResult>('mcp_remove_tags_from_note', {
+          p_note_id: noteId,
+          p_tag_names: tagNames,
+        })
 
         return {
           content: [
             {
               type: 'text' as const,
-              text: `Removed tags from note ${noteId}: ${removedTags.join(', ')}`,
+              text: `Removed tags from note ${noteId}: ${result.removed_tags?.join(', ') || 'none'}`,
             },
           ],
         }

@@ -37,6 +37,7 @@ export const NoteCard = memo(
 
       const {
         updateNote,
+        updateNotePriority,
         deleteNote,
         addAttachment,
         removeAttachment,
@@ -118,24 +119,40 @@ export const NoteCard = memo(
         setShowPinDialog(true)
       }
 
-      // PIN 확인 성공 후 처리
       const handlePinSuccess = () => {
         setShowPinDialog(false)
         switch (pinDialogMode) {
           case 'setup':
-            // PIN 설정 후 잠금
             lockNote(note.id)
             break
           case 'unlock-temp':
-            // 일시 해제
             temporarilyUnlockNote(note.id)
             break
           case 'unlock-permanent':
-            // 완전 해제
             permanentlyUnlockNote(note.id)
             break
         }
       }
+
+      const handlePriorityClick = () => {
+        const nextPriority = (note.priority + 1) % 4
+        updateNotePriority(note.id, nextPriority)
+      }
+
+      const getPriorityLabel = (priority: number) => {
+        switch (priority) {
+          case 1:
+            return { symbol: '!', className: 'priority-low' }
+          case 2:
+            return { symbol: '!!', className: 'priority-medium' }
+          case 3:
+            return { symbol: '!!!', className: 'priority-high' }
+          default:
+            return { symbol: '·', className: 'priority-none' }
+        }
+      }
+
+      const priorityInfo = getPriorityLabel(note.priority)
 
       return (
         <>
@@ -149,6 +166,15 @@ export const NoteCard = memo(
           >
             <div className="note-card-header">
               <span className="note-time">{formatRelativeTime(note.createdAt)}</span>
+              {viewMode === 'active' && (
+                <button
+                  className={`priority-btn ${priorityInfo.className}`}
+                  onClick={handlePriorityClick}
+                  title={`Priority: ${note.priority}/3 (click to cycle)`}
+                >
+                  {priorityInfo.symbol}
+                </button>
+              )}
               <div className="note-card-actions">
                 {viewMode === 'active' && (
                   <>

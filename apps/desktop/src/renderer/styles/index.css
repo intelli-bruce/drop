@@ -132,6 +132,39 @@ body {
   gap: 4px;
 }
 
+.priority-btn {
+  background: none;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  min-width: 28px;
+  transition: background 0.1s;
+}
+
+.priority-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.priority-btn.priority-none {
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+.priority-btn.priority-low {
+  color: #888;
+}
+
+.priority-btn.priority-medium {
+  color: #f5a623;
+}
+
+.priority-btn.priority-high {
+  color: #ff4444;
+}
+
 .reply-btn,
 .delete-btn {
   background: none;
@@ -141,7 +174,9 @@ body {
   cursor: pointer;
   padding: 2px 6px;
   border-radius: 4px;
-  transition: background 0.1s, color 0.1s;
+  transition:
+    background 0.1s,
+    color 0.1s;
 }
 
 .reply-btn:hover {
@@ -675,13 +710,13 @@ body {
 .attachment-instagram-icon {
   display: flex;
   align-items: center;
-  color: #E1306C;
+  color: #e1306c;
 }
 
 .attachment-instagram-label {
   font-size: 12px;
   font-weight: 600;
-  color: #E1306C;
+  color: #e1306c;
 }
 
 .attachment-instagram-author {
@@ -817,13 +852,13 @@ body {
 .attachment-youtube-icon {
   display: flex;
   align-items: center;
-  color: #FF0000;
+  color: #ff0000;
 }
 
 .attachment-youtube-label {
   font-size: 12px;
   font-weight: 600;
-  color: #FF0000;
+  color: #ff0000;
 }
 
 .attachment-youtube-title {
@@ -879,7 +914,9 @@ body {
   border-radius: 8px;
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
 }
 
 .link-preview:hover {
@@ -942,13 +979,13 @@ body {
 .link-preview-icon {
   display: flex;
   align-items: center;
-  color: #FF0000;
+  color: #ff0000;
 }
 
 .link-preview-label {
   font-size: 12px;
   font-weight: 600;
-  color: #FF0000;
+  color: #ff0000;
 }
 
 .link-preview-title {
@@ -1416,13 +1453,13 @@ body {
   transition: opacity 0.15s;
 }
 
-.pin-dialog-actions button[type="button"] {
+.pin-dialog-actions button[type='button'] {
   background: transparent;
   border: 1px solid var(--border-color);
   color: var(--text-secondary);
 }
 
-.pin-dialog-actions button[type="submit"] {
+.pin-dialog-actions button[type='submit'] {
   background: var(--accent);
   border: none;
   color: white;
@@ -1431,6 +1468,55 @@ body {
 .pin-dialog-actions button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Search Input */
+.search-input-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  margin-right: 8px;
+  -webkit-app-region: no-drag;
+}
+
+.search-input-icon {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.search-input {
+  width: 120px;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 12px;
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: var(--text-secondary);
+}
+
+.search-input:focus {
+  width: 160px;
+}
+
+.search-input-clear {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.search-input-clear:hover {
+  color: var(--text-primary);
 }
 
 /* Category Filter */

@@ -101,8 +101,8 @@ pnpm install
 # Build
 pnpm build
 
-# Run locally
-SUPABASE_URL=... SUPABASE_ANON_KEY=... SUPABASE_REFRESH_TOKEN=... pnpm start
+# Run locally (get token from DROP app → Profile → Copy MCP Token)
+DROP_TOKEN=your-api-key pnpm start
 ```
 
 ## License

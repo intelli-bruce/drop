@@ -7,7 +7,10 @@
     "drop-notes": {
       "type": "stdio",
       "command": "/Volumes/WorkSSD/Projects/drop/packages/mcp-server/run.sh",
-      "args": []
+      "args": [],
+      "env": {
+        "DROP_TOKEN": "5ULD2OYgEy6l"
+      }
     }
   }
 }

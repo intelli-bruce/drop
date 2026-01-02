@@ -1,5 +1,5 @@
 name: drop_mobile
-description: "A new Flutter project."
+description: 'A new Flutter project.'
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -51,6 +51,7 @@ dependencies:
   app_links: ^6.4.1
   video_player: ^2.10.1
   flutter_slidable: ^4.0.3
+  cached_network_image: ^3.4.1
 
 dev_dependencies:
   flutter_test:
@@ -73,7 +74,7 @@ dev_dependencies:
 flutter_launcher_icons:
   ios: true
   android: false
-  image_path: "assets/icon/app_icon.png"
+  image_path: 'assets/icon/app_icon.png'
   remove_alpha_ios: true
 
 # For information on the generic Dart part of this file, see the
@@ -81,7 +82,6 @@ flutter_launcher_icons:
 
 # The following section is specific to Flutter packages.
 flutter:
-
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

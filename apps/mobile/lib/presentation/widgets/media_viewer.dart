@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -174,10 +175,7 @@ class _MediaPage extends ConsumerWidget {
   final Attachment attachment;
   final VoidCallback onTap;
 
-  const _MediaPage({
-    required this.attachment,
-    required this.onTap,
-  });
+  const _MediaPage({required this.attachment, required this.onTap});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -193,19 +191,15 @@ class _MediaPage extends ConsumerWidget {
           return _ImageViewer(url: url, onTap: onTap);
         }
       },
-      loading: () => const Center(
-        child: CircularProgressIndicator(color: Colors.white),
-      ),
+      loading: () =>
+          const Center(child: CircularProgressIndicator(color: Colors.white)),
       error: (error, stack) => Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.error_outline, color: Colors.white54, size: 48),
             const SizedBox(height: 16),
-            Text(
-              '미디어를 불러올 수 없습니다',
-              style: TextStyle(color: Colors.white54),
-            ),
+            Text('미디어를 불러올 수 없습니다', style: TextStyle(color: Colors.white54)),
           ],
         ),
       ),
@@ -228,30 +222,15 @@ class _ImageViewer extends StatelessWidget {
         minScale: 0.5,
         maxScale: 4.0,
         child: Center(
-          child: Image.network(
-            url,
+          child: CachedNetworkImage(
+            imageUrl: url,
             fit: BoxFit.contain,
-            loadingBuilder: (context, child, loadingProgress) {
-              if (loadingProgress == null) return child;
-              return Center(
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  value: loadingProgress.expectedTotalBytes != null
-                      ? loadingProgress.cumulativeBytesLoaded /
-                            loadingProgress.expectedTotalBytes!
-                      : null,
-                ),
-              );
-            },
-            errorBuilder: (context, error, stackTrace) {
-              return const Center(
-                child: Icon(
-                  Icons.broken_image,
-                  color: Colors.white54,
-                  size: 64,
-                ),
-              );
-            },
+            placeholder: (context, url) => const Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            ),
+            errorWidget: (context, url, error) => const Center(
+              child: Icon(Icons.broken_image, color: Colors.white54, size: 64),
+            ),
           ),
         ),
       ),

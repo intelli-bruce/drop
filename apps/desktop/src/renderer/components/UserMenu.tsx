@@ -53,72 +53,77 @@ export function UserMenu() {
   }
 
   const handleCopyMcpToken = async () => {
-    const { data } = await supabase.auth.getSession()
-    const token = data.session?.refresh_token
-    if (token) {
-      await navigator.clipboard.writeText(token)
+    const { data, error } = await supabase.rpc('get_mcp_api_key')
+    if (error) {
+      console.error('Failed to get MCP API key:', error)
+      return
+    }
+    if (data) {
+      await navigator.clipboard.writeText(data)
       setTokenCopied(true)
       setTimeout(() => setTokenCopied(false), 2000)
     }
   }
 
-  const dropdown = isOpen && createPortal(
-    <div
-      className="user-menu-dropdown"
-      ref={menuRef}
-      style={{ top: dropdownPos.top, right: dropdownPos.right }}
-    >
-          <div className="user-menu-header">
-            {userAvatar ? (
-              <img src={userAvatar} alt={userName} className="user-avatar-large" />
-            ) : (
-              <div className="user-avatar-placeholder-large">{initials}</div>
-            )}
-            <div className="user-info">
-              <span className="user-name">{userName}</span>
-              {userName !== userEmail && <span className="user-email">{userEmail}</span>}
-            </div>
+  const dropdown =
+    isOpen &&
+    createPortal(
+      <div
+        className="user-menu-dropdown"
+        ref={menuRef}
+        style={{ top: dropdownPos.top, right: dropdownPos.right }}
+      >
+        <div className="user-menu-header">
+          {userAvatar ? (
+            <img src={userAvatar} alt={userName} className="user-avatar-large" />
+          ) : (
+            <div className="user-avatar-placeholder-large">{initials}</div>
+          )}
+          <div className="user-info">
+            <span className="user-name">{userName}</span>
+            {userName !== userEmail && <span className="user-email">{userEmail}</span>}
           </div>
+        </div>
 
-          <div className="user-menu-divider" />
+        <div className="user-menu-divider" />
 
-          <button className="user-menu-item" onClick={handleCopyMcpToken}>
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-            </svg>
-            {tokenCopied ? 'Copied!' : 'Copy MCP Token'}
-          </button>
+        <button className="user-menu-item" onClick={handleCopyMcpToken}>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+          </svg>
+          {tokenCopied ? 'Copied!' : 'Copy MCP Token'}
+        </button>
 
-      <button className="user-menu-item" onClick={handleSignOut}>
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-          <polyline points="16 17 21 12 16 7" />
-          <line x1="21" y1="12" x2="9" y2="12" />
-        </svg>
-        Sign out
-      </button>
-    </div>,
-    document.body
-  )
+        <button className="user-menu-item" onClick={handleSignOut}>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          Sign out
+        </button>
+      </div>,
+      document.body
+    )
 
   return (
     <>
