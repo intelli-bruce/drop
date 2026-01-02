@@ -22,6 +22,8 @@ import {
 import {
   EditorState,
   $getRoot,
+  $getSelection,
+  $isRangeSelection,
   COMMAND_PRIORITY_HIGH,
   COMMAND_PRIORITY_CRITICAL,
   PASTE_COMMAND,
@@ -84,7 +86,7 @@ const theme = {
 function EscapePlugin({ onEscape }: { onEscape: () => void }) {
   const [editor] = useLexicalComposerContext()
 
-  // Enter 키 처리 (Shift+Enter는 줄바꿈, Enter만 누르면 저장+나가기)
+  // Enter 키 처리 (Shift+Enter는 새 단락 삽입, Enter만 누르면 저장+나가기)
   useEffect(() => {
     return editor.registerCommand(
       KEY_ENTER_COMMAND,
@@ -92,8 +94,19 @@ function EscapePlugin({ onEscape }: { onEscape: () => void }) {
         if (!event) return false
         // IME 조합 중이면 무시
         if (event.isComposing) return false
-        // Shift+Enter는 기본 동작 (줄바꿈)
-        if (event.shiftKey) return false
+
+        // Shift+Enter는 새 단락 삽입 (마크다운에서 실제 줄바꿈으로 인식되도록)
+        if (event.shiftKey) {
+          event.preventDefault()
+          editor.update(() => {
+            const selection = $getSelection()
+            if ($isRangeSelection(selection)) {
+              // 현재 선택 영역을 삭제하고 새 단락 삽입
+              selection.insertParagraph()
+            }
+          })
+          return true
+        }
 
         // Enter만 누르면 저장+나가기
         event.preventDefault()
