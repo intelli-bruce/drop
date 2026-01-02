@@ -165,6 +165,7 @@ export const NoteCard = memo(
             onDrop={isLocked ? undefined : handleDrop}
           >
             <div className="note-card-header">
+              <span className="note-id">#{note.displayId}</span>
               <span className="note-time">{formatRelativeTime(note.createdAt)}</span>
               {viewMode === 'active' && (
                 <button

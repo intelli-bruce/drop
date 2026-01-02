@@ -98,6 +98,7 @@ export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (s
       console.error('[notes] createNote: user not authenticated')
       return {
         id: '',
+        displayId: 0,
         content: '',
         parentId: null,
         attachments: [],
@@ -119,8 +120,11 @@ export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (s
     const id = crypto.randomUUID()
     const now = new Date()
     const categories = calculateNoteCategories(initialContent, [])
+    // displayId는 DB에서 트리거로 생성되므로 optimistic 노트에는 임시로 가장 높은 값 + 1 사용
+    const maxDisplayId = Math.max(0, ...get().notes.map((n) => n.displayId))
     const optimisticNote = {
       id,
+      displayId: maxDisplayId + 1,
       content: initialContent,
       parentId: parentId ?? null,
       attachments: [],

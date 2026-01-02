@@ -7,6 +7,7 @@ export type AttachmentType = 'image' | 'audio' | 'video' | 'file' | 'text' | 'in
 // Database row types (snake_case - Supabase 컬럼명과 일치)
 export interface NoteRow {
   id: string
+  display_id: number
   content: string | null
   parent_id: string | null
   created_at: string
@@ -73,6 +74,7 @@ export interface UserProfile {
 // Application types (camelCase - 앱 내부 사용)
 export interface Note {
   id: string
+  displayId: number
   content: string
   parentId: string | null
   attachments: Attachment[]
@@ -156,6 +158,7 @@ export function noteRowToNote(
 ): Note {
   return {
     id: row.id,
+    displayId: row.display_id,
     content: row.content ?? '',
     parentId: row.parent_id,
     attachments,
