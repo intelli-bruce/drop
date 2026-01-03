@@ -35,8 +35,9 @@ class AuthNotifier extends _$AuthNotifier {
       final client = Supabase.instance.client;
 
       // Native Google Sign-In
-      const webClientId = 'REDACTED_GOOGLE_WEB_CLIENT_ID';
-      const iosClientId = 'REDACTED_GOOGLE_IOS_CLIENT_ID';
+      // Client IDs are injected via --dart-define at build time
+      const webClientId = String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
+      const iosClientId = String.fromEnvironment('GOOGLE_IOS_CLIENT_ID');
 
       final googleSignIn = GoogleSignIn(
         clientId: iosClientId,
