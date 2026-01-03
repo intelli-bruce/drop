@@ -8,9 +8,14 @@ import { createInterface } from 'readline'
 import { createClient } from '@supabase/supabase-js'
 import { saveRefreshToken, isAuthenticated } from './auth.js'
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'http://127.0.0.1:58321'
-const SUPABASE_ANON_KEY =
-  process.env.SUPABASE_ANON_KEY || 'REDACTED_SUPABASE_KEY_LOCAL'
+const SUPABASE_URL = process.env.SUPABASE_URL
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.error('❌ Error: SUPABASE_URL and SUPABASE_ANON_KEY must be set.')
+  console.error('   Set them in packages/mcp-server/.env file.')
+  process.exit(1)
+}
 
 const rl = createInterface({
   input: process.stdin,

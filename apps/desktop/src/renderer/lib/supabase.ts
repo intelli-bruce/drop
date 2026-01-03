@@ -1,9 +1,16 @@
 import { createClient } from '@supabase/supabase-js'
 
-// 환경 변수에서 Supabase 설정 로드 (로컬 개발용)
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'http://127.0.0.1:58321'
-const supabaseAnonKey =
-  import.meta.env.VITE_SUPABASE_ANON_KEY || 'REDACTED_SUPABASE_KEY_LOCAL'
+// 환경 변수에서 Supabase 설정 로드
+// VITE_SUPABASE_URL과 VITE_SUPABASE_ANON_KEY는 .env.local 또는 .env.remote에서 설정
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    'VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY must be set.\n' +
+      'Copy .env.example to .env.local and fill in the values.'
+  )
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 

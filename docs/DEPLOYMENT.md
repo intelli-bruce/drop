@@ -21,9 +21,9 @@
 
 3. **환경 변수** (빌드 시 필요)
    ```
-   APPLE_ID=your-apple-id@example.com
+   APPLE_ID=<your-apple-id>
    APPLE_APP_SPECIFIC_PASSWORD=<앱 전용 비밀번호>
-   APPLE_TEAM_ID=J2Y925QHNV
+   APPLE_TEAM_ID=<your-team-id>
    ```
 
 ### Bundle ID 및 App ID
@@ -49,9 +49,9 @@
 cd apps/desktop
 
 # 환경 변수 설정 후 빌드
-APPLE_ID=your-apple-id@example.com \
+APPLE_ID=<your-apple-id> \
 APPLE_APP_SPECIFIC_PASSWORD=<비밀번호> \
-APPLE_TEAM_ID=J2Y925QHNV \
+APPLE_TEAM_ID=<your-team-id> \
 pnpm dist:remote
 ```
 
@@ -68,7 +68,7 @@ pnpm dist:remote
     "appId": "com.intellieffect.drop.desktop",
     "mac": {
       "target": "dmg",
-      "identity": "Developer Name (J2Y925QHNV)",
+      "identity": "<Your Name> (<your-team-id>)",
       "hardenedRuntime": true,
       "notarize": true
     }
@@ -86,8 +86,8 @@ pnpm dist:remote
 cd apps/mobile
 
 flutter build ipa \
-  --dart-define=SUPABASE_URL=https://REDACTED_SUPABASE_HOST \
-  --dart-define=SUPABASE_ANON_KEY=<anon_key>
+  --dart-define=SUPABASE_URL=$SUPABASE_URL_REMOTE \
+  --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY_REMOTE
 ```
 
 ### 2. TestFlight 업로드
@@ -95,8 +95,8 @@ flutter build ipa \
 ```bash
 xcrun altool --upload-app --type ios \
   -f build/ios/ipa/drop_mobile.ipa \
-  -u your-apple-id@example.com \
-  -p <앱_전용_비밀번호>
+  -u $APPLE_ID \
+  -p $APPLE_APP_SPECIFIC_PASSWORD
 ```
 
 ### 출력물
@@ -138,7 +138,8 @@ xcrun altool --upload-app --type ios \
 |--------|------|
 | `APPLE_ID` | Apple Developer 이메일 |
 | `APPLE_APP_SPECIFIC_PASSWORD` | 앱 전용 비밀번호 |
-| `APPLE_TEAM_ID` | Team ID (J2Y925QHNV) |
+| `APPLE_TEAM_ID` | Apple Developer Team ID |
+| `CSC_NAME` | Code Signing Identity (예: "Developer ID Application: Name (TEAM_ID)") |
 | `CERTIFICATES_P12` | 인증서 파일 (base64 인코딩) |
 | `CSC_KEY_PASSWORD` | P12 파일 비밀번호 |
 | `SUPABASE_URL` | Supabase 프로젝트 URL |
@@ -189,4 +190,4 @@ git push origin v1.0.0
 ### App Group 등록 실패
 
 - 이미 사용 중인 ID인 경우 다른 이름 사용
-- 예: `group.com.intellieffect.drop.widget`
+- 예: `group.com.yourcompany.drop.widget`

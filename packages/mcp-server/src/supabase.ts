@@ -1,9 +1,19 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
-const SUPABASE_URL = 'https://REDACTED_SUPABASE_HOST'
-const SUPABASE_ANON_KEY = 'REDACTED_SUPABASE_KEY'
+const SUPABASE_URL = process.env.SUPABASE_URL
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY
 
 const API_KEY = process.env.DROP_TOKEN
+
+function getSupabaseConfig(): { url: string; anonKey: string } {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    throw new Error(
+      'SUPABASE_URL and SUPABASE_ANON_KEY must be set.\n' +
+        'Add them to your .mcp.json env configuration.'
+    )
+  }
+  return { url: SUPABASE_URL, anonKey: SUPABASE_ANON_KEY }
+}
 
 let supabaseInstance: SupabaseClient | null = null
 let validatedUserId: string | null = null
@@ -21,7 +31,8 @@ function getApiKey(): string {
 
 export function getSupabaseClient(): SupabaseClient {
   if (!supabaseInstance) {
-    supabaseInstance = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    const { url, anonKey } = getSupabaseConfig()
+    supabaseInstance = createClient(url, anonKey)
   }
   return supabaseInstance
 }

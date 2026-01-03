@@ -110,30 +110,52 @@ flutter-setup:
 	cd apps/mobile && flutter pub get && dart run build_runner build --delete-conflicting-outputs
 
 # Flutter 개발 서버 (로컬 Supabase)
+# 환경변수: SUPABASE_URL_LOCAL, SUPABASE_ANON_KEY_LOCAL
 flutter-dev:
+	@if [ -z "$(SUPABASE_URL_LOCAL)" ] || [ -z "$(SUPABASE_ANON_KEY_LOCAL)" ]; then \
+		echo "❌ Error: SUPABASE_URL_LOCAL and SUPABASE_ANON_KEY_LOCAL must be set"; \
+		echo "   Set them in .env.local or export them before running"; \
+		exit 1; \
+	fi
 	cd apps/mobile && flutter run \
-		--dart-define=SUPABASE_URL=http://127.0.0.1:57321 \
-		--dart-define=SUPABASE_ANON_KEY=REDACTED_SUPABASE_KEY_LOCAL
+		--dart-define=SUPABASE_URL=$(SUPABASE_URL_LOCAL) \
+		--dart-define=SUPABASE_ANON_KEY=$(SUPABASE_ANON_KEY_LOCAL)
 
 # Flutter 개발 서버 (리모트 Supabase)
+# 환경변수: SUPABASE_URL_REMOTE, SUPABASE_ANON_KEY_REMOTE
 flutter-dev-remote:
+	@if [ -z "$(SUPABASE_URL_REMOTE)" ] || [ -z "$(SUPABASE_ANON_KEY_REMOTE)" ]; then \
+		echo "❌ Error: SUPABASE_URL_REMOTE and SUPABASE_ANON_KEY_REMOTE must be set"; \
+		echo "   Set them in .env.local or export them before running"; \
+		exit 1; \
+	fi
 	cd apps/mobile && flutter run \
-		--dart-define=SUPABASE_URL=https://REDACTED_SUPABASE_HOST \
-		--dart-define=SUPABASE_ANON_KEY=REDACTED_SUPABASE_KEY
+		--dart-define=SUPABASE_URL=$(SUPABASE_URL_REMOTE) \
+		--dart-define=SUPABASE_ANON_KEY=$(SUPABASE_ANON_KEY_REMOTE)
 
 # Flutter 빌드 (iOS 시뮬레이터, 로컬)
+# 환경변수: SUPABASE_URL_LOCAL, SUPABASE_ANON_KEY_LOCAL
 flutter-build:
+	@if [ -z "$(SUPABASE_URL_LOCAL)" ] || [ -z "$(SUPABASE_ANON_KEY_LOCAL)" ]; then \
+		echo "❌ Error: SUPABASE_URL_LOCAL and SUPABASE_ANON_KEY_LOCAL must be set"; \
+		exit 1; \
+	fi
 	cd apps/mobile && flutter build ios --simulator \
-		--dart-define=SUPABASE_URL=http://127.0.0.1:57321 \
-		--dart-define=SUPABASE_ANON_KEY=REDACTED_SUPABASE_KEY_LOCAL
+		--dart-define=SUPABASE_URL=$(SUPABASE_URL_LOCAL) \
+		--dart-define=SUPABASE_ANON_KEY=$(SUPABASE_ANON_KEY_LOCAL)
 
 # Flutter IPA 빌드 (리모트 Supabase - TestFlight용)
 # NOTE: TestFlight 배포는 항상 remote 환경 사용 (로컬 빌드 옵션 없음)
+# 환경변수: SUPABASE_URL_REMOTE, SUPABASE_ANON_KEY_REMOTE
 flutter-build-ipa:
+	@if [ -z "$(SUPABASE_URL_REMOTE)" ] || [ -z "$(SUPABASE_ANON_KEY_REMOTE)" ]; then \
+		echo "❌ Error: SUPABASE_URL_REMOTE and SUPABASE_ANON_KEY_REMOTE must be set"; \
+		exit 1; \
+	fi
 	@echo "🚀 Building IPA for TestFlight (remote Supabase environment)..."
 	cd apps/mobile && flutter build ipa \
-		--dart-define=SUPABASE_URL=https://REDACTED_SUPABASE_HOST \
-		--dart-define=SUPABASE_ANON_KEY=REDACTED_SUPABASE_KEY
+		--dart-define=SUPABASE_URL=$(SUPABASE_URL_REMOTE) \
+		--dart-define=SUPABASE_ANON_KEY=$(SUPABASE_ANON_KEY_REMOTE)
 	@echo "✅ IPA built successfully at: apps/mobile/build/ios/ipa/"
 
 # TestFlight 배포 (빌드 + 업로드 통합 명령)

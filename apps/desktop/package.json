@@ -33,7 +33,6 @@
     "mac": {
       "target": "dmg",
       "category": "public.app-category.productivity",
-      "identity": "Developer Name (J2Y925QHNV)",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "notarize": true,
