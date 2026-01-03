@@ -51,6 +51,43 @@ const api = {
       }
     },
   },
+  updater: {
+    check: () => ipcRenderer.invoke('updater:check'),
+    download: () => ipcRenderer.invoke('updater:download'),
+    install: () => ipcRenderer.invoke('updater:install'),
+    getVersion: (): Promise<string> => ipcRenderer.invoke('updater:getVersion'),
+    onChecking: (callback: () => void): (() => void) => {
+      const handler = () => callback()
+      ipcRenderer.on('updater:checking', handler)
+      return () => ipcRenderer.removeListener('updater:checking', handler)
+    },
+    onAvailable: (callback: (info: unknown) => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, info: unknown) => callback(info)
+      ipcRenderer.on('updater:available', handler)
+      return () => ipcRenderer.removeListener('updater:available', handler)
+    },
+    onNotAvailable: (callback: (info: unknown) => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, info: unknown) => callback(info)
+      ipcRenderer.on('updater:not-available', handler)
+      return () => ipcRenderer.removeListener('updater:not-available', handler)
+    },
+    onError: (callback: (error: string) => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, error: string) => callback(error)
+      ipcRenderer.on('updater:error', handler)
+      return () => ipcRenderer.removeListener('updater:error', handler)
+    },
+    onProgress: (callback: (progress: { percent: number }) => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, progress: { percent: number }) =>
+        callback(progress)
+      ipcRenderer.on('updater:progress', handler)
+      return () => ipcRenderer.removeListener('updater:progress', handler)
+    },
+    onDownloaded: (callback: (info: unknown) => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, info: unknown) => callback(info)
+      ipcRenderer.on('updater:downloaded', handler)
+      return () => ipcRenderer.removeListener('updater:downloaded', handler)
+    },
+  },
 }
 
 contextBridge.exposeInMainWorld('api', api)

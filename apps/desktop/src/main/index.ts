@@ -11,6 +11,7 @@ import {
   Tray,
   type ClientRequestConstructorOptions,
 } from 'electron'
+import { initAutoUpdater, setupUpdaterIpc } from './updater'
 
 // Handle EPIPE errors that occur when stdout is closed (e.g., tray app without terminal)
 process.on('uncaughtException', (error) => {
@@ -1003,9 +1004,15 @@ function handleOAuthCallback(url: string): void {
 app.whenReady().then(() => {
   setupIpcHandlers()
   setupQuickCaptureHandlers()
+  setupUpdaterIpc()
   createTray()
   registerGlobalShortcuts()
   createWindow()
+
+  // Initialize auto-updater after window is created
+  if (mainWindow) {
+    initAutoUpdater(mainWindow)
+  }
 
   // Handle OAuth callback URL (Windows/Linux - second instance)
   const gotTheLock = app.requestSingleInstanceLock()
