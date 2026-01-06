@@ -64,14 +64,18 @@ export function TagDialog({ noteId, existingTagNames, onClose }: Props) {
         return
       }
 
-      if (e.key === 'ArrowDown') {
+      if (e.key === 'ArrowDown' || e.key === 'j' || e.key === 'ㅓ') {
+        // j/ㅓ는 입력 중일 때는 문자 입력으로 처리
+        if ((e.key === 'j' || e.key === 'ㅓ') && inputValue) return
         e.preventDefault()
         setFocusedIndex((prev) => Math.min(prev + 1, totalItems - 1))
         setHoveredIndex(null) // 키보드 사용 시 마우스 호버 상태 초기화
         return
       }
 
-      if (e.key === 'ArrowUp') {
+      if (e.key === 'ArrowUp' || e.key === 'k' || e.key === 'ㅏ') {
+        // k/ㅏ는 입력 중일 때는 문자 입력으로 처리
+        if ((e.key === 'k' || e.key === 'ㅏ') && inputValue) return
         e.preventDefault()
         setFocusedIndex((prev) => Math.max(prev - 1, 0))
         setHoveredIndex(null) // 키보드 사용 시 마우스 호버 상태 초기화

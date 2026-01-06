@@ -55,10 +55,10 @@ export const TagInput = forwardRef<TagInputHandle, Props>(({ noteId, existingTag
         } else if (inputValue.trim()) {
           handleSubmit(inputValue)
         }
-      } else if (e.key === 'ArrowDown') {
+      } else if (e.key === 'ArrowDown' || ((!inputValue) && (e.key === 'j' || e.key === 'ㅓ'))) {
         e.preventDefault()
         setSelectedIndex((prev) => Math.min(prev + 1, suggestions.length - 1))
-      } else if (e.key === 'ArrowUp') {
+      } else if (e.key === 'ArrowUp' || ((!inputValue) && (e.key === 'k' || e.key === 'ㅏ'))) {
         e.preventDefault()
         setSelectedIndex((prev) => Math.max(prev - 1, 0))
       } else if (e.key === 'Escape') {

@@ -792,6 +792,7 @@ export function NoteFeed() {
                     if (el) cardElementRefs.current.set(item.note.id, el)
                     else cardElementRefs.current.delete(item.note.id)
                   }}
+                  onClick={() => setFocusedIndex(globalIndex)}
                 >
                   <NoteCard
                     ref={(handle) => setCardRef(item.note.id, handle)}
