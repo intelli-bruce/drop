@@ -49,6 +49,7 @@ export const NoteCard = memo(
         unarchiveNote,
         restoreNote,
         permanentlyDeleteNote,
+        togglePinNote,
       } = useNotesStore()
       const hasPin = useProfileStore((s) => s.hasPin)
 
@@ -179,6 +180,13 @@ export const NoteCard = memo(
               <div className="note-card-actions">
                 {viewMode === 'active' && (
                   <>
+                    <button
+                      className={`pin-btn ${note.isPinned ? 'pinned' : ''}`}
+                      onClick={() => togglePinNote(note.id)}
+                      title={note.isPinned ? '고정 해제 (p)' : '상단 고정 (p)'}
+                    >
+                      {note.isPinned ? '📌' : '📍'}
+                    </button>
                     <button
                       className={`lock-btn ${note.isLocked ? 'locked' : ''}`}
                       onClick={handleLockToggle}

@@ -133,7 +133,9 @@ export type Database = {
           id: string
           is_deleted: boolean | null
           is_locked: boolean
+          is_pinned: boolean
           parent_id: string | null
+          pinned_at: string | null
           priority: number
           source: string
           updated_at: string
@@ -151,7 +153,9 @@ export type Database = {
           id?: string
           is_deleted?: boolean | null
           is_locked?: boolean
+          is_pinned?: boolean
           parent_id?: string | null
+          pinned_at?: string | null
           priority?: number
           source: string
           updated_at?: string
@@ -169,7 +173,9 @@ export type Database = {
           id?: string
           is_deleted?: boolean | null
           is_locked?: boolean
+          is_pinned?: boolean
           parent_id?: string | null
+          pinned_at?: string | null
           priority?: number
           source?: string
           updated_at?: string

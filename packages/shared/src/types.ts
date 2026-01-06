@@ -24,6 +24,9 @@ export interface NoteRow {
   deleted_at: string | null
   archived_at: string | null
   priority: number
+  // 상단 고정
+  is_pinned: boolean
+  pinned_at: string | null
 }
 
 export interface AttachmentRow {
@@ -92,6 +95,9 @@ export interface Note {
   deletedAt: Date | null
   archivedAt: Date | null
   priority: number
+  // 상단 고정
+  isPinned: boolean
+  pinnedAt: Date | null
 }
 
 export interface Attachment {
@@ -174,6 +180,8 @@ export function noteRowToNote(
     deletedAt: row.deleted_at ? new Date(row.deleted_at) : null,
     archivedAt: row.archived_at ? new Date(row.archived_at) : null,
     priority: row.priority ?? 0,
+    isPinned: row.is_pinned ?? false,
+    pinnedAt: row.pinned_at ? new Date(row.pinned_at) : null,
   }
 }
 

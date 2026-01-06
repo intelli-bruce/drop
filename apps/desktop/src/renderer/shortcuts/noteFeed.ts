@@ -10,6 +10,7 @@ export type NoteFeedShortcutAction =
   | 'replyToFocused'
   | 'createSibling'
   | 'copyFocused'
+  | 'togglePin'
   | 'setPriority0'
   | 'setPriority1'
   | 'setPriority2'
@@ -41,6 +42,9 @@ export function resolveNoteFeedShortcut(event: KeyEventLike): NoteFeedShortcutAc
     case 'c':
     case 'ㅊ': // 한글 c
       return 'copyFocused'
+    case 'p':
+    case 'ㅔ': // 한글 p
+      return 'togglePin'
     case '0':
       return 'setPriority0'
     case '1':

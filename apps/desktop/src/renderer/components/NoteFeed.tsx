@@ -47,6 +47,7 @@ export function NoteFeed() {
     archiveNote,
     unarchiveNote,
     updateNotePriority,
+    togglePinNote,
     selectedNoteId,
     selectNote,
   } = useNotesStore()
@@ -71,6 +72,7 @@ export function NoteFeed() {
   )
   const updateNotePriorityRef =
     useRef<(id: string, priority: number) => Promise<void>>(updateNotePriority)
+  const togglePinNoteRef = useRef<(id: string) => Promise<void>>(togglePinNote)
 
   // 새 노트 생성 + 첨부물 추가 헬퍼 (useDragAndDrop에서 사용하기 위해 먼저 정의)
   const createNoteWithFile = useCallback(
@@ -203,6 +205,10 @@ export function NoteFeed() {
     updateNotePriorityRef.current = updateNotePriority
   }, [updateNotePriority])
 
+  useEffect(() => {
+    togglePinNoteRef.current = togglePinNote
+  }, [togglePinNote])
+
   const handleEscapeFromNormal = useCallback((index: number) => {
     setFocusedIndex(index)
     feedRef.current?.focus()
@@ -222,7 +228,22 @@ export function NoteFeed() {
   const grouped = useMemo(() => {
     const groups: { date: string; items: typeof flatNotes }[] = []
 
-    for (const item of flatNotes) {
+    // Pinned 노트 분리 (root level만)
+    const pinnedItems = flatNotes.filter((item) => item.depth === 0 && item.note.isPinned)
+    const unpinnedItems = flatNotes.filter((item) => item.depth > 0 || !item.note.isPinned)
+
+    // Pinned 그룹 추가 (pinnedAt 기준 내림차순 정렬)
+    if (pinnedItems.length > 0) {
+      const sortedPinned = [...pinnedItems].sort((a, b) => {
+        const aTime = a.note.pinnedAt?.getTime() ?? 0
+        const bTime = b.note.pinnedAt?.getTime() ?? 0
+        return bTime - aTime
+      })
+      groups.push({ date: 'Pinned', items: sortedPinned })
+    }
+
+    // 일반 노트 날짜별 그룹화
+    for (const item of unpinnedItems) {
       if (item.depth > 0 && groups.length > 0) {
         groups[groups.length - 1].items.push(item)
       } else {
@@ -565,6 +586,16 @@ export function NoteFeed() {
         const item = currentFlatNotes[currentFocusedIndex]
         if (item) {
           navigator.clipboard.writeText(item.note.content)
+        }
+        return
+      }
+
+      if (action === 'togglePin') {
+        if (currentFocusedIndex === null) return
+        e.preventDefault()
+        const item = currentFlatNotes[currentFocusedIndex]
+        if (item) {
+          togglePinNoteRef.current(item.note.id)
         }
       }
     }

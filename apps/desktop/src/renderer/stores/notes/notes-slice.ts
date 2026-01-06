@@ -19,6 +19,8 @@ export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (s
         .select('*')
         .is('deleted_at', null)
         .is('archived_at', null)
+        .order('is_pinned', { ascending: false })
+        .order('pinned_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })
 
       if (notesError) throw notesError
@@ -114,6 +116,8 @@ export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (s
         deletedAt: null,
         archivedAt: null,
         priority: 0,
+        isPinned: false,
+        pinnedAt: null,
       }
     }
 
@@ -140,6 +144,8 @@ export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (s
       deletedAt: null,
       archivedAt: null,
       priority: 0,
+      isPinned: false,
+      pinnedAt: null,
     }
 
     set((state) => ({
@@ -239,6 +245,29 @@ export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (s
     }))
   },
 
+  togglePinNote: async (id) => {
+    const note = get().notes.find((n) => n.id === id)
+    if (!note) return
+
+    const newPinned = !note.isPinned
+    const pinnedAt = newPinned ? new Date().toISOString() : null
+
+    const { error } = await supabase
+      .from('notes')
+      .update({ is_pinned: newPinned, pinned_at: pinnedAt })
+      .eq('id', id)
+
+    if (error) throw error
+
+    set((state) => ({
+      notes: state.notes.map((n) =>
+        n.id === id
+          ? { ...n, isPinned: newPinned, pinnedAt: pinnedAt ? new Date(pinnedAt) : null }
+          : n
+      ),
+    }))
+  },
+
   subscribeToChanges: () => {
     const channel = supabase
       .channel('notes-changes')
@@ -263,7 +292,13 @@ export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (s
             set((state) => ({
               notes: state.notes.map((n) =>
                 n.id === row.id
-                  ? { ...n, content: row.content ?? '', updatedAt: new Date(row.updated_at) }
+                  ? {
+                      ...n,
+                      content: row.content ?? '',
+                      updatedAt: new Date(row.updated_at),
+                      isPinned: row.is_pinned ?? false,
+                      pinnedAt: row.pinned_at ? new Date(row.pinned_at) : null,
+                    }
                   : n
               ),
             }))

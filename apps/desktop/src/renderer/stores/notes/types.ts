@@ -10,6 +10,7 @@ export interface NotesSlice {
   createNote: (initialContent?: string, parentId?: string) => Promise<Note>
   updateNote: (id: string, content: string) => Promise<void>
   updateNotePriority: (id: string, priority: number) => Promise<void>
+  togglePinNote: (id: string) => Promise<void>
   deleteNote: (id: string) => Promise<void>
   selectNote: (id: string | null) => void
   subscribeToChanges: () => () => void
