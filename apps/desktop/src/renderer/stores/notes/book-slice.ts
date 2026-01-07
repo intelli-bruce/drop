@@ -89,6 +89,16 @@ export const createBookSlice: StateCreator<NotesState, [], [], BookSlice> = (set
     console.info('[book] addBookToLibrary start', { isbn13 })
 
     try {
+      // 0. 유저 정보 가져오기
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) {
+        console.error('[book] addBookToLibrary failed - no user')
+        return null
+      }
+
       // 1. 이미 존재하는지 확인
       const { data: existingBook } = await supabase
         .from('books')
@@ -137,6 +147,7 @@ export const createBookSlice: StateCreator<NotesState, [], [], BookSlice> = (set
       const { data, error } = await supabase
         .from('books')
         .insert({
+          user_id: user.id,
           isbn13: bookDetail.isbn13,
           title: bookDetail.title,
           author: bookDetail.author,
