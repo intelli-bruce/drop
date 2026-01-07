@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useNotesStore } from './stores/notes'
 import { useAuthStore } from './stores/auth'
 import { useProfileStore } from './stores/profile'
@@ -6,15 +6,32 @@ import { NoteFeed } from './components/NoteFeed'
 import { AuthScreen } from './components/AuthScreen'
 import { QuickCapture } from './components/QuickCapture'
 import { UserMenu } from './components/UserMenu'
+import { BookSearchDialog } from './components/BookSearchDialog'
 
 const isLocal = import.meta.env.VITE_SUPABASE_URL?.includes('127.0.0.1')
 const envLabel = isLocal ? 'LOCAL' : 'REMOTE'
 
 function App() {
-  const { loadNotes, loadTags, subscribeToChanges, createNote } = useNotesStore()
+  const { loadNotes, loadTags, subscribeToChanges, createNote, openBookSearch } = useNotesStore()
   const { user, isAuthLoading, initializeAuth } = useAuthStore()
   const loadProfile = useProfileStore((s) => s.loadProfile)
   const [route, setRoute] = useState(() => window.location.hash.replace('#', '') || 'main')
+
+  // 단축키: Cmd+Shift+B (책 검색)
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'b') {
+        e.preventDefault()
+        openBookSearch()
+      }
+    },
+    [openBookSearch]
+  )
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [handleKeyDown])
 
   // Handle hash-based routing
   useEffect(() => {
@@ -130,6 +147,7 @@ function App() {
         <UserMenu />
       </div>
       <NoteFeed />
+      <BookSearchDialog />
     </div>
   )
 }

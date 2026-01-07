@@ -1,4 +1,17 @@
-import type { Note, Attachment, Tag } from '@drop/shared'
+import type { Note, Attachment, Tag, AladinSearchResult } from '@drop/shared'
+
+// Book slice
+export interface BookSlice {
+  isBookSearchOpen: boolean
+  bookSearchResults: AladinSearchResult[]
+  isSearchingBooks: boolean
+
+  openBookSearch: () => void
+  closeBookSearch: () => void
+  searchBooks: (query: string) => Promise<void>
+  addBookToNote: (noteId: string, isbn13: string) => Promise<Attachment | null>
+  createNoteWithBook: (isbn13: string) => Promise<Note | null>
+}
 
 // Notes slice
 export interface NotesSlice {
@@ -108,6 +121,7 @@ export interface NotesState
     AttachmentsSlice,
     InstagramSlice,
     YouTubeSlice,
+    BookSlice,
     LockSlice,
     CategoryFilterSlice,
     TrashSlice {}
