@@ -23,6 +23,8 @@ export const createBookSlice: StateCreator<NotesState, [], [], BookSlice> = (set
   selectedBookId: null,
   selectedBookWithNotes: null,
   isBookSearchOpen: false,
+  bookSearchMode: 'add',
+  linkTargetNoteId: null,
   librarySearchResults: [],
   aladinSearchResults: [],
   isSearchingBooks: false,
@@ -61,6 +63,20 @@ export const createBookSlice: StateCreator<NotesState, [], [], BookSlice> = (set
   openBookSearch: () => {
     set({
       isBookSearchOpen: true,
+      bookSearchMode: 'add',
+      linkTargetNoteId: null,
+      librarySearchResults: [],
+      aladinSearchResults: [],
+      isSearchingBooks: false,
+    })
+  },
+
+  // 노트에 책 연결용 검색 모달
+  openBookSearchForLinking: (noteId: string) => {
+    set({
+      isBookSearchOpen: true,
+      bookSearchMode: 'link',
+      linkTargetNoteId: noteId,
       librarySearchResults: [],
       aladinSearchResults: [],
       isSearchingBooks: false,
@@ -70,6 +86,8 @@ export const createBookSlice: StateCreator<NotesState, [], [], BookSlice> = (set
   closeBookSearch: () => {
     set({
       isBookSearchOpen: false,
+      bookSearchMode: 'add',
+      linkTargetNoteId: null,
       librarySearchResults: [],
       aladinSearchResults: [],
       isSearchingBooks: false,
@@ -83,11 +101,11 @@ export const createBookSlice: StateCreator<NotesState, [], [], BookSlice> = (set
     }
 
     set({ isSearchingBooks: true })
-    console.info('[book] searchBooks start', { query })
+    const { books, bookSearchMode } = get()
+    console.info('[book] searchBooks start', { query, mode: bookSearchMode })
 
     try {
       // 1. 내 서재에서 먼저 검색 (제목, 저자로 검색)
-      const { books } = get()
       const lowerQuery = query.toLowerCase()
       const libraryResults = books.filter(
         (book) =>
@@ -97,7 +115,17 @@ export const createBookSlice: StateCreator<NotesState, [], [], BookSlice> = (set
       )
       console.info('[book] library search result', { count: libraryResults.length })
 
-      // 2. 알라딘 API로 검색
+      // link 모드에서는 내 서재만 검색
+      if (bookSearchMode === 'link') {
+        set({
+          librarySearchResults: libraryResults,
+          aladinSearchResults: [],
+          isSearchingBooks: false,
+        })
+        return
+      }
+
+      // 2. add 모드: 알라딘 API로도 검색
       const aladinResults = (await window.api.aladin.search(query)) as AladinSearchResult[]
       console.info('[book] aladin search result', { count: aladinResults?.length ?? 0 })
 

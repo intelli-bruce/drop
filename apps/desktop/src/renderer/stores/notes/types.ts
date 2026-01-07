@@ -9,12 +9,16 @@ import type {
 } from '@drop/shared'
 
 // Book slice - 읽기 관리 시스템
+export type BookSearchMode = 'add' | 'link' // add: 서재에 추가, link: 노트에 연결
+
 export interface BookSlice {
   // State
   books: Book[]
   selectedBookId: string | null
   selectedBookWithNotes: BookWithNotes | null
   isBookSearchOpen: boolean
+  bookSearchMode: BookSearchMode
+  linkTargetNoteId: string | null // link 모드일 때 연결할 노트 ID
   librarySearchResults: Book[] // 내 서재 검색 결과
   aladinSearchResults: AladinSearchResult[] // 알라딘 검색 결과
   isSearchingBooks: boolean
@@ -27,6 +31,7 @@ export interface BookSlice {
 
   // 검색 모달
   openBookSearch: () => void
+  openBookSearchForLinking: (noteId: string) => void // 노트에 책 연결용
   closeBookSearch: () => void
   searchBooks: (query: string) => Promise<void>
 

@@ -9,6 +9,7 @@ import { UserMenu } from './components/UserMenu'
 import { BookSearchDialog } from './components/BookSearchDialog'
 import { BooksView } from './components/BooksView'
 import { BookDetail } from './components/BookDetail'
+import { isTextInputTarget, getClosestNoteId } from './lib/dom-utils'
 
 const isLocal = import.meta.env.VITE_SUPABASE_URL?.includes('127.0.0.1')
 const envLabel = isLocal ? 'LOCAL' : 'REMOTE'
@@ -16,22 +17,52 @@ const envLabel = isLocal ? 'LOCAL' : 'REMOTE'
 type MainTab = 'notes' | 'books'
 
 function App() {
-  const { loadNotes, loadTags, subscribeToChanges, createNote, openBookSearch, selectedBookId } =
-    useNotesStore()
+  const {
+    loadNotes,
+    loadTags,
+    subscribeToChanges,
+    createNote,
+    openBookSearch,
+    openBookSearchForLinking,
+    selectedBookId,
+    selectedNoteId,
+  } = useNotesStore()
   const { user, isAuthLoading, initializeAuth } = useAuthStore()
   const loadProfile = useProfileStore((s) => s.loadProfile)
   const [route, setRoute] = useState(() => window.location.hash.replace('#', '') || 'main')
   const [activeTab, setActiveTab] = useState<MainTab>('notes')
 
-  // 단축키: Cmd+Shift+B (책 검색)
+  // 단축키: Cmd+Shift+B (책 검색), Cmd+B (노트에 책 연결)
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
+      // Cmd+Shift+B: 책 검색 (서재에 추가)
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'b') {
         e.preventDefault()
         openBookSearch()
+        return
+      }
+
+      // Cmd+B: 노트에 책 연결
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'b') {
+        e.preventDefault()
+
+        // 1. 노트 편집 중이면 해당 노트의 ID 가져오기
+        if (isTextInputTarget(document.activeElement)) {
+          const noteId = getClosestNoteId(document.activeElement)
+          if (noteId) {
+            openBookSearchForLinking(noteId)
+            return
+          }
+        }
+
+        // 2. 피드에서 노트가 선택되어 있으면 해당 노트에 연결
+        if (selectedNoteId) {
+          openBookSearchForLinking(selectedNoteId)
+          return
+        }
       }
     },
-    [openBookSearch]
+    [openBookSearch, openBookSearchForLinking, selectedNoteId]
   )
 
   useEffect(() => {

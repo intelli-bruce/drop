@@ -11,6 +11,8 @@ type SearchItem =
 export function BookSearchDialog() {
   const {
     isBookSearchOpen,
+    bookSearchMode,
+    linkTargetNoteId,
     closeBookSearch,
     librarySearchResults,
     aladinSearchResults,
@@ -18,6 +20,7 @@ export function BookSearchDialog() {
     searchBooks,
     addBookToLibrary,
     selectBook,
+    linkNoteToBook,
   } = useNotesStore()
 
   const [query, setQuery] = useState('')
@@ -73,11 +76,18 @@ export function BookSearchDialog() {
 
   // 내 서재 책 선택 시
   const handleSelectLibraryBook = useCallback(
-    (book: Book) => {
-      selectBook(book.id)
-      closeBookSearch()
+    async (book: Book) => {
+      if (bookSearchMode === 'link' && linkTargetNoteId) {
+        // link 모드: 노트에 책 연결
+        await linkNoteToBook(book.id, linkTargetNoteId)
+        closeBookSearch()
+      } else {
+        // add 모드: 책 상세 페이지 열기
+        selectBook(book.id)
+        closeBookSearch()
+      }
     },
-    [selectBook, closeBookSearch]
+    [bookSearchMode, linkTargetNoteId, linkNoteToBook, selectBook, closeBookSearch]
   )
 
   // 알라딘 책 선택 시 (라이브러리에 추가)
@@ -143,14 +153,24 @@ export function BookSearchDialog() {
 
   if (!isBookSearchOpen) return null
 
+  const isLinkMode = bookSearchMode === 'link'
   const hasResults = librarySearchResults.length > 0 || aladinSearchResults.length > 0
   const noResults = query && !isSearchingBooks && !hasResults
+
+  // 모드에 따른 UI 텍스트
+  const dialogTitle = isLinkMode ? '노트에 책 연결' : '책 검색'
+  const placeholder = isLinkMode
+    ? '연결할 책 검색 (내 서재에서)...'
+    : '책 제목, 저자 또는 ISBN 입력...'
+  const emptyMessage = isLinkMode
+    ? '내 서재에 해당 책이 없습니다'
+    : '검색 결과가 없습니다'
 
   return (
     <div className="book-search-overlay" onClick={closeBookSearch}>
       <div className="book-search-dialog" onClick={(e) => e.stopPropagation()}>
         <div className="book-search-header">
-          <span className="book-search-title">책 검색</span>
+          <span className="book-search-title">{dialogTitle}</span>
           <button className="book-search-close" onClick={closeBookSearch}>
             ×
           </button>
@@ -162,7 +182,7 @@ export function BookSearchDialog() {
             ref={inputRef}
             type="text"
             className="book-search-input"
-            placeholder="책 제목, 저자 또는 ISBN 입력..."
+            placeholder={placeholder}
             value={query}
             onChange={(e) => handleQueryChange(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -173,13 +193,15 @@ export function BookSearchDialog() {
 
         <div className="book-search-results" ref={listRef}>
           {noResults ? (
-            <div className="book-search-empty">검색 결과가 없습니다</div>
+            <div className="book-search-empty">{emptyMessage}</div>
           ) : (
             <>
               {/* 내 서재 섹션 */}
               {librarySearchResults.length > 0 && (
                 <div className="book-search-section">
-                  <div className="book-search-section-title">내 서재</div>
+                  <div className="book-search-section-title">
+                    {isLinkMode ? '내 서재에서 선택' : '내 서재'}
+                  </div>
                   {librarySearchResults.map((book, index) => {
                     const itemIndex = getItemIndex('library', index)
                     const coverUrl = book.coverStoragePath
@@ -219,8 +241,8 @@ export function BookSearchDialog() {
                 </div>
               )}
 
-              {/* 알라딘 검색 섹션 */}
-              {aladinSearchResults.length > 0 && (
+              {/* 알라딘 검색 섹션 (add 모드에서만) */}
+              {!isLinkMode && aladinSearchResults.length > 0 && (
                 <div className="book-search-section">
                   <div className="book-search-section-title">
                     {librarySearchResults.length > 0 ? '새 책 추가' : '검색 결과'}
