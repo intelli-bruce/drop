@@ -20,12 +20,12 @@ function App() {
   const {
     loadNotes,
     loadTags,
+    loadBooks,
     subscribeToChanges,
     createNote,
     openBookSearch,
     openBookSearchForLinking,
     selectedBookId,
-    selectedNoteId,
   } = useNotesStore()
   const { user, isAuthLoading, initializeAuth } = useAuthStore()
   const loadProfile = useProfileStore((s) => s.loadProfile)
@@ -42,27 +42,18 @@ function App() {
         return
       }
 
-      // Cmd+B: 노트에 책 연결
+      // Cmd+B: 노트 편집 중일 때 책 연결 (피드 포커스는 NoteFeed에서 처리)
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'b') {
-        e.preventDefault()
-
-        // 1. 노트 편집 중이면 해당 노트의 ID 가져오기
         if (isTextInputTarget(document.activeElement)) {
           const noteId = getClosestNoteId(document.activeElement)
           if (noteId) {
+            e.preventDefault()
             openBookSearchForLinking(noteId)
-            return
           }
-        }
-
-        // 2. 피드에서 노트가 선택되어 있으면 해당 노트에 연결
-        if (selectedNoteId) {
-          openBookSearchForLinking(selectedNoteId)
-          return
         }
       }
     },
-    [openBookSearch, openBookSearchForLinking, selectedNoteId]
+    [openBookSearch, openBookSearchForLinking]
   )
 
   useEffect(() => {
@@ -113,6 +104,7 @@ function App() {
 
     loadNotes()
     loadTags()
+    loadBooks()
     loadProfile()
 
     // Realtime 구독 시작
@@ -121,7 +113,7 @@ function App() {
     return () => {
       unsubscribe()
     }
-  }, [user, loadNotes, loadTags, loadProfile, subscribeToChanges])
+  }, [user, loadNotes, loadTags, loadBooks, loadProfile, subscribeToChanges])
 
   // Quick Capture route - minimal UI, separate window
   if (route === 'quick-capture') {

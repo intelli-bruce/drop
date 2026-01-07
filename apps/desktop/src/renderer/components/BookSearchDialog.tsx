@@ -8,12 +8,15 @@ type SearchItem =
   | { type: 'library'; book: Book }
   | { type: 'aladin'; book: AladinSearchResult }
 
+const PAGE_SIZE = 20
+
 export function BookSearchDialog() {
   const {
     isBookSearchOpen,
     bookSearchMode,
     linkTargetNoteId,
     closeBookSearch,
+    books,
     librarySearchResults,
     aladinSearchResults,
     isSearchingBooks,
@@ -26,19 +29,33 @@ export function BookSearchDialog() {
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [isAdding, setIsAdding] = useState(false)
+  const [displayLimit, setDisplayLimit] = useState(PAGE_SIZE)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const loadMoreRef = useRef<HTMLDivElement>(null)
 
   // 검색어 입력 디바운스
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
+  // 검색어가 없을 때 표시할 책 목록 (최신순, 무한 스크롤)
+  const defaultBooks = useMemo(() => {
+    // books는 이미 created_at desc로 정렬되어 있음
+    return books.slice(0, displayLimit)
+  }, [books, displayLimit])
+
+  // 검색어 여부에 따라 표시할 내 서재 책 목록 결정
+  const displayedLibraryBooks = query.trim() ? librarySearchResults : defaultBooks
+  const hasMoreBooks = !query.trim() && books.length > displayLimit
+
   // 모든 결과를 하나의 배열로 합침 (키보드 네비게이션용)
   const allItems = useMemo<SearchItem[]>(() => {
     const items: SearchItem[] = []
-    librarySearchResults.forEach((book) => items.push({ type: 'library', book }))
-    aladinSearchResults.forEach((book) => items.push({ type: 'aladin', book }))
+    displayedLibraryBooks.forEach((book) => items.push({ type: 'library', book }))
+    if (query.trim()) {
+      aladinSearchResults.forEach((book) => items.push({ type: 'aladin', book }))
+    }
     return items
-  }, [librarySearchResults, aladinSearchResults])
+  }, [displayedLibraryBooks, aladinSearchResults, query])
 
   const handleQueryChange = (value: string) => {
     setQuery(value)
@@ -59,11 +76,29 @@ export function BookSearchDialog() {
       setQuery('')
       setSelectedIndex(0)
       setIsAdding(false)
+      setDisplayLimit(PAGE_SIZE)
       setTimeout(() => {
         inputRef.current?.focus()
       }, 0)
     }
   }, [isBookSearchOpen])
+
+  // 무한 스크롤: IntersectionObserver로 더 보기
+  useEffect(() => {
+    if (!loadMoreRef.current || !isBookSearchOpen) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMoreBooks) {
+          setDisplayLimit((prev) => prev + PAGE_SIZE)
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    observer.observe(loadMoreRef.current)
+    return () => observer.disconnect()
+  }, [isBookSearchOpen, hasMoreBooks])
 
   // 선택된 항목이 보이도록 스크롤
   useEffect(() => {
@@ -148,14 +183,14 @@ export function BookSearchDialog() {
     if (sectionType === 'library') {
       return indexInSection
     }
-    return librarySearchResults.length + indexInSection
+    return displayedLibraryBooks.length + indexInSection
   }
 
   if (!isBookSearchOpen) return null
 
   const isLinkMode = bookSearchMode === 'link'
-  const hasResults = librarySearchResults.length > 0 || aladinSearchResults.length > 0
-  const noResults = query && !isSearchingBooks && !hasResults
+  const hasResults = displayedLibraryBooks.length > 0 || aladinSearchResults.length > 0
+  const noResults = query.trim() && !isSearchingBooks && !hasResults
 
   // 모드에 따른 UI 텍스트
   const dialogTitle = isLinkMode ? '노트에 책 연결' : '책 검색'
@@ -194,15 +229,17 @@ export function BookSearchDialog() {
         <div className="book-search-results" ref={listRef}>
           {noResults ? (
             <div className="book-search-empty">{emptyMessage}</div>
+          ) : !hasResults && !query.trim() && books.length === 0 ? (
+            <div className="book-search-empty">서재가 비어있습니다</div>
           ) : (
             <>
               {/* 내 서재 섹션 */}
-              {librarySearchResults.length > 0 && (
+              {displayedLibraryBooks.length > 0 && (
                 <div className="book-search-section">
                   <div className="book-search-section-title">
-                    {isLinkMode ? '내 서재에서 선택' : '내 서재'}
+                    {isLinkMode ? '내 서재에서 선택' : query.trim() ? '내 서재' : '내 서재 전체'}
                   </div>
-                  {librarySearchResults.map((book, index) => {
+                  {displayedLibraryBooks.map((book, index) => {
                     const itemIndex = getItemIndex('library', index)
                     const coverUrl = book.coverStoragePath
                       ? supabase.storage.from('attachments').getPublicUrl(book.coverStoragePath)
@@ -238,14 +275,20 @@ export function BookSearchDialog() {
                       </div>
                     )
                   })}
+                  {/* 무한 스크롤 로더 */}
+                  {hasMoreBooks && (
+                    <div ref={loadMoreRef} className="book-search-load-more">
+                      더 불러오는 중...
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* 알라딘 검색 섹션 (add 모드에서만) */}
-              {!isLinkMode && aladinSearchResults.length > 0 && (
+              {/* 알라딘 검색 섹션 (add 모드에서만, 검색어가 있을 때만) */}
+              {!isLinkMode && query.trim() && aladinSearchResults.length > 0 && (
                 <div className="book-search-section">
                   <div className="book-search-section-title">
-                    {librarySearchResults.length > 0 ? '새 책 추가' : '검색 결과'}
+                    {displayedLibraryBooks.length > 0 ? '새 책 추가' : '검색 결과'}
                   </div>
                   {aladinSearchResults.map((book, index) => {
                     const itemIndex = getItemIndex('aladin', index)

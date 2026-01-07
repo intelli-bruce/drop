@@ -2639,6 +2639,13 @@ body {
   color: var(--text-secondary);
 }
 
+.book-search-load-more {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
 .book-search-item {
   display: flex;
   gap: 12px;
