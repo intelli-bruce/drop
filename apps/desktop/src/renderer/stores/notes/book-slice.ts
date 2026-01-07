@@ -23,7 +23,8 @@ export const createBookSlice: StateCreator<NotesState, [], [], BookSlice> = (set
   selectedBookId: null,
   selectedBookWithNotes: null,
   isBookSearchOpen: false,
-  bookSearchResults: [],
+  librarySearchResults: [],
+  aladinSearchResults: [],
   isSearchingBooks: false,
   isBooksLoading: false,
   bookFilter: 'all',
@@ -58,16 +59,26 @@ export const createBookSlice: StateCreator<NotesState, [], [], BookSlice> = (set
 
   // 검색 모달
   openBookSearch: () => {
-    set({ isBookSearchOpen: true, bookSearchResults: [], isSearchingBooks: false })
+    set({
+      isBookSearchOpen: true,
+      librarySearchResults: [],
+      aladinSearchResults: [],
+      isSearchingBooks: false,
+    })
   },
 
   closeBookSearch: () => {
-    set({ isBookSearchOpen: false, bookSearchResults: [], isSearchingBooks: false })
+    set({
+      isBookSearchOpen: false,
+      librarySearchResults: [],
+      aladinSearchResults: [],
+      isSearchingBooks: false,
+    })
   },
 
   searchBooks: async (query: string) => {
     if (!query.trim()) {
-      set({ bookSearchResults: [], isSearchingBooks: false })
+      set({ librarySearchResults: [], aladinSearchResults: [], isSearchingBooks: false })
       return
     }
 
@@ -75,12 +86,35 @@ export const createBookSlice: StateCreator<NotesState, [], [], BookSlice> = (set
     console.info('[book] searchBooks start', { query })
 
     try {
-      const results = (await window.api.aladin.search(query)) as AladinSearchResult[]
-      console.info('[book] searchBooks result', { count: results?.length ?? 0 })
-      set({ bookSearchResults: results ?? [], isSearchingBooks: false })
+      // 1. 내 서재에서 먼저 검색 (제목, 저자로 검색)
+      const { books } = get()
+      const lowerQuery = query.toLowerCase()
+      const libraryResults = books.filter(
+        (book) =>
+          book.title.toLowerCase().includes(lowerQuery) ||
+          book.author.toLowerCase().includes(lowerQuery) ||
+          book.isbn13.includes(query)
+      )
+      console.info('[book] library search result', { count: libraryResults.length })
+
+      // 2. 알라딘 API로 검색
+      const aladinResults = (await window.api.aladin.search(query)) as AladinSearchResult[]
+      console.info('[book] aladin search result', { count: aladinResults?.length ?? 0 })
+
+      // 3. 알라딘 결과에서 이미 내 서재에 있는 책 제외
+      const libraryIsbn13s = new Set(books.map((b) => b.isbn13))
+      const filteredAladinResults = (aladinResults ?? []).filter(
+        (result) => !libraryIsbn13s.has(result.isbn13)
+      )
+
+      set({
+        librarySearchResults: libraryResults,
+        aladinSearchResults: filteredAladinResults,
+        isSearchingBooks: false,
+      })
     } catch (error) {
       console.error('[book] searchBooks failed', error)
-      set({ bookSearchResults: [], isSearchingBooks: false })
+      set({ librarySearchResults: [], aladinSearchResults: [], isSearchingBooks: false })
     }
   },
 

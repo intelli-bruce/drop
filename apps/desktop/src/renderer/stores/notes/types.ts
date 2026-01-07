@@ -15,7 +15,8 @@ export interface BookSlice {
   selectedBookId: string | null
   selectedBookWithNotes: BookWithNotes | null
   isBookSearchOpen: boolean
-  bookSearchResults: AladinSearchResult[]
+  librarySearchResults: Book[] // 내 서재 검색 결과
+  aladinSearchResults: AladinSearchResult[] // 알라딘 검색 결과
   isSearchingBooks: boolean
   isBooksLoading: boolean
   bookFilter: ReadingStatus | 'all'
