@@ -17,6 +17,10 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   process.exit(1)
 }
 
+// TypeScript narrowing 후 상수로 재할당
+const supabaseUrl: string = SUPABASE_URL
+const supabaseAnonKey: string = SUPABASE_ANON_KEY
+
 const rl = createInterface({
   input: process.stdin,
   output: process.stdout,
@@ -29,7 +33,7 @@ function question(prompt: string): Promise<string> {
 }
 
 async function loginWithEmail() {
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
   const email = await question('Email: ')
   const password = await question('Password: ')
@@ -71,7 +75,7 @@ async function loginWithToken() {
   }
 
   // 토큰 유효성 검증
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  const supabase = createClient(supabaseUrl, supabaseAnonKey)
   const { data, error } = await supabase.auth.refreshSession({
     refresh_token: token.trim(),
   })
