@@ -178,6 +178,7 @@ export interface Note {
   parentId: string | null
   attachments: Attachment[]
   tags: Tag[]
+  linkedBooks: Book[]
   createdAt: Date
   updatedAt: Date
   source: NoteSource
@@ -256,7 +257,8 @@ export function tagRowToTag(row: TagRow): Tag {
 export function noteRowToNote(
   row: NoteRow,
   attachments: Attachment[] = [],
-  tags: Tag[] = []
+  tags: Tag[] = [],
+  linkedBooks: Book[] = []
 ): Note {
   return {
     id: row.id,
@@ -265,6 +267,7 @@ export function noteRowToNote(
     parentId: row.parent_id,
     attachments,
     tags,
+    linkedBooks,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
     source: row.source,

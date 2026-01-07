@@ -463,6 +463,18 @@ export const createBookSlice: StateCreator<NotesState, [], [], BookSlice> = (set
         void get().loadBookWithNotes(bookId)
       }
 
+      // 노트의 linkedBooks 업데이트
+      const book = get().books.find((b) => b.id === bookId)
+      if (book) {
+        set((state) => ({
+          notes: state.notes.map((n) =>
+            n.id === noteId
+              ? { ...n, linkedBooks: [...n.linkedBooks, book] }
+              : n
+          ),
+        }))
+      }
+
       console.info('[book] linkNoteToBook success')
     } catch (error) {
       console.error('[book] linkNoteToBook failed', error)
@@ -485,17 +497,24 @@ export const createBookSlice: StateCreator<NotesState, [], [], BookSlice> = (set
         return
       }
 
-      // 현재 선택된 책이면 노트 목록 갱신
+      // 현재 선택된 책이면 노트 목록 갱신 + 노트의 linkedBooks에서 제거
       set((state) => {
+        const updates: Partial<typeof state> = {
+          notes: state.notes.map((n) =>
+            n.id === noteId
+              ? { ...n, linkedBooks: n.linkedBooks.filter((b) => b.id !== bookId) }
+              : n
+          ),
+        }
+
         if (state.selectedBookWithNotes?.id === bookId) {
-          return {
-            selectedBookWithNotes: {
-              ...state.selectedBookWithNotes,
-              notes: state.selectedBookWithNotes.notes.filter((n) => n.id !== noteId),
-            },
+          updates.selectedBookWithNotes = {
+            ...state.selectedBookWithNotes,
+            notes: state.selectedBookWithNotes.notes.filter((n) => n.id !== noteId),
           }
         }
-        return {}
+
+        return updates
       })
 
       console.info('[book] unlinkNoteFromBook success')

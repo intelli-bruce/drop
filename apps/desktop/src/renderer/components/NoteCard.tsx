@@ -2,6 +2,7 @@ import { useRef, useCallback, forwardRef, useImperativeHandle, useState, memo, u
 import { LexicalEditor, LexicalEditorHandle } from './LexicalEditor'
 import { AttachmentList } from './AttachmentList'
 import { LinkPreviews } from './LinkPreviews'
+import { LinkedBooks } from './LinkedBooks'
 import { TagList } from './TagList'
 import { TagInput, TagInputHandle } from './TagInput'
 import { LockedNoteOverlay } from './LockedNoteOverlay'
@@ -331,6 +332,7 @@ export const NoteCard = memo(
                   maxVisible={isCollapsed ? 2 : undefined}
                   onShowMore={() => setIsExpanded(true)}
                 />
+                <LinkedBooks noteId={note.id} books={note.linkedBooks} />
                 <div className="note-tags-section">
                   <TagList noteId={note.id} tags={note.tags} />
                   <TagInput
