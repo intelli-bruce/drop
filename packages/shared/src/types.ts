@@ -74,6 +74,102 @@ export interface UserProfile {
   updatedAt: Date
 }
 
+// ============================================
+// 읽기 관리 시스템 타입 (Books)
+// ============================================
+
+export type ReadingStatus = 'to_read' | 'reading' | 'completed'
+
+// Database row types
+export interface BookRow {
+  id: string
+  user_id: string | null
+  isbn13: string
+  title: string
+  author: string
+  publisher: string | null
+  pub_date: string | null
+  description: string | null
+  cover_storage_path: string | null
+  cover_url: string | null
+  reading_status: ReadingStatus
+  started_at: string | null
+  finished_at: string | null
+  rating: number | null
+  created_at: string
+  updated_at: string
+}
+
+export interface BookNoteRow {
+  book_id: string
+  note_id: string
+  created_at: string
+}
+
+// Application types
+export interface Book {
+  id: string
+  isbn13: string
+  title: string
+  author: string
+  publisher?: string
+  pubDate?: string
+  description?: string
+  coverStoragePath?: string
+  coverUrl?: string
+  readingStatus: ReadingStatus
+  startedAt: Date | null
+  finishedAt: Date | null
+  rating: number | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface BookWithNotes extends Book {
+  notes: Note[]
+}
+
+// Input types
+export interface CreateBookInput {
+  isbn13: string
+  title: string
+  author: string
+  publisher?: string
+  pubDate?: string
+  description?: string
+  coverStoragePath?: string
+  coverUrl?: string
+  readingStatus?: ReadingStatus
+}
+
+export interface UpdateBookInput {
+  readingStatus?: ReadingStatus
+  startedAt?: Date | null
+  finishedAt?: Date | null
+  rating?: number | null
+}
+
+// Conversion function
+export function bookRowToBook(row: BookRow): Book {
+  return {
+    id: row.id,
+    isbn13: row.isbn13,
+    title: row.title,
+    author: row.author,
+    publisher: row.publisher ?? undefined,
+    pubDate: row.pub_date ?? undefined,
+    description: row.description ?? undefined,
+    coverStoragePath: row.cover_storage_path ?? undefined,
+    coverUrl: row.cover_url ?? undefined,
+    readingStatus: row.reading_status,
+    startedAt: row.started_at ? new Date(row.started_at) : null,
+    finishedAt: row.finished_at ? new Date(row.finished_at) : null,
+    rating: row.rating,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
+  }
+}
+
 // Application types (camelCase - 앱 내부 사용)
 export interface Note {
   id: string

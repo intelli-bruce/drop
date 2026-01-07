@@ -90,6 +90,96 @@ export type Database = {
           },
         ]
       }
+      book_notes: {
+        Row: {
+          book_id: string
+          created_at: string
+          note_id: string
+        }
+        Insert: {
+          book_id: string
+          created_at?: string
+          note_id: string
+        }
+        Update: {
+          book_id?: string
+          created_at?: string
+          note_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_notes_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "book_notes_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      books: {
+        Row: {
+          author: string
+          cover_storage_path: string | null
+          cover_url: string | null
+          created_at: string
+          description: string | null
+          finished_at: string | null
+          id: string
+          isbn13: string
+          pub_date: string | null
+          publisher: string | null
+          rating: number | null
+          reading_status: Database["public"]["Enums"]["reading_status"]
+          started_at: string | null
+          title: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          author: string
+          cover_storage_path?: string | null
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          finished_at?: string | null
+          id?: string
+          isbn13: string
+          pub_date?: string | null
+          publisher?: string | null
+          rating?: number | null
+          reading_status?: Database["public"]["Enums"]["reading_status"]
+          started_at?: string | null
+          title: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          author?: string
+          cover_storage_path?: string | null
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          finished_at?: string | null
+          id?: string
+          isbn13?: string
+          pub_date?: string | null
+          publisher?: string | null
+          rating?: number | null
+          reading_status?: Database["public"]["Enums"]["reading_status"]
+          started_at?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       note_tags: {
         Row: {
           note_id: string
@@ -348,7 +438,7 @@ export type Database = {
       regenerate_mcp_api_key: { Args: never; Returns: string }
     }
     Enums: {
-      [_ in never]: never
+      reading_status: "to_read" | "reading" | "completed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -478,7 +568,9 @@ export const Constants = {
     Enums: {},
   },
   public: {
-    Enums: {},
+    Enums: {
+      reading_status: ["to_read", "reading", "completed"],
+    },
   },
 } as const
 
