@@ -495,6 +495,17 @@ export function NoteFeed() {
       if (currentFlatNotes.length === 0) return
       if (isTextInputTarget(e.target)) return
 
+      // Cmd+B: 포커스된 노트에 책 연결 (다른 단축키보다 먼저 처리)
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'b') {
+        if (currentFocusedIndex === null) return
+        e.preventDefault()
+        const item = currentFlatNotes[currentFocusedIndex]
+        if (item) {
+          openBookSearchForLinkingRef.current(item.note.id)
+        }
+        return
+      }
+
       const action = resolveNoteFeedShortcut(e as unknown as React.KeyboardEvent)
       if (!action) return
 
@@ -602,17 +613,6 @@ export function NoteFeed() {
         const item = currentFlatNotes[currentFocusedIndex]
         if (item) {
           togglePinNoteRef.current(item.note.id)
-        }
-        return
-      }
-
-      // Cmd+B: 포커스된 노트에 책 연결
-      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'b') {
-        if (currentFocusedIndex === null) return
-        e.preventDefault()
-        const item = currentFlatNotes[currentFocusedIndex]
-        if (item) {
-          openBookSearchForLinkingRef.current(item.note.id)
         }
         return
       }
