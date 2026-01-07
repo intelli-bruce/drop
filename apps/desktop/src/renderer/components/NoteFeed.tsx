@@ -756,46 +756,54 @@ export function NoteFeed() {
         />
       )}
       <div className="feed-header">
-        <ViewModeSelector />
-        {viewMode === 'active' && (
-          <>
-            <button
-              className="search-btn"
-              onClick={() => setShowSearchDialog(true)}
-              title="검색 (⌘K)"
-            >
-              🔍 검색
-            </button>
-            <CategoryFilter />
-            {hasLockedNotes() && (
+        <div className="feed-header-row">
+          <ViewModeSelector />
+          {viewMode === 'active' && (
+            <>
+              <div className="feed-header-divider" />
+              <CategoryFilter />
+              {filterTag && (
+                <div className="filter-indicator">
+                  <span>#{filterTag}</span>
+                  <button onClick={() => setFilterTag(null)}>&times;</button>
+                </div>
+              )}
+            </>
+          )}
+          <div className="feed-header-spacer" />
+          {viewMode === 'active' && (
+            <>
+              {hasLockedNotes() && (
+                <button
+                  className="icon-btn"
+                  onClick={() => setShowUnlockAllDialog(true)}
+                  title="전체 잠금 해제"
+                >
+                  🔓
+                </button>
+              )}
               <button
-                className="unlock-all-btn"
-                onClick={() => setShowUnlockAllDialog(true)}
-                title="모든 잠긴 노트 일시 해제"
+                className="icon-btn"
+                onClick={() => setShowSearchDialog(true)}
+                title="검색 (⌘K)"
               >
-                🔓 전체 해제
+                🔍
               </button>
-            )}
-            {filterTag && (
-              <div className="filter-indicator">
-                <span>#{filterTag}</span>
-                <button onClick={() => setFilterTag(null)}>&times;</button>
-              </div>
-            )}
-          </>
-        )}
-        {viewMode === 'trash' && trashedNotes.length > 0 && (
-          <button
-            className="empty-trash-btn"
-            onClick={() => {
-              if (window.confirm('휴지통을 비우시겠습니까? 모든 노트가 영구 삭제됩니다.')) {
-                emptyTrash()
-              }
-            }}
-          >
-            휴지통 비우기
-          </button>
-        )}
+            </>
+          )}
+          {viewMode === 'trash' && trashedNotes.length > 0 && (
+            <button
+              className="empty-trash-btn"
+              onClick={() => {
+                if (window.confirm('휴지통을 비우시겠습니까? 모든 노트가 영구 삭제됩니다.')) {
+                  emptyTrash()
+                }
+              }}
+            >
+              비우기
+            </button>
+          )}
+        </div>
       </div>
       <div className="feed-content">
         {grouped.map(({ date, items }) => (
