@@ -8,6 +8,8 @@ import { getAttachmentUrl, getSignedAttachmentUrl } from '../lib/supabase'
 interface Props {
   attachments: Attachment[]
   onRemove: (attachmentId: string) => void
+  maxVisible?: number
+  onShowMore?: () => void
 }
 
 function formatFileSize(bytes?: number): string {
@@ -420,18 +422,6 @@ function BookAttachment({
     }
   }, [metadata?.coverStoragePath, metadata?.cover])
 
-  const openUrl = (url?: string) => {
-    if (!url) return
-    window.api.openExternal(url)
-  }
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('ko-KR', {
-      style: 'currency',
-      currency: 'KRW',
-    }).format(price)
-  }
-
   // 로딩 중인 경우 skeleton 표시
   if (isLoading) {
     return (
@@ -460,7 +450,7 @@ function BookAttachment({
     <div className="attachment-card attachment-book">
       <button className="attachment-remove" onClick={onRemove}>×</button>
       <div className="attachment-book-content">
-        <div className="attachment-book-cover" onClick={() => openUrl(metadata.link)}>
+        <div className="attachment-book-cover">
           {hasError || !coverUrl ? (
             <div className="attachment-book-placeholder">
               <span>📚</span>
@@ -478,32 +468,14 @@ function BookAttachment({
             <span className="attachment-book-icon" aria-hidden="true">📚</span>
             <span className="attachment-book-label">책</span>
           </div>
-          <p className="attachment-book-title" onClick={() => openUrl(metadata.link)}>
-            {metadata.title}
-          </p>
+          <p className="attachment-book-title">{metadata.title}</p>
           <span className="attachment-book-author">{metadata.author}</span>
-          <span className="attachment-book-publisher">
-            {metadata.publisher} · {metadata.pubDate?.substring(0, 4)}
-          </span>
-          <div className="attachment-book-price">
-            {metadata.priceSales !== metadata.priceStandard && (
-              <span className="attachment-book-price-original">
-                {formatPrice(metadata.priceStandard)}
-              </span>
-            )}
-            <span className="attachment-book-price-sale">
-              {formatPrice(metadata.priceSales)}
+          {metadata.publisher && (
+            <span className="attachment-book-publisher">
+              {metadata.publisher}
+              {metadata.pubDate && ` · ${metadata.pubDate.substring(0, 4)}`}
             </span>
-          </div>
-          <button
-            className="attachment-book-link"
-            onClick={() => openUrl(metadata.link)}
-          >
-            알라딘에서 보기
-          </button>
-          <span className="attachment-book-credit">
-            도서 DB 제공 : 알라딘 인터넷서점
-          </span>
+          )}
         </div>
       </div>
     </div>
@@ -638,12 +610,15 @@ function InstagramAttachment({
   )
 }
 
-export function AttachmentList({ attachments, onRemove }: Props) {
+export function AttachmentList({ attachments, onRemove, maxVisible, onShowMore }: Props) {
   if (attachments.length === 0) return null
+
+  const visibleAttachments = maxVisible ? attachments.slice(0, maxVisible) : attachments
+  const hiddenCount = maxVisible ? Math.max(0, attachments.length - maxVisible) : 0
 
   return (
     <div className="attachment-list">
-      {attachments.map((attachment) => {
+      {visibleAttachments.map((attachment) => {
         switch (attachment.type) {
           case 'image':
             return (
@@ -713,6 +688,11 @@ export function AttachmentList({ attachments, onRemove }: Props) {
             return null
         }
       })}
+      {hiddenCount > 0 && onShowMore && (
+        <button className="attachment-more-btn" onClick={onShowMore}>
+          +{hiddenCount}개 더보기
+        </button>
+      )}
     </div>
   )
 }

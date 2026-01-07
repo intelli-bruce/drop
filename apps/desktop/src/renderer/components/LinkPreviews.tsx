@@ -15,6 +15,8 @@ interface YouTubeOEmbedData {
 interface Props {
   content: string
   attachments: Attachment[]
+  maxVisible?: number
+  onShowMore?: () => void
 }
 
 function YouTubeLinkPreview({ url }: { url: string }) {
@@ -117,7 +119,7 @@ function YouTubeLinkPreview({ url }: { url: string }) {
   )
 }
 
-export function LinkPreviews({ content, attachments }: Props) {
+export function LinkPreviews({ content, attachments, maxVisible, onShowMore }: Props) {
   // 본문에서 YouTube URL 추출
   const youtubeUrls = useMemo(() => extractYouTubeUrls(content), [content])
 
@@ -146,11 +148,19 @@ export function LinkPreviews({ content, attachments }: Props) {
     return null
   }
 
+  const visibleUrls = maxVisible ? newYoutubeUrls.slice(0, maxVisible) : newYoutubeUrls
+  const hiddenCount = maxVisible ? Math.max(0, newYoutubeUrls.length - maxVisible) : 0
+
   return (
     <div className="link-previews">
-      {newYoutubeUrls.map((url) => (
+      {visibleUrls.map((url) => (
         <YouTubeLinkPreview key={url} url={url} />
       ))}
+      {hiddenCount > 0 && onShowMore && (
+        <button className="link-preview-more-btn" onClick={onShowMore}>
+          +{hiddenCount}개 더보기
+        </button>
+      )}
     </div>
   )
 }

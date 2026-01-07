@@ -10,13 +10,12 @@ export function BookSearchDialog() {
     bookSearchResults,
     isSearchingBooks,
     searchBooks,
-    createNoteWithBook,
-    selectedNoteId,
-    addBookToNote,
+    addBookToLibrary,
   } = useNotesStore()
 
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
+  const [isAdding, setIsAdding] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
@@ -41,6 +40,7 @@ export function BookSearchDialog() {
     if (isBookSearchOpen) {
       setQuery('')
       setSelectedIndex(0)
+      setIsAdding(false)
       setTimeout(() => {
         inputRef.current?.focus()
       }, 0)
@@ -57,17 +57,20 @@ export function BookSearchDialog() {
 
   const handleSelect = useCallback(
     async (book: AladinSearchResult) => {
-      closeBookSearch()
+      if (isAdding) return
 
-      if (selectedNoteId) {
-        // 선택된 노트가 있으면 해당 노트에 책 추가
-        await addBookToNote(selectedNoteId, book.isbn13)
-      } else {
-        // 없으면 새 노트 생성하고 책 추가
-        await createNoteWithBook(book.isbn13)
+      setIsAdding(true)
+      try {
+        // 책을 라이브러리에 추가
+        const addedBook = await addBookToLibrary(book.isbn13)
+        if (addedBook) {
+          closeBookSearch()
+        }
+      } finally {
+        setIsAdding(false)
       }
     },
-    [selectedNoteId, addBookToNote, createNoteWithBook, closeBookSearch]
+    [addBookToLibrary, closeBookSearch, isAdding]
   )
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -95,17 +98,13 @@ export function BookSearchDialog() {
     }
   }
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('ko-KR').format(price)
-  }
-
   if (!isBookSearchOpen) return null
 
   return (
     <div className="book-search-overlay" onClick={closeBookSearch}>
       <div className="book-search-dialog" onClick={(e) => e.stopPropagation()}>
         <div className="book-search-header">
-          <span className="book-search-title">📚 책 검색</span>
+          <span className="book-search-title">책 추가</span>
           <button className="book-search-close" onClick={closeBookSearch}>
             ×
           </button>
@@ -117,19 +116,18 @@ export function BookSearchDialog() {
             ref={inputRef}
             type="text"
             className="book-search-input"
-            placeholder="검색어 또는 ISBN 입력..."
+            placeholder="책 제목 또는 ISBN 입력..."
             value={query}
             onChange={(e) => handleQueryChange(e.target.value)}
             onKeyDown={handleKeyDown}
+            disabled={isAdding}
           />
-          {isSearchingBooks && <span className="book-search-spinner" />}
+          {(isSearchingBooks || isAdding) && <span className="book-search-spinner" />}
         </div>
 
         <div className="book-search-results" ref={listRef}>
           {bookSearchResults.length === 0 && query && !isSearchingBooks ? (
-            <div className="book-search-empty">
-              검색 결과가 없습니다
-            </div>
+            <div className="book-search-empty">검색 결과가 없습니다</div>
           ) : (
             bookSearchResults.map((book, index) => (
               <div
@@ -148,17 +146,9 @@ export function BookSearchDialog() {
                 <div className="book-search-item-info">
                   <p className="book-search-item-title">{book.title}</p>
                   <span className="book-search-item-meta">
-                    {book.author} | {book.publisher} | {book.pubDate?.substring(0, 4)}
-                  </span>
-                  <span className="book-search-item-price">
-                    {book.priceSales !== book.priceStandard && (
-                      <span className="book-search-item-price-original">
-                        ₩{formatPrice(book.priceStandard)}
-                      </span>
-                    )}
-                    <span className="book-search-item-price-sale">
-                      ₩{formatPrice(book.priceSales)}
-                    </span>
+                    {book.author}
+                    {book.publisher && ` · ${book.publisher}`}
+                    {book.pubDate && ` · ${book.pubDate.substring(0, 4)}`}
                   </span>
                 </div>
               </div>
@@ -167,12 +157,7 @@ export function BookSearchDialog() {
         </div>
 
         <div className="book-search-footer">
-          <span className="book-search-hints">
-            ↑↓ 이동 · Enter 선택 · Esc 닫기
-          </span>
-          <span className="book-search-credit">
-            도서 DB 제공 : 알라딘 인터넷서점
-          </span>
+          <span className="book-search-hints">↑↓ 이동 · Enter 선택 · Esc 닫기</span>
         </div>
       </div>
     </div>

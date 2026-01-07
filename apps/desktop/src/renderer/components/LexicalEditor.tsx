@@ -57,6 +57,8 @@ interface Props {
   onChange: (content: string) => void
   onEscape: () => void
   onAddFile: (file: File) => void
+  onFocus?: () => void
+  onBlur?: () => void
 }
 
 const theme = {
@@ -237,7 +239,7 @@ function FilePastePlugin({ onAddFile }: { onAddFile: (file: File) => void }) {
 }
 
 export const LexicalEditor = forwardRef<LexicalEditorHandle, Props>(
-  ({ initialContent, onChange, onEscape, onAddFile }, ref) => {
+  ({ initialContent, onChange, onEscape, onAddFile, onFocus, onBlur }, ref) => {
     const editorRef = { current: null as { focus: () => void } | null }
 
     useImperativeHandle(ref, () => ({
@@ -269,7 +271,7 @@ export const LexicalEditor = forwardRef<LexicalEditorHandle, Props>(
 
     return (
       <LexicalComposer initialConfig={initialConfig}>
-        <div className="lexical-container">
+        <div className="lexical-container" onFocus={onFocus} onBlur={onBlur}>
           <RichTextPlugin
             contentEditable={<ContentEditable className="lexical-content" />}
             placeholder={<div className="lexical-placeholder">메모 작성...</div>}

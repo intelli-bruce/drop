@@ -1,4 +1,4 @@
-import { useRef, useCallback, forwardRef, useImperativeHandle, useState, memo } from 'react'
+import { useRef, useCallback, forwardRef, useImperativeHandle, useState, memo, useMemo } from 'react'
 import { LexicalEditor, LexicalEditorHandle } from './LexicalEditor'
 import { AttachmentList } from './AttachmentList'
 import { LinkPreviews } from './LinkPreviews'
@@ -34,6 +34,17 @@ export const NoteCard = memo(
       const tagInputRef = useRef<TagInputHandle>(null)
       const [showPinDialog, setShowPinDialog] = useState(false)
       const [pinDialogMode, setPinDialogMode] = useState<PinDialogMode>('setup')
+      const [isExpanded, setIsExpanded] = useState(false)
+      const [isEditing, setIsEditing] = useState(false)
+
+      // 콘텐츠가 truncation이 필요한지 판단 (5줄 이상 또는 200자 이상)
+      const isTruncatable = useMemo(() => {
+        const lineCount = (note.content.match(/\n/g) || []).length + 1
+        return lineCount > 5 || note.content.length > 200
+      }, [note.content])
+
+      // 축소 상태: truncatable이고, 확장되지 않았고, 편집 중이 아닐 때
+      const isCollapsed = isTruncatable && !isExpanded && !isEditing
 
       const {
         updateNote,
@@ -155,10 +166,22 @@ export const NoteCard = memo(
 
       const priorityInfo = getPriorityLabel(note.priority)
 
+      const cardClassName = [
+          'note-card',
+          isFocused && 'focused',
+          isDragOver && 'drag-over',
+          depth > 0 && 'note-card-reply',
+          isLocked && 'locked',
+          isCollapsed && 'collapsed',
+          isTruncatable && 'truncatable',
+        ]
+          .filter(Boolean)
+          .join(' ')
+
       return (
         <>
           <div
-            className={`note-card ${isFocused ? 'focused' : ''} ${isDragOver ? 'drag-over' : ''} ${depth > 0 ? 'note-card-reply' : ''} ${isLocked ? 'locked' : ''}`}
+            className={cardClassName}
             style={indentStyle}
             data-note-id={note.id}
             onDragOver={isLocked ? undefined : handleDragOver}
@@ -284,10 +307,30 @@ export const NoteCard = memo(
                     onChange={handleChange}
                     onEscape={onEscapeFromNormal}
                     onAddFile={handleAddFile}
+                    onFocus={() => setIsEditing(true)}
+                    onBlur={() => setIsEditing(false)}
                   />
                 </div>
-                <AttachmentList attachments={note.attachments} onRemove={handleRemoveAttachment} />
-                <LinkPreviews content={note.content} attachments={note.attachments} />
+                {isTruncatable && (
+                  <button
+                    className="note-expand-btn"
+                    onClick={() => setIsExpanded(!isExpanded)}
+                  >
+                    {isExpanded ? '접기 ▲' : '더보기 ▼'}
+                  </button>
+                )}
+                <AttachmentList
+                  attachments={note.attachments}
+                  onRemove={handleRemoveAttachment}
+                  maxVisible={isCollapsed ? 3 : undefined}
+                  onShowMore={() => setIsExpanded(true)}
+                />
+                <LinkPreviews
+                  content={note.content}
+                  attachments={note.attachments}
+                  maxVisible={isCollapsed ? 2 : undefined}
+                  onShowMore={() => setIsExpanded(true)}
+                />
                 <div className="note-tags-section">
                   <TagList noteId={note.id} tags={note.tags} />
                   <TagInput

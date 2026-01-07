@@ -7,15 +7,21 @@ import { AuthScreen } from './components/AuthScreen'
 import { QuickCapture } from './components/QuickCapture'
 import { UserMenu } from './components/UserMenu'
 import { BookSearchDialog } from './components/BookSearchDialog'
+import { BooksView } from './components/BooksView'
+import { BookDetail } from './components/BookDetail'
 
 const isLocal = import.meta.env.VITE_SUPABASE_URL?.includes('127.0.0.1')
 const envLabel = isLocal ? 'LOCAL' : 'REMOTE'
 
+type MainTab = 'notes' | 'books'
+
 function App() {
-  const { loadNotes, loadTags, subscribeToChanges, createNote, openBookSearch } = useNotesStore()
+  const { loadNotes, loadTags, subscribeToChanges, createNote, openBookSearch, selectedBookId } =
+    useNotesStore()
   const { user, isAuthLoading, initializeAuth } = useAuthStore()
   const loadProfile = useProfileStore((s) => s.loadProfile)
   const [route, setRoute] = useState(() => window.location.hash.replace('#', '') || 'main')
+  const [activeTab, setActiveTab] = useState<MainTab>('notes')
 
   // 단축키: Cmd+Shift+B (책 검색)
   const handleKeyDown = useCallback(
@@ -116,38 +122,47 @@ function App() {
 
   return (
     <div className="app">
-      <div
-        style={{
-          position: 'fixed',
-          top: 12,
-          right: 16,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          zIndex: 10000,
-          WebkitAppRegion: 'no-drag',
-          pointerEvents: 'auto',
-        } as React.CSSProperties}
-      >
-        {import.meta.env.DEV && (
-          <div
-            style={{
-              padding: '4px 8px',
-              borderRadius: 4,
-              fontSize: 11,
-              fontWeight: 600,
-              color: '#fff',
-              backgroundColor: isLocal ? '#10b981' : '#f59e0b',
-              opacity: 0.9,
-            }}
+      <div className="app-header">
+        <div className="app-tabs">
+          <button
+            className={`app-tab ${activeTab === 'notes' ? 'active' : ''}`}
+            onClick={() => setActiveTab('notes')}
           >
-            {envLabel}
-          </div>
-        )}
-        <UserMenu />
+            노트
+          </button>
+          <button
+            className={`app-tab ${activeTab === 'books' ? 'active' : ''}`}
+            onClick={() => setActiveTab('books')}
+          >
+            서재
+          </button>
+        </div>
+        <div className="app-header-right">
+          {import.meta.env.DEV && (
+            <div
+              style={{
+                padding: '4px 8px',
+                borderRadius: 4,
+                fontSize: 11,
+                fontWeight: 600,
+                color: '#fff',
+                backgroundColor: isLocal ? '#10b981' : '#f59e0b',
+                opacity: 0.9,
+              }}
+            >
+              {envLabel}
+            </div>
+          )}
+          <UserMenu />
+        </div>
       </div>
-      <NoteFeed />
+
+      <div className="app-content">
+        {activeTab === 'notes' ? <NoteFeed /> : <BooksView />}
+      </div>
+
       <BookSearchDialog />
+      {selectedBookId && <BookDetail />}
     </div>
   )
 }
