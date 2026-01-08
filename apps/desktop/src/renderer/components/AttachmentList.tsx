@@ -1,5 +1,5 @@
 /// <reference path="../../preload/index.d.ts" />
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { FileIcon, defaultStyles } from 'react-file-icon'
 import type { Attachment, BookMetadata } from '@drop/shared'
 import { isBookMetadata } from '@drop/shared'
@@ -10,6 +10,13 @@ interface Props {
   onRemove: (attachmentId: string) => void
   maxVisible?: number
   onShowMore?: () => void
+}
+
+interface ImageGalleryProps {
+  images: Attachment[]
+  currentIndex: number
+  onClose: () => void
+  onNavigate: (index: number) => void
 }
 
 function formatFileSize(bytes?: number): string {
@@ -66,14 +73,118 @@ function useAttachmentUrl(storagePath: string) {
   return { url, retry }
 }
 
+function ImageGalleryModal({ images, currentIndex, onClose, onNavigate }: ImageGalleryProps) {
+  const currentImage = images[currentIndex]
+  const { url } = useAttachmentUrl(currentImage?.storagePath || '')
+
+  const handlePrev = useCallback(
+    (e?: React.MouseEvent) => {
+      e?.stopPropagation()
+      if (currentIndex > 0) onNavigate(currentIndex - 1)
+    },
+    [currentIndex, onNavigate]
+  )
+
+  const handleNext = useCallback(
+    (e?: React.MouseEvent) => {
+      e?.stopPropagation()
+      if (currentIndex < images.length - 1) onNavigate(currentIndex + 1)
+    },
+    [currentIndex, images.length, onNavigate]
+  )
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+      if (e.key === 'ArrowLeft') handlePrev()
+      if (e.key === 'ArrowRight') handleNext()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onClose, handlePrev, handleNext])
+
+  if (!currentImage) return null
+
+  return (
+    <div className="image-gallery-modal" onClick={onClose}>
+      <button className="gallery-close-btn" onClick={onClose}>×</button>
+
+      <div className="gallery-main" onClick={(e) => e.stopPropagation()}>
+        {currentIndex > 0 && (
+          <button className="gallery-nav-btn gallery-prev" onClick={handlePrev}>
+            ‹
+          </button>
+        )}
+
+        <div className="gallery-image-container">
+          {url ? (
+            <img src={url} alt={currentImage.filename || '이미지'} />
+          ) : (
+            <div className="gallery-loading">로딩 중...</div>
+          )}
+        </div>
+
+        {currentIndex < images.length - 1 && (
+          <button className="gallery-nav-btn gallery-next" onClick={handleNext}>
+            ›
+          </button>
+        )}
+      </div>
+
+      {images.length > 1 && (
+        <div className="gallery-thumbnails" onClick={(e) => e.stopPropagation()}>
+          {images.map((img, idx) => (
+            <GalleryThumbnail
+              key={img.id}
+              attachment={img}
+              isActive={idx === currentIndex}
+              onClick={() => onNavigate(idx)}
+            />
+          ))}
+        </div>
+      )}
+
+      <div className="gallery-counter">
+        {currentIndex + 1} / {images.length}
+      </div>
+    </div>
+  )
+}
+
+function GalleryThumbnail({
+  attachment,
+  isActive,
+  onClick,
+}: {
+  attachment: Attachment
+  isActive: boolean
+  onClick: () => void
+}) {
+  const { url } = useAttachmentUrl(attachment.storagePath)
+
+  return (
+    <button
+      className={`gallery-thumbnail ${isActive ? 'active' : ''}`}
+      onClick={onClick}
+    >
+      {url ? (
+        <img src={url} alt={attachment.filename || ''} />
+      ) : (
+        <div className="gallery-thumbnail-loading" />
+      )}
+    </button>
+  )
+}
+
 function ImageAttachment({
   attachment,
   onRemove,
+  onExpand,
 }: {
   attachment: Attachment
   onRemove: () => void
+  onExpand: () => void
 }) {
-  const [expanded, setExpanded] = useState(false)
   const [hasError, setHasError] = useState(false)
   const { url, retry } = useAttachmentUrl(attachment.storagePath)
 
@@ -92,10 +203,14 @@ function ImageAttachment({
     retry()
   }
 
+  const handleClick = () => {
+    if (!hasError && url) onExpand()
+  }
+
   return (
     <div className="attachment-card attachment-image">
       <button className="attachment-remove" onClick={onRemove}>×</button>
-      <div className="attachment-thumbnail" onClick={() => !hasError && setExpanded(!expanded)}>
+      <div className="attachment-thumbnail" onClick={handleClick}>
         {hasError ? (
           <div className="attachment-error" onClick={handleRetry}>
             <span>로드 실패</span>
@@ -107,11 +222,6 @@ function ImageAttachment({
           <span className="attachment-placeholder">로딩 중</span>
         )}
       </div>
-      {expanded && url && !hasError ? (
-        <div className="attachment-modal" onClick={() => setExpanded(false)}>
-          <img src={url} alt={attachment.filename || '이미지'} onError={handleError} />
-        </div>
-      ) : null}
     </div>
   )
 }
@@ -611,6 +721,24 @@ function InstagramAttachment({
 }
 
 export function AttachmentList({ attachments, onRemove, maxVisible, onShowMore }: Props) {
+  const [galleryIndex, setGalleryIndex] = useState<number | null>(null)
+
+  // 모든 이미지 첨부파일 (갤러리용)
+  const imageAttachments = useMemo(
+    () => attachments.filter((a) => a.type === 'image'),
+    [attachments]
+  )
+
+  const handleImageExpand = useCallback(
+    (attachmentId: string) => {
+      const index = imageAttachments.findIndex((a) => a.id === attachmentId)
+      if (index !== -1) setGalleryIndex(index)
+    },
+    [imageAttachments]
+  )
+
+  const closeGallery = useCallback(() => setGalleryIndex(null), [])
+
   if (attachments.length === 0) return null
 
   const visibleAttachments = maxVisible ? attachments.slice(0, maxVisible) : attachments
@@ -626,6 +754,7 @@ export function AttachmentList({ attachments, onRemove, maxVisible, onShowMore }
                 key={attachment.id}
                 attachment={attachment}
                 onRemove={() => onRemove(attachment.id)}
+                onExpand={() => handleImageExpand(attachment.id)}
               />
             )
           case 'video':
@@ -692,6 +821,14 @@ export function AttachmentList({ attachments, onRemove, maxVisible, onShowMore }
         <button className="attachment-more-btn" onClick={onShowMore}>
           +{hiddenCount}개 더보기
         </button>
+      )}
+      {galleryIndex !== null && imageAttachments.length > 0 && (
+        <ImageGalleryModal
+          images={imageAttachments}
+          currentIndex={galleryIndex}
+          onClose={closeGallery}
+          onNavigate={setGalleryIndex}
+        />
       )}
     </div>
   )
