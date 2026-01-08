@@ -49,6 +49,27 @@ const api = {
     parseUrl: (url: string): Promise<{ itemId: string } | null> =>
       ipcRenderer.invoke('aladin:parseUrl', url),
   },
+  books: {
+    /**
+     * 통합 책 검색 (알라딘 + 네이버 + 카카오 + Google Books)
+     * @param query 검색어 (제목, 저자, ISBN 등)
+     * @param options 검색 옵션 (sources, limit, page, preferKorean)
+     */
+    search: (
+      query: string,
+      options?: {
+        sources?: ('aladin' | 'naver' | 'kakao' | 'google')[]
+        limit?: number
+        page?: number
+        preferKorean?: boolean
+      }
+    ) => ipcRenderer.invoke('books:search', query, options),
+    /**
+     * 사용 가능한 API 소스 목록 조회
+     */
+    getAvailableSources: (): Promise<('aladin' | 'naver' | 'kakao' | 'google')[]> =>
+      ipcRenderer.invoke('books:getAvailableSources'),
+  },
   quickCapture: {
     open: () => ipcRenderer.invoke('quickCapture:open'),
     close: () => ipcRenderer.invoke('quickCapture:close'),

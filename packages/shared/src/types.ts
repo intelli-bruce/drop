@@ -501,3 +501,157 @@ export function aladinResultToBookMetadata(
     customerReviewRank: result.customerReviewRank,
   }
 }
+
+// ============================================
+// 통합 책 검색 API 타입
+// ============================================
+
+/**
+ * 책 검색 API 소스
+ */
+export type BookSearchSource = 'aladin' | 'naver' | 'kakao' | 'google'
+
+/**
+ * 통합 책 검색 결과 (모든 API 공통)
+ */
+export interface BookSearchResult {
+  // 식별자
+  isbn13: string // 주 식별자 (13자리 ISBN)
+  isbn10?: string // 10자리 ISBN (있는 경우)
+
+  // 기본 정보
+  title: string
+  author: string
+  publisher: string
+  pubDate?: string // YYYY-MM-DD 또는 YYYY
+  description?: string
+
+  // 이미지
+  thumbnail?: string // 썸네일 URL
+  cover?: string // 고해상도 표지 URL
+
+  // 출처
+  source: BookSearchSource
+  sourceId?: string // 원본 API의 고유 ID (알라딘 itemId 등)
+  link?: string // 상품 페이지 링크
+
+  // 가격 (국내 API만)
+  priceStandard?: number
+  priceSales?: number
+
+  // 분류
+  category?: string
+}
+
+/**
+ * 통합 검색 응답
+ */
+export interface BookSearchResponse {
+  results: BookSearchResult[]
+  sources: {
+    source: BookSearchSource
+    count: number
+    error?: string
+  }[]
+  totalCount: number
+}
+
+/**
+ * 네이버 책 검색 API 응답
+ */
+export interface NaverBookSearchResponse {
+  lastBuildDate: string
+  total: number
+  start: number
+  display: number
+  items: NaverBookItem[]
+}
+
+export interface NaverBookItem {
+  title: string
+  link: string
+  image: string
+  author: string
+  discount: string // 판매가 (문자열)
+  publisher: string
+  pubdate: string // YYYYMMDD
+  isbn: string // "ISBN10 ISBN13" 형식
+  description: string
+}
+
+/**
+ * 카카오 책 검색 API 응답
+ */
+export interface KakaoBookSearchResponse {
+  meta: {
+    is_end: boolean
+    pageable_count: number
+    total_count: number
+  }
+  documents: KakaoBookItem[]
+}
+
+export interface KakaoBookItem {
+  title: string
+  contents: string // 설명
+  url: string
+  isbn: string // "ISBN10 ISBN13" 또는 "ISBN13" 형식
+  datetime: string // ISO 8601
+  authors: string[]
+  publisher: string
+  translators: string[]
+  price: number // 정가
+  sale_price: number // 판매가 (-1이면 판매가 없음)
+  thumbnail: string
+  status: string // 정상, 품절 등
+}
+
+/**
+ * Google Books API 응답
+ */
+export interface GoogleBooksSearchResponse {
+  kind: string
+  totalItems: number
+  items?: GoogleBookItem[]
+}
+
+export interface GoogleBookItem {
+  id: string
+  volumeInfo: {
+    title: string
+    subtitle?: string
+    authors?: string[]
+    publisher?: string
+    publishedDate?: string
+    description?: string
+    industryIdentifiers?: {
+      type: 'ISBN_10' | 'ISBN_13' | 'OTHER'
+      identifier: string
+    }[]
+    pageCount?: number
+    categories?: string[]
+    imageLinks?: {
+      smallThumbnail?: string
+      thumbnail?: string
+      small?: string
+      medium?: string
+      large?: string
+    }
+    language?: string
+    previewLink?: string
+    infoLink?: string
+    canonicalVolumeLink?: string
+  }
+  saleInfo?: {
+    country: string
+    saleability: string
+    listPrice?: {
+      amount: number
+      currencyCode: string
+    }
+    retailPrice?: {
+      amount: number
+      currencyCode: string
+    }
+  }
+}

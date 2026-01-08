@@ -58,6 +58,11 @@ import {
   downloadCover,
   parseAladinUrl,
 } from './aladin-utils'
+import {
+  searchBooksUnified,
+  getAvailableSources,
+  type SearchOptions,
+} from './book-search-service'
 const USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:120.0) Gecko/20100101 Firefox/120.0'
 const INSTAGRAM_USER_AGENT = USER_AGENT
@@ -865,6 +870,26 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle('aladin:parseUrl', async (_event, url: string) => {
     return parseAladinUrl(url)
+  })
+
+  // 통합 책 검색 API
+  ipcMain.handle('books:search', async (_event, query: string, options?: SearchOptions) => {
+    console.info('[books] unified search start', { query, options })
+    try {
+      const result = await searchBooksUnified(query, options)
+      console.info('[books] unified search done', {
+        count: result.results.length,
+        sources: result.sources,
+      })
+      return result
+    } catch (error) {
+      console.error('[books] unified search error:', error)
+      return { results: [], sources: [], totalCount: 0 }
+    }
+  })
+
+  ipcMain.handle('books:getAvailableSources', async () => {
+    return getAvailableSources()
   })
 }
 
