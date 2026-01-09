@@ -32,6 +32,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --ignore-scripts
 
+      - name: Update version from tag
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "Updating version to $VERSION"
+          cd apps/desktop
+          npm version $VERSION --no-git-tag-version --allow-same-version
+
       - name: Import Code Signing Certificate
         env:
           CERTIFICATES_P12: ${{ secrets.CERTIFICATES_P12 }}
