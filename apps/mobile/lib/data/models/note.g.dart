@@ -21,6 +21,9 @@ _NoteRow _$NoteRowFromJson(Map<String, dynamic> json) => _NoteRow(
   hasMedia: json['has_media'] as bool? ?? false,
   hasFiles: json['has_files'] as bool? ?? false,
   isLocked: json['is_locked'] as bool? ?? false,
+  isPinned: json['is_pinned'] as bool? ?? false,
+  pinnedAt: json['pinned_at'] as String?,
+  priority: (json['priority'] as num?)?.toInt() ?? 0,
 );
 
 Map<String, dynamic> _$NoteRowToJson(_NoteRow instance) => <String, dynamic>{
@@ -38,6 +41,9 @@ Map<String, dynamic> _$NoteRowToJson(_NoteRow instance) => <String, dynamic>{
   'has_media': instance.hasMedia,
   'has_files': instance.hasFiles,
   'is_locked': instance.isLocked,
+  'is_pinned': instance.isPinned,
+  'pinned_at': instance.pinnedAt,
+  'priority': instance.priority,
 };
 
 const _$NoteSourceEnumMap = {

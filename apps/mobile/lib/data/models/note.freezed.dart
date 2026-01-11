@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$NoteRow {
 
- String get id;@JsonKey(name: 'display_id') int get displayId; String? get content;@JsonKey(name: 'parent_id') String? get parentId;@JsonKey(name: 'created_at') String get createdAt;@JsonKey(name: 'updated_at') String get updatedAt; NoteSource get source;@JsonKey(name: 'is_deleted') bool get isDeleted;@JsonKey(name: 'deleted_at') String? get deletedAt;@JsonKey(name: 'archived_at') String? get archivedAt;@JsonKey(name: 'has_link') bool get hasLink;@JsonKey(name: 'has_media') bool get hasMedia;@JsonKey(name: 'has_files') bool get hasFiles;@JsonKey(name: 'is_locked') bool get isLocked;
+ String get id;@JsonKey(name: 'display_id') int get displayId; String? get content;@JsonKey(name: 'parent_id') String? get parentId;@JsonKey(name: 'created_at') String get createdAt;@JsonKey(name: 'updated_at') String get updatedAt; NoteSource get source;@JsonKey(name: 'is_deleted') bool get isDeleted;@JsonKey(name: 'deleted_at') String? get deletedAt;@JsonKey(name: 'archived_at') String? get archivedAt;@JsonKey(name: 'has_link') bool get hasLink;@JsonKey(name: 'has_media') bool get hasMedia;@JsonKey(name: 'has_files') bool get hasFiles;@JsonKey(name: 'is_locked') bool get isLocked;@JsonKey(name: 'is_pinned') bool get isPinned;@JsonKey(name: 'pinned_at') String? get pinnedAt; int get priority;
 /// Create a copy of NoteRow
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $NoteRowCopyWith<NoteRow> get copyWith => _$NoteRowCopyWithImpl<NoteRow>(this as
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NoteRow&&(identical(other.id, id) || other.id == id)&&(identical(other.displayId, displayId) || other.displayId == displayId)&&(identical(other.content, content) || other.content == content)&&(identical(other.parentId, parentId) || other.parentId == parentId)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.source, source) || other.source == source)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt)&&(identical(other.archivedAt, archivedAt) || other.archivedAt == archivedAt)&&(identical(other.hasLink, hasLink) || other.hasLink == hasLink)&&(identical(other.hasMedia, hasMedia) || other.hasMedia == hasMedia)&&(identical(other.hasFiles, hasFiles) || other.hasFiles == hasFiles)&&(identical(other.isLocked, isLocked) || other.isLocked == isLocked));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is NoteRow&&(identical(other.id, id) || other.id == id)&&(identical(other.displayId, displayId) || other.displayId == displayId)&&(identical(other.content, content) || other.content == content)&&(identical(other.parentId, parentId) || other.parentId == parentId)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.source, source) || other.source == source)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt)&&(identical(other.archivedAt, archivedAt) || other.archivedAt == archivedAt)&&(identical(other.hasLink, hasLink) || other.hasLink == hasLink)&&(identical(other.hasMedia, hasMedia) || other.hasMedia == hasMedia)&&(identical(other.hasFiles, hasFiles) || other.hasFiles == hasFiles)&&(identical(other.isLocked, isLocked) || other.isLocked == isLocked)&&(identical(other.isPinned, isPinned) || other.isPinned == isPinned)&&(identical(other.pinnedAt, pinnedAt) || other.pinnedAt == pinnedAt)&&(identical(other.priority, priority) || other.priority == priority));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,displayId,content,parentId,createdAt,updatedAt,source,isDeleted,deletedAt,archivedAt,hasLink,hasMedia,hasFiles,isLocked);
+int get hashCode => Object.hash(runtimeType,id,displayId,content,parentId,createdAt,updatedAt,source,isDeleted,deletedAt,archivedAt,hasLink,hasMedia,hasFiles,isLocked,isPinned,pinnedAt,priority);
 
 @override
 String toString() {
-  return 'NoteRow(id: $id, displayId: $displayId, content: $content, parentId: $parentId, createdAt: $createdAt, updatedAt: $updatedAt, source: $source, isDeleted: $isDeleted, deletedAt: $deletedAt, archivedAt: $archivedAt, hasLink: $hasLink, hasMedia: $hasMedia, hasFiles: $hasFiles, isLocked: $isLocked)';
+  return 'NoteRow(id: $id, displayId: $displayId, content: $content, parentId: $parentId, createdAt: $createdAt, updatedAt: $updatedAt, source: $source, isDeleted: $isDeleted, deletedAt: $deletedAt, archivedAt: $archivedAt, hasLink: $hasLink, hasMedia: $hasMedia, hasFiles: $hasFiles, isLocked: $isLocked, isPinned: $isPinned, pinnedAt: $pinnedAt, priority: $priority)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $NoteRowCopyWith<$Res>  {
   factory $NoteRowCopyWith(NoteRow value, $Res Function(NoteRow) _then) = _$NoteRowCopyWithImpl;
 @useResult
 $Res call({
- String id,@JsonKey(name: 'display_id') int displayId, String? content,@JsonKey(name: 'parent_id') String? parentId,@JsonKey(name: 'created_at') String createdAt,@JsonKey(name: 'updated_at') String updatedAt, NoteSource source,@JsonKey(name: 'is_deleted') bool isDeleted,@JsonKey(name: 'deleted_at') String? deletedAt,@JsonKey(name: 'archived_at') String? archivedAt,@JsonKey(name: 'has_link') bool hasLink,@JsonKey(name: 'has_media') bool hasMedia,@JsonKey(name: 'has_files') bool hasFiles,@JsonKey(name: 'is_locked') bool isLocked
+ String id,@JsonKey(name: 'display_id') int displayId, String? content,@JsonKey(name: 'parent_id') String? parentId,@JsonKey(name: 'created_at') String createdAt,@JsonKey(name: 'updated_at') String updatedAt, NoteSource source,@JsonKey(name: 'is_deleted') bool isDeleted,@JsonKey(name: 'deleted_at') String? deletedAt,@JsonKey(name: 'archived_at') String? archivedAt,@JsonKey(name: 'has_link') bool hasLink,@JsonKey(name: 'has_media') bool hasMedia,@JsonKey(name: 'has_files') bool hasFiles,@JsonKey(name: 'is_locked') bool isLocked,@JsonKey(name: 'is_pinned') bool isPinned,@JsonKey(name: 'pinned_at') String? pinnedAt, int priority
 });
 
 
@@ -65,7 +65,7 @@ class _$NoteRowCopyWithImpl<$Res>
 
 /// Create a copy of NoteRow
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? displayId = null,Object? content = freezed,Object? parentId = freezed,Object? createdAt = null,Object? updatedAt = null,Object? source = null,Object? isDeleted = null,Object? deletedAt = freezed,Object? archivedAt = freezed,Object? hasLink = null,Object? hasMedia = null,Object? hasFiles = null,Object? isLocked = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? displayId = null,Object? content = freezed,Object? parentId = freezed,Object? createdAt = null,Object? updatedAt = null,Object? source = null,Object? isDeleted = null,Object? deletedAt = freezed,Object? archivedAt = freezed,Object? hasLink = null,Object? hasMedia = null,Object? hasFiles = null,Object? isLocked = null,Object? isPinned = null,Object? pinnedAt = freezed,Object? priority = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,displayId: null == displayId ? _self.displayId : displayId // ignore: cast_nullable_to_non_nullable
@@ -81,7 +81,10 @@ as String?,hasLink: null == hasLink ? _self.hasLink : hasLink // ignore: cast_nu
 as bool,hasMedia: null == hasMedia ? _self.hasMedia : hasMedia // ignore: cast_nullable_to_non_nullable
 as bool,hasFiles: null == hasFiles ? _self.hasFiles : hasFiles // ignore: cast_nullable_to_non_nullable
 as bool,isLocked: null == isLocked ? _self.isLocked : isLocked // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,isPinned: null == isPinned ? _self.isPinned : isPinned // ignore: cast_nullable_to_non_nullable
+as bool,pinnedAt: freezed == pinnedAt ? _self.pinnedAt : pinnedAt // ignore: cast_nullable_to_non_nullable
+as String?,priority: null == priority ? _self.priority : priority // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 
@@ -166,10 +169,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'display_id')  int displayId,  String? content, @JsonKey(name: 'parent_id')  String? parentId, @JsonKey(name: 'created_at')  String createdAt, @JsonKey(name: 'updated_at')  String updatedAt,  NoteSource source, @JsonKey(name: 'is_deleted')  bool isDeleted, @JsonKey(name: 'deleted_at')  String? deletedAt, @JsonKey(name: 'archived_at')  String? archivedAt, @JsonKey(name: 'has_link')  bool hasLink, @JsonKey(name: 'has_media')  bool hasMedia, @JsonKey(name: 'has_files')  bool hasFiles, @JsonKey(name: 'is_locked')  bool isLocked)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'display_id')  int displayId,  String? content, @JsonKey(name: 'parent_id')  String? parentId, @JsonKey(name: 'created_at')  String createdAt, @JsonKey(name: 'updated_at')  String updatedAt,  NoteSource source, @JsonKey(name: 'is_deleted')  bool isDeleted, @JsonKey(name: 'deleted_at')  String? deletedAt, @JsonKey(name: 'archived_at')  String? archivedAt, @JsonKey(name: 'has_link')  bool hasLink, @JsonKey(name: 'has_media')  bool hasMedia, @JsonKey(name: 'has_files')  bool hasFiles, @JsonKey(name: 'is_locked')  bool isLocked, @JsonKey(name: 'is_pinned')  bool isPinned, @JsonKey(name: 'pinned_at')  String? pinnedAt,  int priority)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _NoteRow() when $default != null:
-return $default(_that.id,_that.displayId,_that.content,_that.parentId,_that.createdAt,_that.updatedAt,_that.source,_that.isDeleted,_that.deletedAt,_that.archivedAt,_that.hasLink,_that.hasMedia,_that.hasFiles,_that.isLocked);case _:
+return $default(_that.id,_that.displayId,_that.content,_that.parentId,_that.createdAt,_that.updatedAt,_that.source,_that.isDeleted,_that.deletedAt,_that.archivedAt,_that.hasLink,_that.hasMedia,_that.hasFiles,_that.isLocked,_that.isPinned,_that.pinnedAt,_that.priority);case _:
   return orElse();
 
 }
@@ -187,10 +190,10 @@ return $default(_that.id,_that.displayId,_that.content,_that.parentId,_that.crea
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'display_id')  int displayId,  String? content, @JsonKey(name: 'parent_id')  String? parentId, @JsonKey(name: 'created_at')  String createdAt, @JsonKey(name: 'updated_at')  String updatedAt,  NoteSource source, @JsonKey(name: 'is_deleted')  bool isDeleted, @JsonKey(name: 'deleted_at')  String? deletedAt, @JsonKey(name: 'archived_at')  String? archivedAt, @JsonKey(name: 'has_link')  bool hasLink, @JsonKey(name: 'has_media')  bool hasMedia, @JsonKey(name: 'has_files')  bool hasFiles, @JsonKey(name: 'is_locked')  bool isLocked)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'display_id')  int displayId,  String? content, @JsonKey(name: 'parent_id')  String? parentId, @JsonKey(name: 'created_at')  String createdAt, @JsonKey(name: 'updated_at')  String updatedAt,  NoteSource source, @JsonKey(name: 'is_deleted')  bool isDeleted, @JsonKey(name: 'deleted_at')  String? deletedAt, @JsonKey(name: 'archived_at')  String? archivedAt, @JsonKey(name: 'has_link')  bool hasLink, @JsonKey(name: 'has_media')  bool hasMedia, @JsonKey(name: 'has_files')  bool hasFiles, @JsonKey(name: 'is_locked')  bool isLocked, @JsonKey(name: 'is_pinned')  bool isPinned, @JsonKey(name: 'pinned_at')  String? pinnedAt,  int priority)  $default,) {final _that = this;
 switch (_that) {
 case _NoteRow():
-return $default(_that.id,_that.displayId,_that.content,_that.parentId,_that.createdAt,_that.updatedAt,_that.source,_that.isDeleted,_that.deletedAt,_that.archivedAt,_that.hasLink,_that.hasMedia,_that.hasFiles,_that.isLocked);case _:
+return $default(_that.id,_that.displayId,_that.content,_that.parentId,_that.createdAt,_that.updatedAt,_that.source,_that.isDeleted,_that.deletedAt,_that.archivedAt,_that.hasLink,_that.hasMedia,_that.hasFiles,_that.isLocked,_that.isPinned,_that.pinnedAt,_that.priority);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -207,10 +210,10 @@ return $default(_that.id,_that.displayId,_that.content,_that.parentId,_that.crea
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'display_id')  int displayId,  String? content, @JsonKey(name: 'parent_id')  String? parentId, @JsonKey(name: 'created_at')  String createdAt, @JsonKey(name: 'updated_at')  String updatedAt,  NoteSource source, @JsonKey(name: 'is_deleted')  bool isDeleted, @JsonKey(name: 'deleted_at')  String? deletedAt, @JsonKey(name: 'archived_at')  String? archivedAt, @JsonKey(name: 'has_link')  bool hasLink, @JsonKey(name: 'has_media')  bool hasMedia, @JsonKey(name: 'has_files')  bool hasFiles, @JsonKey(name: 'is_locked')  bool isLocked)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'display_id')  int displayId,  String? content, @JsonKey(name: 'parent_id')  String? parentId, @JsonKey(name: 'created_at')  String createdAt, @JsonKey(name: 'updated_at')  String updatedAt,  NoteSource source, @JsonKey(name: 'is_deleted')  bool isDeleted, @JsonKey(name: 'deleted_at')  String? deletedAt, @JsonKey(name: 'archived_at')  String? archivedAt, @JsonKey(name: 'has_link')  bool hasLink, @JsonKey(name: 'has_media')  bool hasMedia, @JsonKey(name: 'has_files')  bool hasFiles, @JsonKey(name: 'is_locked')  bool isLocked, @JsonKey(name: 'is_pinned')  bool isPinned, @JsonKey(name: 'pinned_at')  String? pinnedAt,  int priority)?  $default,) {final _that = this;
 switch (_that) {
 case _NoteRow() when $default != null:
-return $default(_that.id,_that.displayId,_that.content,_that.parentId,_that.createdAt,_that.updatedAt,_that.source,_that.isDeleted,_that.deletedAt,_that.archivedAt,_that.hasLink,_that.hasMedia,_that.hasFiles,_that.isLocked);case _:
+return $default(_that.id,_that.displayId,_that.content,_that.parentId,_that.createdAt,_that.updatedAt,_that.source,_that.isDeleted,_that.deletedAt,_that.archivedAt,_that.hasLink,_that.hasMedia,_that.hasFiles,_that.isLocked,_that.isPinned,_that.pinnedAt,_that.priority);case _:
   return null;
 
 }
@@ -222,7 +225,7 @@ return $default(_that.id,_that.displayId,_that.content,_that.parentId,_that.crea
 @JsonSerializable()
 
 class _NoteRow implements NoteRow {
-  const _NoteRow({required this.id, @JsonKey(name: 'display_id') required this.displayId, this.content, @JsonKey(name: 'parent_id') this.parentId, @JsonKey(name: 'created_at') required this.createdAt, @JsonKey(name: 'updated_at') required this.updatedAt, required this.source, @JsonKey(name: 'is_deleted') this.isDeleted = false, @JsonKey(name: 'deleted_at') this.deletedAt, @JsonKey(name: 'archived_at') this.archivedAt, @JsonKey(name: 'has_link') this.hasLink = false, @JsonKey(name: 'has_media') this.hasMedia = false, @JsonKey(name: 'has_files') this.hasFiles = false, @JsonKey(name: 'is_locked') this.isLocked = false});
+  const _NoteRow({required this.id, @JsonKey(name: 'display_id') required this.displayId, this.content, @JsonKey(name: 'parent_id') this.parentId, @JsonKey(name: 'created_at') required this.createdAt, @JsonKey(name: 'updated_at') required this.updatedAt, required this.source, @JsonKey(name: 'is_deleted') this.isDeleted = false, @JsonKey(name: 'deleted_at') this.deletedAt, @JsonKey(name: 'archived_at') this.archivedAt, @JsonKey(name: 'has_link') this.hasLink = false, @JsonKey(name: 'has_media') this.hasMedia = false, @JsonKey(name: 'has_files') this.hasFiles = false, @JsonKey(name: 'is_locked') this.isLocked = false, @JsonKey(name: 'is_pinned') this.isPinned = false, @JsonKey(name: 'pinned_at') this.pinnedAt, this.priority = 0});
   factory _NoteRow.fromJson(Map<String, dynamic> json) => _$NoteRowFromJson(json);
 
 @override final  String id;
@@ -239,6 +242,9 @@ class _NoteRow implements NoteRow {
 @override@JsonKey(name: 'has_media') final  bool hasMedia;
 @override@JsonKey(name: 'has_files') final  bool hasFiles;
 @override@JsonKey(name: 'is_locked') final  bool isLocked;
+@override@JsonKey(name: 'is_pinned') final  bool isPinned;
+@override@JsonKey(name: 'pinned_at') final  String? pinnedAt;
+@override@JsonKey() final  int priority;
 
 /// Create a copy of NoteRow
 /// with the given fields replaced by the non-null parameter values.
@@ -253,16 +259,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _NoteRow&&(identical(other.id, id) || other.id == id)&&(identical(other.displayId, displayId) || other.displayId == displayId)&&(identical(other.content, content) || other.content == content)&&(identical(other.parentId, parentId) || other.parentId == parentId)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.source, source) || other.source == source)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt)&&(identical(other.archivedAt, archivedAt) || other.archivedAt == archivedAt)&&(identical(other.hasLink, hasLink) || other.hasLink == hasLink)&&(identical(other.hasMedia, hasMedia) || other.hasMedia == hasMedia)&&(identical(other.hasFiles, hasFiles) || other.hasFiles == hasFiles)&&(identical(other.isLocked, isLocked) || other.isLocked == isLocked));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _NoteRow&&(identical(other.id, id) || other.id == id)&&(identical(other.displayId, displayId) || other.displayId == displayId)&&(identical(other.content, content) || other.content == content)&&(identical(other.parentId, parentId) || other.parentId == parentId)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.source, source) || other.source == source)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt)&&(identical(other.archivedAt, archivedAt) || other.archivedAt == archivedAt)&&(identical(other.hasLink, hasLink) || other.hasLink == hasLink)&&(identical(other.hasMedia, hasMedia) || other.hasMedia == hasMedia)&&(identical(other.hasFiles, hasFiles) || other.hasFiles == hasFiles)&&(identical(other.isLocked, isLocked) || other.isLocked == isLocked)&&(identical(other.isPinned, isPinned) || other.isPinned == isPinned)&&(identical(other.pinnedAt, pinnedAt) || other.pinnedAt == pinnedAt)&&(identical(other.priority, priority) || other.priority == priority));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,displayId,content,parentId,createdAt,updatedAt,source,isDeleted,deletedAt,archivedAt,hasLink,hasMedia,hasFiles,isLocked);
+int get hashCode => Object.hash(runtimeType,id,displayId,content,parentId,createdAt,updatedAt,source,isDeleted,deletedAt,archivedAt,hasLink,hasMedia,hasFiles,isLocked,isPinned,pinnedAt,priority);
 
 @override
 String toString() {
-  return 'NoteRow(id: $id, displayId: $displayId, content: $content, parentId: $parentId, createdAt: $createdAt, updatedAt: $updatedAt, source: $source, isDeleted: $isDeleted, deletedAt: $deletedAt, archivedAt: $archivedAt, hasLink: $hasLink, hasMedia: $hasMedia, hasFiles: $hasFiles, isLocked: $isLocked)';
+  return 'NoteRow(id: $id, displayId: $displayId, content: $content, parentId: $parentId, createdAt: $createdAt, updatedAt: $updatedAt, source: $source, isDeleted: $isDeleted, deletedAt: $deletedAt, archivedAt: $archivedAt, hasLink: $hasLink, hasMedia: $hasMedia, hasFiles: $hasFiles, isLocked: $isLocked, isPinned: $isPinned, pinnedAt: $pinnedAt, priority: $priority)';
 }
 
 
@@ -273,7 +279,7 @@ abstract mixin class _$NoteRowCopyWith<$Res> implements $NoteRowCopyWith<$Res> {
   factory _$NoteRowCopyWith(_NoteRow value, $Res Function(_NoteRow) _then) = __$NoteRowCopyWithImpl;
 @override @useResult
 $Res call({
- String id,@JsonKey(name: 'display_id') int displayId, String? content,@JsonKey(name: 'parent_id') String? parentId,@JsonKey(name: 'created_at') String createdAt,@JsonKey(name: 'updated_at') String updatedAt, NoteSource source,@JsonKey(name: 'is_deleted') bool isDeleted,@JsonKey(name: 'deleted_at') String? deletedAt,@JsonKey(name: 'archived_at') String? archivedAt,@JsonKey(name: 'has_link') bool hasLink,@JsonKey(name: 'has_media') bool hasMedia,@JsonKey(name: 'has_files') bool hasFiles,@JsonKey(name: 'is_locked') bool isLocked
+ String id,@JsonKey(name: 'display_id') int displayId, String? content,@JsonKey(name: 'parent_id') String? parentId,@JsonKey(name: 'created_at') String createdAt,@JsonKey(name: 'updated_at') String updatedAt, NoteSource source,@JsonKey(name: 'is_deleted') bool isDeleted,@JsonKey(name: 'deleted_at') String? deletedAt,@JsonKey(name: 'archived_at') String? archivedAt,@JsonKey(name: 'has_link') bool hasLink,@JsonKey(name: 'has_media') bool hasMedia,@JsonKey(name: 'has_files') bool hasFiles,@JsonKey(name: 'is_locked') bool isLocked,@JsonKey(name: 'is_pinned') bool isPinned,@JsonKey(name: 'pinned_at') String? pinnedAt, int priority
 });
 
 
@@ -290,7 +296,7 @@ class __$NoteRowCopyWithImpl<$Res>
 
 /// Create a copy of NoteRow
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? displayId = null,Object? content = freezed,Object? parentId = freezed,Object? createdAt = null,Object? updatedAt = null,Object? source = null,Object? isDeleted = null,Object? deletedAt = freezed,Object? archivedAt = freezed,Object? hasLink = null,Object? hasMedia = null,Object? hasFiles = null,Object? isLocked = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? displayId = null,Object? content = freezed,Object? parentId = freezed,Object? createdAt = null,Object? updatedAt = null,Object? source = null,Object? isDeleted = null,Object? deletedAt = freezed,Object? archivedAt = freezed,Object? hasLink = null,Object? hasMedia = null,Object? hasFiles = null,Object? isLocked = null,Object? isPinned = null,Object? pinnedAt = freezed,Object? priority = null,}) {
   return _then(_NoteRow(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,displayId: null == displayId ? _self.displayId : displayId // ignore: cast_nullable_to_non_nullable
@@ -306,7 +312,10 @@ as String?,hasLink: null == hasLink ? _self.hasLink : hasLink // ignore: cast_nu
 as bool,hasMedia: null == hasMedia ? _self.hasMedia : hasMedia // ignore: cast_nullable_to_non_nullable
 as bool,hasFiles: null == hasFiles ? _self.hasFiles : hasFiles // ignore: cast_nullable_to_non_nullable
 as bool,isLocked: null == isLocked ? _self.isLocked : isLocked // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,isPinned: null == isPinned ? _self.isPinned : isPinned // ignore: cast_nullable_to_non_nullable
+as bool,pinnedAt: freezed == pinnedAt ? _self.pinnedAt : pinnedAt // ignore: cast_nullable_to_non_nullable
+as String?,priority: null == priority ? _self.priority : priority // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 
@@ -316,7 +325,7 @@ as bool,
 /// @nodoc
 mixin _$Note {
 
- String get id; int get displayId; String get content; String? get parentId; List<Attachment> get attachments; List<Tag> get tags; DateTime get createdAt; DateTime get updatedAt; NoteSource get source; bool get isDeleted; DateTime? get deletedAt; DateTime? get archivedAt; bool get hasLink; bool get hasMedia; bool get hasFiles; bool get isLocked;
+ String get id; int get displayId; String get content; String? get parentId; List<Attachment> get attachments; List<Tag> get tags; DateTime get createdAt; DateTime get updatedAt; NoteSource get source; bool get isDeleted; DateTime? get deletedAt; DateTime? get archivedAt; bool get hasLink; bool get hasMedia; bool get hasFiles; bool get isLocked; bool get isPinned; DateTime? get pinnedAt; int get priority;
 /// Create a copy of Note
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -327,16 +336,16 @@ $NoteCopyWith<Note> get copyWith => _$NoteCopyWithImpl<Note>(this as Note, _$ide
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Note&&(identical(other.id, id) || other.id == id)&&(identical(other.displayId, displayId) || other.displayId == displayId)&&(identical(other.content, content) || other.content == content)&&(identical(other.parentId, parentId) || other.parentId == parentId)&&const DeepCollectionEquality().equals(other.attachments, attachments)&&const DeepCollectionEquality().equals(other.tags, tags)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.source, source) || other.source == source)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt)&&(identical(other.archivedAt, archivedAt) || other.archivedAt == archivedAt)&&(identical(other.hasLink, hasLink) || other.hasLink == hasLink)&&(identical(other.hasMedia, hasMedia) || other.hasMedia == hasMedia)&&(identical(other.hasFiles, hasFiles) || other.hasFiles == hasFiles)&&(identical(other.isLocked, isLocked) || other.isLocked == isLocked));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Note&&(identical(other.id, id) || other.id == id)&&(identical(other.displayId, displayId) || other.displayId == displayId)&&(identical(other.content, content) || other.content == content)&&(identical(other.parentId, parentId) || other.parentId == parentId)&&const DeepCollectionEquality().equals(other.attachments, attachments)&&const DeepCollectionEquality().equals(other.tags, tags)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.source, source) || other.source == source)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt)&&(identical(other.archivedAt, archivedAt) || other.archivedAt == archivedAt)&&(identical(other.hasLink, hasLink) || other.hasLink == hasLink)&&(identical(other.hasMedia, hasMedia) || other.hasMedia == hasMedia)&&(identical(other.hasFiles, hasFiles) || other.hasFiles == hasFiles)&&(identical(other.isLocked, isLocked) || other.isLocked == isLocked)&&(identical(other.isPinned, isPinned) || other.isPinned == isPinned)&&(identical(other.pinnedAt, pinnedAt) || other.pinnedAt == pinnedAt)&&(identical(other.priority, priority) || other.priority == priority));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,displayId,content,parentId,const DeepCollectionEquality().hash(attachments),const DeepCollectionEquality().hash(tags),createdAt,updatedAt,source,isDeleted,deletedAt,archivedAt,hasLink,hasMedia,hasFiles,isLocked);
+int get hashCode => Object.hashAll([runtimeType,id,displayId,content,parentId,const DeepCollectionEquality().hash(attachments),const DeepCollectionEquality().hash(tags),createdAt,updatedAt,source,isDeleted,deletedAt,archivedAt,hasLink,hasMedia,hasFiles,isLocked,isPinned,pinnedAt,priority]);
 
 @override
 String toString() {
-  return 'Note(id: $id, displayId: $displayId, content: $content, parentId: $parentId, attachments: $attachments, tags: $tags, createdAt: $createdAt, updatedAt: $updatedAt, source: $source, isDeleted: $isDeleted, deletedAt: $deletedAt, archivedAt: $archivedAt, hasLink: $hasLink, hasMedia: $hasMedia, hasFiles: $hasFiles, isLocked: $isLocked)';
+  return 'Note(id: $id, displayId: $displayId, content: $content, parentId: $parentId, attachments: $attachments, tags: $tags, createdAt: $createdAt, updatedAt: $updatedAt, source: $source, isDeleted: $isDeleted, deletedAt: $deletedAt, archivedAt: $archivedAt, hasLink: $hasLink, hasMedia: $hasMedia, hasFiles: $hasFiles, isLocked: $isLocked, isPinned: $isPinned, pinnedAt: $pinnedAt, priority: $priority)';
 }
 
 
@@ -347,7 +356,7 @@ abstract mixin class $NoteCopyWith<$Res>  {
   factory $NoteCopyWith(Note value, $Res Function(Note) _then) = _$NoteCopyWithImpl;
 @useResult
 $Res call({
- String id, int displayId, String content, String? parentId, List<Attachment> attachments, List<Tag> tags, DateTime createdAt, DateTime updatedAt, NoteSource source, bool isDeleted, DateTime? deletedAt, DateTime? archivedAt, bool hasLink, bool hasMedia, bool hasFiles, bool isLocked
+ String id, int displayId, String content, String? parentId, List<Attachment> attachments, List<Tag> tags, DateTime createdAt, DateTime updatedAt, NoteSource source, bool isDeleted, DateTime? deletedAt, DateTime? archivedAt, bool hasLink, bool hasMedia, bool hasFiles, bool isLocked, bool isPinned, DateTime? pinnedAt, int priority
 });
 
 
@@ -364,7 +373,7 @@ class _$NoteCopyWithImpl<$Res>
 
 /// Create a copy of Note
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? displayId = null,Object? content = null,Object? parentId = freezed,Object? attachments = null,Object? tags = null,Object? createdAt = null,Object? updatedAt = null,Object? source = null,Object? isDeleted = null,Object? deletedAt = freezed,Object? archivedAt = freezed,Object? hasLink = null,Object? hasMedia = null,Object? hasFiles = null,Object? isLocked = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? displayId = null,Object? content = null,Object? parentId = freezed,Object? attachments = null,Object? tags = null,Object? createdAt = null,Object? updatedAt = null,Object? source = null,Object? isDeleted = null,Object? deletedAt = freezed,Object? archivedAt = freezed,Object? hasLink = null,Object? hasMedia = null,Object? hasFiles = null,Object? isLocked = null,Object? isPinned = null,Object? pinnedAt = freezed,Object? priority = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,displayId: null == displayId ? _self.displayId : displayId // ignore: cast_nullable_to_non_nullable
@@ -382,7 +391,10 @@ as DateTime?,hasLink: null == hasLink ? _self.hasLink : hasLink // ignore: cast_
 as bool,hasMedia: null == hasMedia ? _self.hasMedia : hasMedia // ignore: cast_nullable_to_non_nullable
 as bool,hasFiles: null == hasFiles ? _self.hasFiles : hasFiles // ignore: cast_nullable_to_non_nullable
 as bool,isLocked: null == isLocked ? _self.isLocked : isLocked // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,isPinned: null == isPinned ? _self.isPinned : isPinned // ignore: cast_nullable_to_non_nullable
+as bool,pinnedAt: freezed == pinnedAt ? _self.pinnedAt : pinnedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,priority: null == priority ? _self.priority : priority // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 
@@ -467,10 +479,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  int displayId,  String content,  String? parentId,  List<Attachment> attachments,  List<Tag> tags,  DateTime createdAt,  DateTime updatedAt,  NoteSource source,  bool isDeleted,  DateTime? deletedAt,  DateTime? archivedAt,  bool hasLink,  bool hasMedia,  bool hasFiles,  bool isLocked)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  int displayId,  String content,  String? parentId,  List<Attachment> attachments,  List<Tag> tags,  DateTime createdAt,  DateTime updatedAt,  NoteSource source,  bool isDeleted,  DateTime? deletedAt,  DateTime? archivedAt,  bool hasLink,  bool hasMedia,  bool hasFiles,  bool isLocked,  bool isPinned,  DateTime? pinnedAt,  int priority)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Note() when $default != null:
-return $default(_that.id,_that.displayId,_that.content,_that.parentId,_that.attachments,_that.tags,_that.createdAt,_that.updatedAt,_that.source,_that.isDeleted,_that.deletedAt,_that.archivedAt,_that.hasLink,_that.hasMedia,_that.hasFiles,_that.isLocked);case _:
+return $default(_that.id,_that.displayId,_that.content,_that.parentId,_that.attachments,_that.tags,_that.createdAt,_that.updatedAt,_that.source,_that.isDeleted,_that.deletedAt,_that.archivedAt,_that.hasLink,_that.hasMedia,_that.hasFiles,_that.isLocked,_that.isPinned,_that.pinnedAt,_that.priority);case _:
   return orElse();
 
 }
@@ -488,10 +500,10 @@ return $default(_that.id,_that.displayId,_that.content,_that.parentId,_that.atta
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  int displayId,  String content,  String? parentId,  List<Attachment> attachments,  List<Tag> tags,  DateTime createdAt,  DateTime updatedAt,  NoteSource source,  bool isDeleted,  DateTime? deletedAt,  DateTime? archivedAt,  bool hasLink,  bool hasMedia,  bool hasFiles,  bool isLocked)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  int displayId,  String content,  String? parentId,  List<Attachment> attachments,  List<Tag> tags,  DateTime createdAt,  DateTime updatedAt,  NoteSource source,  bool isDeleted,  DateTime? deletedAt,  DateTime? archivedAt,  bool hasLink,  bool hasMedia,  bool hasFiles,  bool isLocked,  bool isPinned,  DateTime? pinnedAt,  int priority)  $default,) {final _that = this;
 switch (_that) {
 case _Note():
-return $default(_that.id,_that.displayId,_that.content,_that.parentId,_that.attachments,_that.tags,_that.createdAt,_that.updatedAt,_that.source,_that.isDeleted,_that.deletedAt,_that.archivedAt,_that.hasLink,_that.hasMedia,_that.hasFiles,_that.isLocked);case _:
+return $default(_that.id,_that.displayId,_that.content,_that.parentId,_that.attachments,_that.tags,_that.createdAt,_that.updatedAt,_that.source,_that.isDeleted,_that.deletedAt,_that.archivedAt,_that.hasLink,_that.hasMedia,_that.hasFiles,_that.isLocked,_that.isPinned,_that.pinnedAt,_that.priority);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -508,10 +520,10 @@ return $default(_that.id,_that.displayId,_that.content,_that.parentId,_that.atta
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  int displayId,  String content,  String? parentId,  List<Attachment> attachments,  List<Tag> tags,  DateTime createdAt,  DateTime updatedAt,  NoteSource source,  bool isDeleted,  DateTime? deletedAt,  DateTime? archivedAt,  bool hasLink,  bool hasMedia,  bool hasFiles,  bool isLocked)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  int displayId,  String content,  String? parentId,  List<Attachment> attachments,  List<Tag> tags,  DateTime createdAt,  DateTime updatedAt,  NoteSource source,  bool isDeleted,  DateTime? deletedAt,  DateTime? archivedAt,  bool hasLink,  bool hasMedia,  bool hasFiles,  bool isLocked,  bool isPinned,  DateTime? pinnedAt,  int priority)?  $default,) {final _that = this;
 switch (_that) {
 case _Note() when $default != null:
-return $default(_that.id,_that.displayId,_that.content,_that.parentId,_that.attachments,_that.tags,_that.createdAt,_that.updatedAt,_that.source,_that.isDeleted,_that.deletedAt,_that.archivedAt,_that.hasLink,_that.hasMedia,_that.hasFiles,_that.isLocked);case _:
+return $default(_that.id,_that.displayId,_that.content,_that.parentId,_that.attachments,_that.tags,_that.createdAt,_that.updatedAt,_that.source,_that.isDeleted,_that.deletedAt,_that.archivedAt,_that.hasLink,_that.hasMedia,_that.hasFiles,_that.isLocked,_that.isPinned,_that.pinnedAt,_that.priority);case _:
   return null;
 
 }
@@ -523,7 +535,7 @@ return $default(_that.id,_that.displayId,_that.content,_that.parentId,_that.atta
 
 
 class _Note extends Note {
-  const _Note({required this.id, required this.displayId, required this.content, this.parentId, final  List<Attachment> attachments = const [], final  List<Tag> tags = const [], required this.createdAt, required this.updatedAt, required this.source, this.isDeleted = false, this.deletedAt, this.archivedAt, this.hasLink = false, this.hasMedia = false, this.hasFiles = false, this.isLocked = false}): _attachments = attachments,_tags = tags,super._();
+  const _Note({required this.id, required this.displayId, required this.content, this.parentId, final  List<Attachment> attachments = const [], final  List<Tag> tags = const [], required this.createdAt, required this.updatedAt, required this.source, this.isDeleted = false, this.deletedAt, this.archivedAt, this.hasLink = false, this.hasMedia = false, this.hasFiles = false, this.isLocked = false, this.isPinned = false, this.pinnedAt, this.priority = 0}): _attachments = attachments,_tags = tags,super._();
   
 
 @override final  String id;
@@ -554,6 +566,9 @@ class _Note extends Note {
 @override@JsonKey() final  bool hasMedia;
 @override@JsonKey() final  bool hasFiles;
 @override@JsonKey() final  bool isLocked;
+@override@JsonKey() final  bool isPinned;
+@override final  DateTime? pinnedAt;
+@override@JsonKey() final  int priority;
 
 /// Create a copy of Note
 /// with the given fields replaced by the non-null parameter values.
@@ -565,16 +580,16 @@ _$NoteCopyWith<_Note> get copyWith => __$NoteCopyWithImpl<_Note>(this, _$identit
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Note&&(identical(other.id, id) || other.id == id)&&(identical(other.displayId, displayId) || other.displayId == displayId)&&(identical(other.content, content) || other.content == content)&&(identical(other.parentId, parentId) || other.parentId == parentId)&&const DeepCollectionEquality().equals(other._attachments, _attachments)&&const DeepCollectionEquality().equals(other._tags, _tags)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.source, source) || other.source == source)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt)&&(identical(other.archivedAt, archivedAt) || other.archivedAt == archivedAt)&&(identical(other.hasLink, hasLink) || other.hasLink == hasLink)&&(identical(other.hasMedia, hasMedia) || other.hasMedia == hasMedia)&&(identical(other.hasFiles, hasFiles) || other.hasFiles == hasFiles)&&(identical(other.isLocked, isLocked) || other.isLocked == isLocked));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Note&&(identical(other.id, id) || other.id == id)&&(identical(other.displayId, displayId) || other.displayId == displayId)&&(identical(other.content, content) || other.content == content)&&(identical(other.parentId, parentId) || other.parentId == parentId)&&const DeepCollectionEquality().equals(other._attachments, _attachments)&&const DeepCollectionEquality().equals(other._tags, _tags)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.source, source) || other.source == source)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt)&&(identical(other.archivedAt, archivedAt) || other.archivedAt == archivedAt)&&(identical(other.hasLink, hasLink) || other.hasLink == hasLink)&&(identical(other.hasMedia, hasMedia) || other.hasMedia == hasMedia)&&(identical(other.hasFiles, hasFiles) || other.hasFiles == hasFiles)&&(identical(other.isLocked, isLocked) || other.isLocked == isLocked)&&(identical(other.isPinned, isPinned) || other.isPinned == isPinned)&&(identical(other.pinnedAt, pinnedAt) || other.pinnedAt == pinnedAt)&&(identical(other.priority, priority) || other.priority == priority));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,displayId,content,parentId,const DeepCollectionEquality().hash(_attachments),const DeepCollectionEquality().hash(_tags),createdAt,updatedAt,source,isDeleted,deletedAt,archivedAt,hasLink,hasMedia,hasFiles,isLocked);
+int get hashCode => Object.hashAll([runtimeType,id,displayId,content,parentId,const DeepCollectionEquality().hash(_attachments),const DeepCollectionEquality().hash(_tags),createdAt,updatedAt,source,isDeleted,deletedAt,archivedAt,hasLink,hasMedia,hasFiles,isLocked,isPinned,pinnedAt,priority]);
 
 @override
 String toString() {
-  return 'Note(id: $id, displayId: $displayId, content: $content, parentId: $parentId, attachments: $attachments, tags: $tags, createdAt: $createdAt, updatedAt: $updatedAt, source: $source, isDeleted: $isDeleted, deletedAt: $deletedAt, archivedAt: $archivedAt, hasLink: $hasLink, hasMedia: $hasMedia, hasFiles: $hasFiles, isLocked: $isLocked)';
+  return 'Note(id: $id, displayId: $displayId, content: $content, parentId: $parentId, attachments: $attachments, tags: $tags, createdAt: $createdAt, updatedAt: $updatedAt, source: $source, isDeleted: $isDeleted, deletedAt: $deletedAt, archivedAt: $archivedAt, hasLink: $hasLink, hasMedia: $hasMedia, hasFiles: $hasFiles, isLocked: $isLocked, isPinned: $isPinned, pinnedAt: $pinnedAt, priority: $priority)';
 }
 
 
@@ -585,7 +600,7 @@ abstract mixin class _$NoteCopyWith<$Res> implements $NoteCopyWith<$Res> {
   factory _$NoteCopyWith(_Note value, $Res Function(_Note) _then) = __$NoteCopyWithImpl;
 @override @useResult
 $Res call({
- String id, int displayId, String content, String? parentId, List<Attachment> attachments, List<Tag> tags, DateTime createdAt, DateTime updatedAt, NoteSource source, bool isDeleted, DateTime? deletedAt, DateTime? archivedAt, bool hasLink, bool hasMedia, bool hasFiles, bool isLocked
+ String id, int displayId, String content, String? parentId, List<Attachment> attachments, List<Tag> tags, DateTime createdAt, DateTime updatedAt, NoteSource source, bool isDeleted, DateTime? deletedAt, DateTime? archivedAt, bool hasLink, bool hasMedia, bool hasFiles, bool isLocked, bool isPinned, DateTime? pinnedAt, int priority
 });
 
 
@@ -602,7 +617,7 @@ class __$NoteCopyWithImpl<$Res>
 
 /// Create a copy of Note
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? displayId = null,Object? content = null,Object? parentId = freezed,Object? attachments = null,Object? tags = null,Object? createdAt = null,Object? updatedAt = null,Object? source = null,Object? isDeleted = null,Object? deletedAt = freezed,Object? archivedAt = freezed,Object? hasLink = null,Object? hasMedia = null,Object? hasFiles = null,Object? isLocked = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? displayId = null,Object? content = null,Object? parentId = freezed,Object? attachments = null,Object? tags = null,Object? createdAt = null,Object? updatedAt = null,Object? source = null,Object? isDeleted = null,Object? deletedAt = freezed,Object? archivedAt = freezed,Object? hasLink = null,Object? hasMedia = null,Object? hasFiles = null,Object? isLocked = null,Object? isPinned = null,Object? pinnedAt = freezed,Object? priority = null,}) {
   return _then(_Note(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,displayId: null == displayId ? _self.displayId : displayId // ignore: cast_nullable_to_non_nullable
@@ -620,7 +635,10 @@ as DateTime?,hasLink: null == hasLink ? _self.hasLink : hasLink // ignore: cast_
 as bool,hasMedia: null == hasMedia ? _self.hasMedia : hasMedia // ignore: cast_nullable_to_non_nullable
 as bool,hasFiles: null == hasFiles ? _self.hasFiles : hasFiles // ignore: cast_nullable_to_non_nullable
 as bool,isLocked: null == isLocked ? _self.isLocked : isLocked // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,isPinned: null == isPinned ? _self.isPinned : isPinned // ignore: cast_nullable_to_non_nullable
+as bool,pinnedAt: freezed == pinnedAt ? _self.pinnedAt : pinnedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,priority: null == priority ? _self.priority : priority // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 

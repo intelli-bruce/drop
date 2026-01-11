@@ -308,6 +308,103 @@ class NotesNotifier extends _$NotesNotifier {
     }
   }
 
+  /// Toggle pin status of a note
+  Future<void> togglePinNote(String id) async {
+    final repository = ref.read(notesRepositoryProvider);
+
+    final current = state.value ?? [];
+    final noteIndex = current.indexWhere((n) => n.id == id);
+    if (noteIndex == -1) return;
+
+    final oldNote = current[noteIndex];
+    final newIsPinned = !oldNote.isPinned;
+    final updatedNote = oldNote.copyWith(
+      isPinned: newIsPinned,
+      pinnedAt: newIsPinned ? DateTime.now() : null,
+    );
+
+    // Update and re-sort
+    final updated = current.map((n) => n.id == id ? updatedNote : n).toList();
+    _sortNotes(updated);
+    state = AsyncData(updated);
+
+    try {
+      await repository.togglePinNote(id, isPinned: newIsPinned);
+    } catch (e) {
+      state = AsyncData(
+        (state.value ?? []).map((n) => n.id == id ? oldNote : n).toList(),
+      );
+      rethrow;
+    }
+  }
+
+  /// Cycle priority (0 -> 1 -> 2 -> 3 -> 0)
+  Future<void> cyclePriority(String id) async {
+    final repository = ref.read(notesRepositoryProvider);
+
+    final current = state.value ?? [];
+    final noteIndex = current.indexWhere((n) => n.id == id);
+    if (noteIndex == -1) return;
+
+    final oldNote = current[noteIndex];
+    final newPriority = (oldNote.priority + 1) % 4;
+    final updatedNote = oldNote.copyWith(priority: newPriority);
+
+    state = AsyncData(
+      current.map((n) => n.id == id ? updatedNote : n).toList(),
+    );
+
+    try {
+      await repository.updatePriority(id, newPriority);
+    } catch (e) {
+      state = AsyncData(
+        (state.value ?? []).map((n) => n.id == id ? oldNote : n).toList(),
+      );
+      rethrow;
+    }
+  }
+
+  /// Update note priority directly
+  Future<void> updatePriority(String id, int priority) async {
+    final repository = ref.read(notesRepositoryProvider);
+
+    final current = state.value ?? [];
+    final noteIndex = current.indexWhere((n) => n.id == id);
+    if (noteIndex == -1) return;
+
+    final oldNote = current[noteIndex];
+    final updatedNote = oldNote.copyWith(priority: priority.clamp(0, 3));
+
+    state = AsyncData(
+      current.map((n) => n.id == id ? updatedNote : n).toList(),
+    );
+
+    try {
+      await repository.updatePriority(id, priority);
+    } catch (e) {
+      state = AsyncData(
+        (state.value ?? []).map((n) => n.id == id ? oldNote : n).toList(),
+      );
+      rethrow;
+    }
+  }
+
+  /// Sort notes by pinned status, then pinned_at, then created_at
+  void _sortNotes(List<Note> notes) {
+    notes.sort((a, b) {
+      // Pinned notes first
+      if (a.isPinned != b.isPinned) return a.isPinned ? -1 : 1;
+      // Among pinned, sort by pinned_at DESC
+      if (a.isPinned && b.isPinned) {
+        final aPinnedAt = a.pinnedAt ?? DateTime(1970);
+        final bPinnedAt = b.pinnedAt ?? DateTime(1970);
+        return bPinnedAt.compareTo(aPinnedAt);
+      }
+      // Among non-pinned, sort by created_at DESC
+      return b.createdAt.compareTo(a.createdAt);
+    });
+  }
+
   /// Update note categories based on content and attachments
   Future<void> updateNoteCategories(String id) async {
     final repository = ref.read(notesRepositoryProvider);

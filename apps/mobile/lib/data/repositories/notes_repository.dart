@@ -22,6 +22,8 @@ class NotesRepository {
     final noteRows = await _client
         .from('notes')
         .select()
+        .order('is_pinned', ascending: false)
+        .order('pinned_at', ascending: false, nullsFirst: false)
         .order('created_at', ascending: false);
 
     final noteIds = noteRows.map((n) => n['id'] as String).toList();
@@ -163,6 +165,21 @@ class NotesRepository {
   Future<void> setNoteLocked(String id, bool isLocked) async {
     await _client.from('notes').update({
       'is_locked': isLocked,
+    }).eq('id', id);
+  }
+
+  /// Toggle pin status of a note
+  Future<void> togglePinNote(String id, {required bool isPinned}) async {
+    await _client.from('notes').update({
+      'is_pinned': isPinned,
+      'pinned_at': isPinned ? DateTime.now().toUtc().toIso8601String() : null,
+    }).eq('id', id);
+  }
+
+  /// Update note priority (0-3)
+  Future<void> updatePriority(String id, int priority) async {
+    await _client.from('notes').update({
+      'priority': priority.clamp(0, 3),
     }).eq('id', id);
   }
 

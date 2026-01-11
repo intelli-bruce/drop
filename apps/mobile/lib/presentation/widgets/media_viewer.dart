@@ -135,31 +135,36 @@ class _MediaViewerState extends ConsumerState<MediaViewer> {
             ),
           ),
 
-          // Bottom page dots
+          // Bottom thumbnail bar (for 2+ items)
           if (widget.mediaAttachments.length > 1)
             Positioned(
               bottom: 0,
               left: 0,
               right: 0,
               child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(
-                      widget.mediaAttachments.length,
-                      (index) => Container(
-                        width: 8,
-                        height: 8,
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: index == _currentIndex
-                              ? Colors.white
-                              : Colors.white38,
-                        ),
-                      ),
+                child: Container(
+                  height: 80,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.8),
+                        Colors.transparent,
+                      ],
                     ),
+                  ),
+                  child: _ThumbnailBar(
+                    attachments: widget.mediaAttachments,
+                    currentIndex: _currentIndex,
+                    onThumbnailTap: (index) {
+                      _pageController.animateToPage(
+                        index,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
+                    },
                   ),
                 ),
               ),
@@ -376,6 +381,205 @@ class _VideoPlayerState extends State<_VideoPlayer> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Horizontal scrollable thumbnail bar
+class _ThumbnailBar extends ConsumerStatefulWidget {
+  final List<Attachment> attachments;
+  final int currentIndex;
+  final ValueChanged<int> onThumbnailTap;
+
+  const _ThumbnailBar({
+    required this.attachments,
+    required this.currentIndex,
+    required this.onThumbnailTap,
+  });
+
+  @override
+  ConsumerState<_ThumbnailBar> createState() => _ThumbnailBarState();
+}
+
+class _ThumbnailBarState extends ConsumerState<_ThumbnailBar> {
+  late ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    // Scroll to current item after layout
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToIndex(widget.currentIndex, animated: false);
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _ThumbnailBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentIndex != widget.currentIndex) {
+      _scrollToIndex(widget.currentIndex, animated: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToIndex(int index, {bool animated = true}) {
+    if (!_scrollController.hasClients) return;
+
+    const itemWidth = 60.0;
+    const itemMargin = 8.0;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final targetOffset = (index * (itemWidth + itemMargin)) -
+        (screenWidth / 2) +
+        (itemWidth / 2);
+    final maxOffset = _scrollController.position.maxScrollExtent;
+    final clampedOffset = targetOffset.clamp(0.0, maxOffset);
+
+    if (animated) {
+      _scrollController.animateTo(
+        clampedOffset,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      _scrollController.jumpTo(clampedOffset);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      controller: _scrollController,
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      itemCount: widget.attachments.length,
+      itemBuilder: (context, index) {
+        final attachment = widget.attachments[index];
+        final isSelected = index == widget.currentIndex;
+
+        return GestureDetector(
+          onTap: () => widget.onThumbnailTap(index),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 60,
+            height: 60,
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isSelected ? Colors.white : Colors.transparent,
+                width: 2,
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _ThumbnailImage(
+                    attachment: attachment,
+                    isSelected: isSelected,
+                  ),
+                  // Video indicator
+                  if (attachment.type == AttachmentType.video)
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.play_arrow,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                    ),
+                  // Dim overlay for non-selected
+                  if (!isSelected)
+                    Container(
+                      color: Colors.black.withValues(alpha: 0.4),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Thumbnail image widget with signed URL
+class _ThumbnailImage extends ConsumerWidget {
+  final Attachment attachment;
+  final bool isSelected;
+
+  const _ThumbnailImage({
+    required this.attachment,
+    required this.isSelected,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final urlAsync = ref.watch(
+      attachmentSignedUrlProvider(attachment.storagePath),
+    );
+
+    return urlAsync.when(
+      data: (url) => CachedNetworkImage(
+        imageUrl: url,
+        fit: BoxFit.cover,
+        memCacheWidth: 120, // Reduced size for thumbnails
+        placeholder: (context, url) => Container(
+          color: const Color(0xFF1A1A1A),
+          child: const Center(
+            child: SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white38,
+              ),
+            ),
+          ),
+        ),
+        errorWidget: (context, url, error) => Container(
+          color: const Color(0xFF1A1A1A),
+          child: const Icon(
+            Icons.broken_image,
+            color: Colors.white38,
+            size: 20,
+          ),
+        ),
+      ),
+      loading: () => Container(
+        color: const Color(0xFF1A1A1A),
+        child: const Center(
+          child: SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Colors.white38,
+            ),
+          ),
+        ),
+      ),
+      error: (error, stack) => Container(
+        color: const Color(0xFF1A1A1A),
+        child: const Icon(
+          Icons.error_outline,
+          color: Colors.white38,
+          size: 20,
+        ),
       ),
     );
   }

@@ -253,6 +253,15 @@ class NoteCard extends ConsumerWidget {
           motion: const BehindMotion(),
           children: [
             SlidableAction(
+              onPressed: (_) => ref.read(notesProvider.notifier).togglePinNote(note.id),
+              backgroundColor: note.isPinned
+                  ? const Color(0xFF666666)
+                  : const Color(0xFFFFAA00),
+              foregroundColor: Colors.white,
+              icon: note.isPinned ? Icons.push_pin_outlined : Icons.push_pin,
+              label: note.isPinned ? '해제' : '고정',
+            ),
+            SlidableAction(
               onPressed: (_) {
                 if (onReply != null) {
                   onReply!();
@@ -325,7 +334,31 @@ class NoteCard extends ConsumerWidget {
                     ),
                   ),
                 ),
-              if (!isRecording && !isTranscribing)
+              if (!isRecording && !isTranscribing) ...[
+                // Pin indicator
+                if (note.isPinned)
+                  Container(
+                    margin: const EdgeInsets.only(right: 4),
+                    child: const Icon(
+                      Icons.push_pin,
+                      color: Color(0xFFFFAA00),
+                      size: 12,
+                    ),
+                  ),
+                // Priority indicator
+                if (note.priority > 0)
+                  Container(
+                    margin: const EdgeInsets.only(right: 4),
+                    child: Text(
+                      '!' * note.priority,
+                      style: TextStyle(
+                        color: _getPriorityColor(note.priority),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                // Display ID
                 Container(
                   margin: const EdgeInsets.only(right: 6),
                   child: Text(
@@ -338,6 +371,7 @@ class NoteCard extends ConsumerWidget {
                     ),
                   ),
                 ),
+              ],
               Text(
                 isRecording
                     ? '녹음 중...'
@@ -794,6 +828,19 @@ class NoteCard extends ConsumerWidget {
         return Icons.camera_alt;
       case AttachmentType.youtube:
         return Icons.play_circle_outline;
+    }
+  }
+
+  Color _getPriorityColor(int priority) {
+    switch (priority) {
+      case 1:
+        return const Color(0xFF4A9EFF); // Blue - low
+      case 2:
+        return const Color(0xFFFFA500); // Orange - medium
+      case 3:
+        return const Color(0xFFFF4444); // Red - high
+      default:
+        return const Color(0xFF888888);
     }
   }
 

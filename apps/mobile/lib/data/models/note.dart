@@ -34,6 +34,9 @@ abstract class NoteRow with _$NoteRow {
     @JsonKey(name: 'has_media') @Default(false) bool hasMedia,
     @JsonKey(name: 'has_files') @Default(false) bool hasFiles,
     @JsonKey(name: 'is_locked') @Default(false) bool isLocked,
+    @JsonKey(name: 'is_pinned') @Default(false) bool isPinned,
+    @JsonKey(name: 'pinned_at') String? pinnedAt,
+    @Default(0) int priority,
   }) = _NoteRow;
 
   factory NoteRow.fromJson(Map<String, dynamic> json) => _$NoteRowFromJson(json);
@@ -76,6 +79,9 @@ abstract class Note with _$Note {
     @Default(false) bool hasMedia,
     @Default(false) bool hasFiles,
     @Default(false) bool isLocked,
+    @Default(false) bool isPinned,
+    DateTime? pinnedAt,
+    @Default(0) int priority,
   }) = _Note;
 
   /// Convert from database row
@@ -101,6 +107,9 @@ abstract class Note with _$Note {
       hasMedia: row.hasMedia,
       hasFiles: row.hasFiles,
       isLocked: row.isLocked,
+      isPinned: row.isPinned,
+      pinnedAt: row.pinnedAt != null ? DateTime.parse(row.pinnedAt!) : null,
+      priority: row.priority,
     );
   }
 
