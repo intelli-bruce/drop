@@ -28,6 +28,8 @@ import {
   COMMAND_PRIORITY_CRITICAL,
   PASTE_COMMAND,
   KEY_ENTER_COMMAND,
+  createCommand,
+  LexicalCommand,
 } from 'lexical'
 import { resolveNoteEditorShortcut } from '../shortcuts/noteEditor'
 
@@ -238,6 +240,57 @@ function FilePastePlugin({ onAddFile }: { onAddFile: (file: File) => void }) {
   return null
 }
 
+// 타임스탬프 삽입 명령
+const INSERT_TIMESTAMP_COMMAND: LexicalCommand<void> = createCommand('INSERT_TIMESTAMP_COMMAND')
+
+function TimestampPlugin() {
+  const [editor] = useLexicalComposerContext()
+
+  useEffect(() => {
+    const rootElement = editor.getRootElement()
+    if (!rootElement) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd+Shift+D (macOS) 또는 Ctrl+Shift+D (Windows/Linux)
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'd') {
+        e.preventDefault()
+        editor.dispatchCommand(INSERT_TIMESTAMP_COMMAND, undefined)
+      }
+    }
+
+    rootElement.addEventListener('keydown', handleKeyDown)
+    return () => rootElement.removeEventListener('keydown', handleKeyDown)
+  }, [editor])
+
+  useEffect(() => {
+    return editor.registerCommand(
+      INSERT_TIMESTAMP_COMMAND,
+      () => {
+        const now = new Date()
+        const timestamp = now.toLocaleString('ko-KR', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        })
+
+        editor.update(() => {
+          const selection = $getSelection()
+          if ($isRangeSelection(selection)) {
+            selection.insertText(`[${timestamp}] `)
+          }
+        })
+        return true
+      },
+      COMMAND_PRIORITY_HIGH
+    )
+  }, [editor])
+
+  return null
+}
+
 export const LexicalEditor = forwardRef<LexicalEditorHandle, Props>(
   ({ initialContent, onChange, onEscape, onAddFile, onFocus, onBlur }, ref) => {
     const editorRef = { current: null as { focus: () => void } | null }
@@ -284,6 +337,7 @@ export const LexicalEditor = forwardRef<LexicalEditorHandle, Props>(
           <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
           <OnChangePlugin onChange={handleChange} />
           <FilePastePlugin onAddFile={onAddFile} />
+          <TimestampPlugin />
           <EscapePlugin onEscape={onEscape} />
           <FocusPlugin editorRef={editorRef} />
           <InitialContentPlugin content={initialContent} />
