@@ -65,7 +65,7 @@ export function NoteFeed() {
 
   // 이벤트 핸들러용 ref (의존성 분리) - 나중에 업데이트됨
   const focusedIndexRef = useRef<number | null>(focusedIndex)
-  const flatNotesRef = useRef<Array<{ note: Note; depth: number }>>([])
+  const orderedNotesRef = useRef<Array<{ note: Note; depth: number }>>([])
   const deleteNoteRef = useRef<(id: string) => void>(deleteNote)
   const handleReplyRef = useRef<(parentId: string) => Promise<void>>(() => Promise.resolve())
   const handleCreateSiblingRef = useRef<(parentId: string | null) => Promise<void>>(() =>
@@ -153,13 +153,6 @@ export function NoteFeed() {
     return flattenWithDepth(rootNotes, 0)
   }, [filteredNotes])
 
-  // noteId -> index 맵 (O(1) 조회용)
-  const noteIndexMap = useMemo(() => {
-    const map = new Map<string, number>()
-    flatNotes.forEach((item, index) => map.set(item.note.id, index))
-    return map
-  }, [flatNotes])
-
   // 답글 생성
   const handleReply = useCallback(
     async (parentId: string) => {
@@ -186,10 +179,6 @@ export function NoteFeed() {
   useEffect(() => {
     focusedIndexRef.current = focusedIndex
   }, [focusedIndex])
-
-  useEffect(() => {
-    flatNotesRef.current = flatNotes
-  }, [flatNotes])
 
   useEffect(() => {
     deleteNoteRef.current = deleteNote
@@ -231,7 +220,8 @@ export function NoteFeed() {
     }
   }, [])
 
-  const grouped = useMemo(() => {
+  // grouped와 렌더링 순서에 맞는 orderedNotes를 함께 계산
+  const { grouped, orderedNotes } = useMemo(() => {
     const groups: { date: string; items: typeof flatNotes }[] = []
 
     // Pinned 노트 분리 (root level만)
@@ -266,8 +256,24 @@ export function NoteFeed() {
         }
       }
     }
-    return groups
+
+    // 렌더링 순서대로 평탄화 (네비게이션용)
+    const ordered = groups.flatMap((g) => g.items)
+
+    return { grouped: groups, orderedNotes: ordered }
   }, [flatNotes])
+
+  // noteId -> index 맵 (O(1) 조회용) - orderedNotes 기준 (렌더링 순서)
+  const noteIndexMap = useMemo(() => {
+    const map = new Map<string, number>()
+    orderedNotes.forEach((item, index) => map.set(item.note.id, index))
+    return map
+  }, [orderedNotes])
+
+  // orderedNotes ref 업데이트 (이벤트 핸들러에서 최신 값 참조용)
+  useEffect(() => {
+    orderedNotesRef.current = orderedNotes
+  }, [orderedNotes])
 
   const cardElementRefs = useRef<Map<string, HTMLDivElement>>(new Map())
 
@@ -279,15 +285,33 @@ export function NoteFeed() {
     }
   }
 
-  // 포커스된 카드로 스크롤
+  // 포커스된 카드로 스크롤 (requestAnimationFrame으로 최적화)
   useEffect(() => {
-    if (focusedIndex !== null && flatNotes[focusedIndex]) {
-      const noteId = flatNotes[focusedIndex].note.id
-      const element = cardElementRefs.current.get(noteId)
-      // Use 'auto' for instant scrolling to avoid jank during rapid navigation
-      element?.scrollIntoView({ behavior: 'auto', block: 'nearest' })
-    }
-  }, [focusedIndex, flatNotes])
+    if (focusedIndex === null) return
+    const item = orderedNotes[focusedIndex]
+    if (!item) return
+
+    // requestAnimationFrame으로 스크롤 배치 처리
+    const rafId = requestAnimationFrame(() => {
+      const element = cardElementRefs.current.get(item.note.id)
+      if (!element) return
+
+      // getBoundingClientRect 사용하여 뷰포트 내 위치 확인
+      const rect = element.getBoundingClientRect()
+      const container = feedRef.current
+      if (!container) return
+
+      const containerRect = container.getBoundingClientRect()
+      const isAbove = rect.top < containerRect.top + 60 // 헤더 고려
+      const isBelow = rect.bottom > containerRect.bottom
+
+      if (isAbove || isBelow) {
+        element.scrollIntoView({ behavior: 'auto', block: 'nearest' })
+      }
+    })
+
+    return () => cancelAnimationFrame(rafId)
+  }, [focusedIndex, orderedNotes])
 
   useEffect(() => {
     if (selectedNoteId) {
@@ -352,7 +376,7 @@ export function NoteFeed() {
     const handleTagListKeyDown = (e: KeyboardEvent) => {
       if (isTextInputTarget(e.target)) return
       if (!isOpenTagListShortcut(e)) return
-      const fallbackNoteId = focusedIndex !== null ? flatNotes[focusedIndex]?.note.id : null
+      const fallbackNoteId = focusedIndex !== null ? orderedNotes[focusedIndex]?.note.id : null
       const noteId = getClosestNoteId(document.activeElement) ?? fallbackNoteId
       if (!noteId) return
       e.preventDefault()
@@ -382,7 +406,7 @@ export function NoteFeed() {
   useEffect(() => {
     const handleLockKeyDown = (e: KeyboardEvent) => {
       if (!isToggleLockShortcut(e)) return
-      const fallbackNoteId = focusedIndex !== null ? flatNotes[focusedIndex]?.note.id : null
+      const fallbackNoteId = focusedIndex !== null ? orderedNotes[focusedIndex]?.note.id : null
       const noteId = getClosestNoteId(document.activeElement) ?? fallbackNoteId
       if (!noteId) return
       e.preventDefault()
@@ -420,7 +444,7 @@ export function NoteFeed() {
       if (!isDeleteShortcut(e)) return
       if (viewMode !== 'active') return
 
-      const fallbackNoteId = focusedIndex !== null ? flatNotes[focusedIndex]?.note.id : null
+      const fallbackNoteId = focusedIndex !== null ? orderedNotes[focusedIndex]?.note.id : null
       const noteId = getClosestNoteId(document.activeElement) ?? fallbackNoteId
       if (!noteId) return
 
@@ -442,7 +466,7 @@ export function NoteFeed() {
       if (!isArchiveShortcut(e)) return
       if (viewMode !== 'active') return
 
-      const fallbackNoteId = focusedIndex !== null ? flatNotes[focusedIndex]?.note.id : null
+      const fallbackNoteId = focusedIndex !== null ? orderedNotes[focusedIndex]?.note.id : null
       const noteId = getClosestNoteId(document.activeElement) ?? fallbackNoteId
       if (!noteId) return
 
@@ -463,7 +487,7 @@ export function NoteFeed() {
       if (isTextInputTarget(e.target)) return
       if (!isRestoreShortcut(e)) return
 
-      const fallbackNoteId = focusedIndex !== null ? flatNotes[focusedIndex]?.note.id : null
+      const fallbackNoteId = focusedIndex !== null ? orderedNotes[focusedIndex]?.note.id : null
       const noteId = getClosestNoteId(document.activeElement) ?? fallbackNoteId
       if (!noteId) return
 
@@ -489,17 +513,17 @@ export function NoteFeed() {
   // 글로벌 j/k 네비게이션 (ref 패턴으로 의존성 분리)
   useEffect(() => {
     const handleGlobalNavigation = (e: KeyboardEvent) => {
-      const currentFlatNotes = flatNotesRef.current
+      const currentOrderedNotes = orderedNotesRef.current
       const currentFocusedIndex = focusedIndexRef.current
 
-      if (currentFlatNotes.length === 0) return
+      if (currentOrderedNotes.length === 0) return
       if (isTextInputTarget(e.target)) return
 
       // Cmd+B: 포커스된 노트에 책 연결 (다른 단축키보다 먼저 처리)
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'b') {
         if (currentFocusedIndex === null) return
         e.preventDefault()
-        const item = currentFlatNotes[currentFocusedIndex]
+        const item = currentOrderedNotes[currentFocusedIndex]
         if (item) {
           openBookSearchForLinkingRef.current(item.note.id)
         }
@@ -514,7 +538,7 @@ export function NoteFeed() {
         if (currentFocusedIndex === null) {
           setFocusedIndex(0)
         } else {
-          const nextIndex = Math.min(currentFocusedIndex + 1, currentFlatNotes.length - 1)
+          const nextIndex = Math.min(currentFocusedIndex + 1, currentOrderedNotes.length - 1)
           setFocusedIndex(nextIndex)
         }
         feedRef.current?.focus()
@@ -524,7 +548,7 @@ export function NoteFeed() {
       if (action === 'focusPrev') {
         e.preventDefault()
         if (currentFocusedIndex === null) {
-          setFocusedIndex(currentFlatNotes.length - 1)
+          setFocusedIndex(currentOrderedNotes.length - 1)
         } else {
           const prevIndex = Math.max(currentFocusedIndex - 1, 0)
           setFocusedIndex(prevIndex)
@@ -536,7 +560,7 @@ export function NoteFeed() {
       if (action === 'openFocused') {
         if (currentFocusedIndex === null) return
         e.preventDefault()
-        const item = currentFlatNotes[currentFocusedIndex]
+        const item = currentOrderedNotes[currentFocusedIndex]
         if (item) {
           cardRefs.current.get(item.note.id)?.focus()
           // Keep focusedIndex so navigation continues from this position after editing
@@ -547,12 +571,12 @@ export function NoteFeed() {
       if (action === 'deleteFocused') {
         if (currentFocusedIndex === null) return
         e.preventDefault()
-        const item = currentFlatNotes[currentFocusedIndex]
+        const item = currentOrderedNotes[currentFocusedIndex]
         if (item && window.confirm('이 노트를 삭제하시겠습니까?')) {
           deleteNoteRef.current(item.note.id)
-          if (currentFlatNotes.length > 1) {
+          if (currentOrderedNotes.length > 1) {
             const nextIndex =
-              currentFocusedIndex >= currentFlatNotes.length - 1
+              currentFocusedIndex >= currentOrderedNotes.length - 1
                 ? currentFocusedIndex - 1
                 : currentFocusedIndex
             setFocusedIndex(nextIndex)
@@ -566,7 +590,7 @@ export function NoteFeed() {
       if (action === 'replyToFocused') {
         if (currentFocusedIndex === null) return
         e.preventDefault()
-        const item = currentFlatNotes[currentFocusedIndex]
+        const item = currentOrderedNotes[currentFocusedIndex]
         if (item) {
           handleReplyRef.current(item.note.id)
           setFocusedIndex(null)
@@ -577,7 +601,7 @@ export function NoteFeed() {
       if (action === 'createSibling') {
         if (currentFocusedIndex === null) return
         e.preventDefault()
-        const item = currentFlatNotes[currentFocusedIndex]
+        const item = currentOrderedNotes[currentFocusedIndex]
         if (item) {
           // 현재 노트의 parentId를 사용하여 같은 레벨에 노트 생성
           handleCreateSiblingRef.current(item.note.parentId)
@@ -589,7 +613,7 @@ export function NoteFeed() {
       if (action?.startsWith('setPriority')) {
         if (currentFocusedIndex === null) return
         e.preventDefault()
-        const item = currentFlatNotes[currentFocusedIndex]
+        const item = currentOrderedNotes[currentFocusedIndex]
         if (item) {
           const priority = parseInt(action.slice(-1), 10)
           updateNotePriorityRef.current(item.note.id, priority)
@@ -600,7 +624,7 @@ export function NoteFeed() {
       if (action === 'copyFocused') {
         if (currentFocusedIndex === null) return
         e.preventDefault()
-        const item = currentFlatNotes[currentFocusedIndex]
+        const item = currentOrderedNotes[currentFocusedIndex]
         if (item) {
           navigator.clipboard.writeText(item.note.content)
         }
@@ -610,7 +634,7 @@ export function NoteFeed() {
       if (action === 'togglePin') {
         if (currentFocusedIndex === null) return
         e.preventDefault()
-        const item = currentFlatNotes[currentFocusedIndex]
+        const item = currentOrderedNotes[currentFocusedIndex]
         if (item) {
           togglePinNoteRef.current(item.note.id)
         }

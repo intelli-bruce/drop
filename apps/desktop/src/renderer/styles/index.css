@@ -251,12 +251,8 @@ body {
   margin-bottom: 12px;
   overflow: hidden;
   border: 1px solid var(--border-color);
-  transition:
-    border-color var(--transition-normal),
-    box-shadow var(--transition-normal);
-  height: 200px !important;
-  min-height: 200px !important;
-  max-height: 200px !important;
+  /* 빠른 네비게이션을 위해 transition 최소화 */
+  transition: border-color 0.05s ease;
 }
 
 .note-card::before {
@@ -268,7 +264,7 @@ body {
   height: 100%;
   background: var(--text-muted);
   opacity: 0;
-  transition: opacity var(--transition-fast);
+  /* 빠른 네비게이션을 위해 transition 제거 */
 }
 
 .note-card:hover {
@@ -434,23 +430,36 @@ body {
    ============================================ */
 
 .note-card.collapsed {
-  height: 200px !important;
-  min-height: 200px !important;
-  max-height: 200px !important;
-  overflow: hidden !important;
+  max-height: 260px;
+  overflow: hidden;
 }
 
 .note-card.collapsed .note-editor {
-  max-height: 100px !important;
-  overflow: hidden !important;
+  max-height: 80px;
+  overflow: hidden;
   position: relative;
 }
 
-.note-card.collapsed .attachment-list,
+/* 컴팩트 프리뷰: attachment-list는 표시, 나머지는 숨김 */
 .note-card.collapsed .link-previews,
 .note-card.collapsed .linked-books,
 .note-card.collapsed .note-tags-section {
   display: none !important;
+}
+
+/* 컴팩트 attachment 스타일 */
+.note-card.collapsed .attachment-list {
+  display: flex !important;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 6px;
+  padding: 8px 16px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.note-card.collapsed .attachment-list::-webkit-scrollbar {
+  display: none;
 }
 
 .note-card.collapsed .note-editor::after {
@@ -459,7 +468,7 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 60px;
+  height: 40px;
   background: linear-gradient(
     to bottom,
     transparent 0%,
@@ -504,9 +513,83 @@ body {
 }
 
 .note-card.expanded {
-  height: auto !important;
-  min-height: auto !important;
-  max-height: none !important;
+  max-height: none;
+}
+
+/* ===== Compact Preview Styles ===== */
+/* 컴팩트 이미지 썸네일 */
+.note-card.collapsed .attachment-image {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+
+/* 컴팩트 YouTube */
+.note-card.collapsed .attachment-youtube {
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.note-card.collapsed .attachment-youtube-thumbnail {
+  height: 56px;
+}
+
+.note-card.collapsed .attachment-youtube-info {
+  display: none;
+}
+
+/* 컴팩트 Instagram */
+.note-card.collapsed .attachment-instagram {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+
+.note-card.collapsed .attachment-instagram-thumbnail {
+  width: 100%;
+  height: 100%;
+}
+
+.note-card.collapsed .attachment-instagram-info {
+  display: none;
+}
+
+/* 컴팩트 Book */
+.note-card.collapsed .attachment-book {
+  width: 90px;
+  flex-shrink: 0;
+}
+
+.note-card.collapsed .attachment-book-cover {
+  width: 36px;
+  height: 50px;
+}
+
+.note-card.collapsed .attachment-book-info {
+  display: none;
+}
+
+/* 컴팩트 Video */
+.note-card.collapsed .attachment-video {
+  width: 100px;
+  height: 56px;
+  flex-shrink: 0;
+}
+
+/* 컴팩트 Audio */
+.note-card.collapsed .attachment-audio {
+  width: 140px;
+  flex-shrink: 0;
+}
+
+/* 컴팩트 File */
+.note-card.collapsed .attachment-file {
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.note-card.collapsed .attachment-file-info {
+  display: none;
 }
 
 /* ============================================
@@ -1198,10 +1281,10 @@ body {
 
 /* Instagram Attachment */
 .attachment-instagram {
-  width: 200px;
+  width: 160px;
   max-width: 100%;
   background: linear-gradient(135deg, var(--bg-secondary) 0%, #1a1520 100%);
-  border: 1px solid rgba(225, 48, 108, 0.3);
+  border: 1px solid rgba(225, 48, 108, 0.2);
 }
 
 .attachment-instagram-content {
@@ -1320,10 +1403,10 @@ body {
 
 /* YouTube Attachment */
 .attachment-youtube {
-  width: 280px;
+  width: 200px;
   max-width: 100%;
   background: linear-gradient(135deg, var(--bg-secondary) 0%, #1a1215 100%);
-  border: 1px solid rgba(255, 0, 0, 0.2);
+  border: 1px solid rgba(255, 0, 0, 0.15);
 }
 
 .attachment-youtube-content {
@@ -1352,14 +1435,19 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 56px;
-  height: 56px;
+  width: 40px;
+  height: 40px;
   background: rgba(0, 0, 0, 0.7);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: background 0.2s;
+}
+
+.attachment-youtube-play svg {
+  width: 20px;
+  height: 20px;
 }
 
 .attachment-youtube-content:hover .attachment-youtube-play {
@@ -2668,34 +2756,41 @@ body {
    View Mode Selector - Compact Tabs
    ============================================ */
 
+/* ===== iOS-style Segment Control ===== */
 .view-mode-selector {
-  display: flex;
-  gap: 2px;
+  display: inline-flex;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 0;
   -webkit-app-region: no-drag;
 }
 
 .view-mode-btn {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 10px;
+  padding: 6px 12px;
   background: transparent;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: 6px;
   color: var(--text-muted);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.15s ease;
+  z-index: 1;
 }
 
-.view-mode-btn:hover {
+.view-mode-btn:not(.active):hover {
   color: var(--text-secondary);
 }
 
 .view-mode-btn.active {
   color: var(--text-primary);
-  background: var(--bg-elevated);
+  background: var(--bg-card);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 .view-mode-icon {
@@ -3023,18 +3118,18 @@ body {
 
 /* ===== Book Attachment ===== */
 .attachment-book {
-  max-width: 400px;
+  max-width: 260px;
 }
 
 .attachment-book-content {
   display: flex;
-  gap: 12px;
-  padding: 12px;
+  gap: 10px;
+  padding: 10px;
 }
 
 .attachment-book-cover {
-  width: 80px;
-  height: 110px;
+  width: 60px;
+  height: 84px;
   flex-shrink: 0;
   border-radius: 4px;
   overflow: hidden;
@@ -3090,7 +3185,7 @@ body {
 }
 
 .attachment-book-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text-primary);
   margin: 0;
@@ -3100,6 +3195,7 @@ body {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  line-height: 1.3;
 }
 
 .attachment-book-title:hover {
@@ -3107,12 +3203,12 @@ body {
 }
 
 .attachment-book-author {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-secondary);
 }
 
 .attachment-book-publisher {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-secondary);
   opacity: 0.8;
 }
