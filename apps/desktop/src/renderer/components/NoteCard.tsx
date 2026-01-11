@@ -174,6 +174,7 @@ export const NoteCard = memo(
           depth > 0 && 'note-card-reply',
           isLocked && 'locked',
           isCollapsed && 'collapsed',
+          (isExpanded || isEditing) && 'expanded',
           isTruncatable && 'truncatable',
         ]
           .filter(Boolean)
@@ -312,14 +313,6 @@ export const NoteCard = memo(
                     onBlur={() => setIsEditing(false)}
                   />
                 </div>
-                {isTruncatable && (
-                  <button
-                    className="note-expand-btn"
-                    onClick={() => setIsExpanded(!isExpanded)}
-                  >
-                    {isExpanded ? '접기 ▲' : '더보기 ▼'}
-                  </button>
-                )}
                 <AttachmentList
                   attachments={note.attachments}
                   onRemove={handleRemoveAttachment}
@@ -341,6 +334,14 @@ export const NoteCard = memo(
                     existingTagNames={note.tags.map((t) => t.name)}
                   />
                 </div>
+                {isTruncatable && (
+                  <button
+                    className="note-expand-btn"
+                    onClick={() => setIsExpanded(!isExpanded)}
+                  >
+                    {isExpanded ? '접기 ▲' : '더보기 ▼'}
+                  </button>
+                )}
               </>
             )}
           </div>

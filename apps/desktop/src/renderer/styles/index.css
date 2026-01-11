@@ -244,6 +244,8 @@ body {
 
 .note-card {
   position: relative;
+  display: flex;
+  flex-direction: column;
   background: var(--bg-card);
   border-radius: var(--radius-lg);
   margin-bottom: 12px;
@@ -252,6 +254,9 @@ body {
   transition:
     border-color var(--transition-normal),
     box-shadow var(--transition-normal);
+  height: 200px !important;
+  min-height: 200px !important;
+  max-height: 200px !important;
 }
 
 .note-card::before {
@@ -428,10 +433,24 @@ body {
    Note Card Truncation & Expand
    ============================================ */
 
+.note-card.collapsed {
+  height: 200px !important;
+  min-height: 200px !important;
+  max-height: 200px !important;
+  overflow: hidden !important;
+}
+
 .note-card.collapsed .note-editor {
-  max-height: 140px;
-  overflow: hidden;
+  max-height: 100px !important;
+  overflow: hidden !important;
   position: relative;
+}
+
+.note-card.collapsed .attachment-list,
+.note-card.collapsed .link-previews,
+.note-card.collapsed .linked-books,
+.note-card.collapsed .note-tags-section {
+  display: none !important;
 }
 
 .note-card.collapsed .note-editor::after {
@@ -451,9 +470,10 @@ body {
 
 .note-expand-btn {
   display: none;
+  margin-top: auto;
   width: 100%;
   padding: 10px 16px;
-  background: linear-gradient(to bottom, transparent, var(--bg-secondary));
+  background: linear-gradient(to bottom, transparent, var(--bg-card));
   border: none;
   color: var(--accent);
   font-size: 12px;
@@ -481,6 +501,12 @@ body {
 
 .note-card:not(.collapsed) .note-editor {
   max-height: 2000px;
+}
+
+.note-card.expanded {
+  height: auto !important;
+  min-height: auto !important;
+  max-height: none !important;
 }
 
 /* ============================================
