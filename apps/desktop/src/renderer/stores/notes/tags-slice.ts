@@ -1,5 +1,6 @@
 import type { StateCreator } from 'zustand'
 import { supabase } from '../../lib/supabase'
+import { useAuthStore } from '../auth'
 import { tagRowToTag } from '@drop/shared'
 import type { TagRow } from '@drop/shared'
 import type { NotesState, TagsSlice } from './types'
@@ -29,10 +30,8 @@ export const createTagsSlice: StateCreator<NotesState, [], [], TagsSlice> = (set
     if (!trimmedName) return
 
     try {
-      // Get current user
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      // Get cached user from auth store
+      const user = useAuthStore.getState().user
       if (!user) {
         console.error('[tags] addTagToNote: user not authenticated')
         return

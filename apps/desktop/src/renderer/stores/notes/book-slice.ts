@@ -1,6 +1,7 @@
 /// <reference path="../../../preload/index.d.ts" />
 import type { StateCreator } from 'zustand'
 import { supabase } from '../../lib/supabase'
+import { useAuthStore } from '../auth'
 import {
   bookRowToBook,
   noteRowToNote,
@@ -151,11 +152,8 @@ export const createBookSlice: StateCreator<NotesState, [], [], BookSlice> = (set
     console.info('[book] addBookToLibrary start', { isbn13 })
 
     try {
-      // 0. 유저 정보 가져오기
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
+      // Get cached user from auth store
+      const user = useAuthStore.getState().user
       if (!user) {
         console.error('[book] addBookToLibrary failed - no user')
         return null

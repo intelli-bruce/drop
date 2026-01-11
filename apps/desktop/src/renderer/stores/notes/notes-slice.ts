@@ -1,5 +1,6 @@
 import type { StateCreator } from 'zustand'
 import { supabase } from '../../lib/supabase'
+import { useAuthStore } from '../auth'
 import { tagRowToTag, noteRowToNote, attachmentRowToAttachment, bookRowToBook } from '@drop/shared'
 import type { NoteRow, AttachmentRow, TagRow, BookRow, Attachment, Tag, Book } from '@drop/shared'
 import type { NotesState, NotesSlice } from './types'
@@ -119,10 +120,8 @@ export const createNotesSlice: StateCreator<NotesState, [], [], NotesSlice> = (s
   },
 
   createNote: async (initialContent = '', parentId?: string) => {
-    // Get current user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    // Get cached user from auth store (no network request!)
+    const user = useAuthStore.getState().user
     if (!user) {
       console.error('[notes] createNote: user not authenticated')
       return {

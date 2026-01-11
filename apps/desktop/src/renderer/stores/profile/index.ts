@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { supabase } from '../../lib/supabase'
+import { useAuthStore } from '../auth'
 import { hashPin } from '../../lib/pin-utils'
 
 interface ProfileState {
@@ -17,9 +18,7 @@ export const useProfileStore = create<ProfileState>()((set) => ({
   isLoading: true,
 
   loadProfile: async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const user = useAuthStore.getState().user
     if (!user) {
       set({ isLoading: false })
       return
@@ -38,9 +37,7 @@ export const useProfileStore = create<ProfileState>()((set) => ({
   },
 
   setPin: async (pin: string) => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const user = useAuthStore.getState().user
     if (!user) throw new Error('Not authenticated')
 
     const pinHash = await hashPin(pin)
@@ -62,9 +59,7 @@ export const useProfileStore = create<ProfileState>()((set) => ({
   },
 
   verifyPin: async (pin: string) => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const user = useAuthStore.getState().user
     if (!user) return false
 
     const { data } = await supabase
@@ -80,9 +75,7 @@ export const useProfileStore = create<ProfileState>()((set) => ({
   },
 
   removePin: async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const user = useAuthStore.getState().user
     if (!user) return
 
     await supabase.from('user_profiles').update({ pin_hash: null }).eq('user_id', user.id)
