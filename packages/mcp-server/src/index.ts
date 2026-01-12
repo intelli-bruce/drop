@@ -3,8 +3,12 @@
  * DROP Notes MCP Server
  * AI가 DROP 노트에 접근할 수 있는 MCP 서버
  *
- * 인증: .mcp.json의 env.SUPABASE_REFRESH_TOKEN으로 전달
+ * 필수 환경 변수:
+ *   - DROP_TOKEN: MCP API 키 (DROP 앱 → 프로필 → Copy MCP Token)
+ *   - SUPABASE_URL: Supabase 프로젝트 URL
+ *   - SUPABASE_ANON_KEY: Supabase anon key
  */
+import 'dotenv/config'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { createServer } from './server.js'
 
