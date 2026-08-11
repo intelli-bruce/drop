@@ -144,6 +144,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
 
     final viewMode = ref.watch(viewModeProvider);
+    final showsFab = !isSelectionMode && viewMode == NoteViewMode.active;
 
     return Scaffold(
       backgroundColor: const Color(0xFF1A1A1A),
@@ -195,17 +196,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               if (isSelectionMode) const SelectionActionBar(),
             ],
           ),
-          // Scrim behind the expanded dial — tap anywhere to close it
-          if (_isFabExpanded)
+          // Scrim behind the expanded dial — tap anywhere to close it.
+          // Tied to showsFab so it can never outlive the dial itself.
+          if (_isFabExpanded && showsFab)
             Positioned.fill(
               child: GestureDetector(
-                onTap: () => _fabKey.currentState?.collapse(),
+                onTap: () {
+                  final dial = _fabKey.currentState;
+                  if (dial != null) {
+                    dial.collapse();
+                  } else {
+                    setState(() => _isFabExpanded = false);
+                  }
+                },
                 child: Container(color: Colors.black54),
               ),
             ),
         ],
       ),
-      floatingActionButton: !isSelectionMode && viewMode == NoteViewMode.active
+      floatingActionButton: showsFab
           ? ActionButtons(
               key: _fabKey,
               isRecording: recordingState.isRecording,
