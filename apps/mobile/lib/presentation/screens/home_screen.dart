@@ -28,6 +28,8 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _sharedContentHandled = false;
   bool _deepLinkHandled = false;
+  bool _isFabExpanded = false;
+  final GlobalKey<ActionButtonsState> _fabKey = GlobalKey<ActionButtonsState>();
   final ImagePicker _imagePicker = ImagePicker();
 
   @override
@@ -148,52 +150,67 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       appBar: isSelectionMode
           ? _buildSelectionAppBar(context, ref, selectionState)
           : _buildNormalAppBar(context, ref, viewMode),
-      body: Column(
+      body: Stack(
         children: [
-          // Notes content (includes ViewModeSelector and CategoryFilter as scrollable headers)
-          Expanded(
-            child: notesAsync.when(
-              loading: () => const Center(
-                child: CircularProgressIndicator(),
-              ),
-              error: (error, stack) => Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error_outline, color: Colors.red, size: 48),
-                    const SizedBox(height: 16),
-                    Text(
-                      '오류가 발생했습니다',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: Colors.white,
-                          ),
+          Column(
+            children: [
+              // Notes content (includes ViewModeSelector and CategoryFilter as scrollable headers)
+              Expanded(
+                child: notesAsync.when(
+                  loading: () => const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                  error: (error, stack) => Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                        const SizedBox(height: 16),
+                        Text(
+                          '오류가 발생했습니다',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: Colors.white,
+                              ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          error.toString(),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Colors.grey,
+                              ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () => ref.invalidate(notesProvider),
+                          child: const Text('다시 시도'),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      error.toString(),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.grey,
-                          ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () => ref.invalidate(notesProvider),
-                      child: const Text('다시 시도'),
-                    ),
-                  ],
+                  ),
+                  data: (notes) => _NoteFeed(isSelectionMode: isSelectionMode),
                 ),
               ),
-              data: (notes) => _NoteFeed(isSelectionMode: isSelectionMode),
-            ),
+              // Selection Action Bar
+              if (isSelectionMode) const SelectionActionBar(),
+            ],
           ),
-          // Selection Action Bar
-          if (isSelectionMode) const SelectionActionBar(),
+          // Scrim behind the expanded dial — tap anywhere to close it
+          if (_isFabExpanded)
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () => _fabKey.currentState?.collapse(),
+                child: Container(color: Colors.black54),
+              ),
+            ),
         ],
       ),
       floatingActionButton: !isSelectionMode && viewMode == NoteViewMode.active
           ? ActionButtons(
+              key: _fabKey,
               isRecording: recordingState.isRecording,
+              onExpandedChanged: (expanded) =>
+                  setState(() => _isFabExpanded = expanded),
               onAddPressed: () => _openComposer(context),
               onRecordPressed: () => _startRecording(),
               onCameraPressed: () => _captureFromCamera(),
