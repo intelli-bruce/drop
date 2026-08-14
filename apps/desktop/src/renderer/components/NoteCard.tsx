@@ -13,6 +13,7 @@ import { useNotesStore } from '../stores/notes'
 import { useProfileStore } from '../stores/profile'
 import { formatRelativeTime } from '../lib/time-utils'
 import { shouldTruncateNote } from '../lib/note-truncation'
+import { nextPriority, priorityClassName } from '../lib/note-priority'
 import { useDragAndDrop } from '../hooks'
 import type { Note } from '@drop/shared'
 import type { NoteViewMode } from '../stores/notes/types'
@@ -152,24 +153,26 @@ export const NoteCard = memo(
       }
 
       const handlePriorityClick = () => {
-        const nextPriority = (note.priority + 1) % 4
-        updateNotePriority(note.id, nextPriority)
+        updateNotePriority(note.id, nextPriority(note.priority))
       }
 
-      const getPriorityLabel = (priority: number) => {
+      const getPrioritySymbol = (priority: number) => {
         switch (priority) {
           case 1:
-            return { symbol: '!', className: 'priority-low' }
+            return '!'
           case 2:
-            return { symbol: '!!', className: 'priority-medium' }
+            return '!!'
           case 3:
-            return { symbol: '!!!', className: 'priority-high' }
+            return '!!!'
           default:
-            return { symbol: '·', className: 'priority-none' }
+            return '·'
         }
       }
 
-      const priorityInfo = getPriorityLabel(note.priority)
+      const priorityInfo = {
+        symbol: getPrioritySymbol(note.priority),
+        className: priorityClassName(note.priority),
+      }
 
       const cardClassName = [
           'note-card',
