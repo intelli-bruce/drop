@@ -129,45 +129,49 @@ struct HomeView: View {
     private var noteList: some View {
         LazyVStack(spacing: DropTheme.Spacing.base) {
             ForEach(notes.visibleNotes) { note in
-                NoteCard(
-                    note: note,
-                    isSelected: notes.selectedIDs.contains(note.id),
-                    isSelecting: notes.isSelecting,
-                    attachmentURL: attachmentURL,
-                    onOpenAttachment: { attachment in
-                        viewingAttachments = AttachmentPresentation(
-                            attachments: note.attachments.filter { $0.isImage || $0.isVideo },
-                            current: attachment
-                        )
-                    }
-                )
-                .onTapGesture {
-                    if notes.isSelecting {
-                        notes.toggleSelection(id: note.id)
-                    } else {
-                        composer = .existing(note)
-                    }
-                }
-                .onLongPressGesture {
-                    notes.toggleSelection(id: note.id)
-                }
-                .swipeActionsCompat {
-                    Button(role: .destructive) {
-                        Task { await notes.moveToTrash(id: note.id) }
-                    } label: {
-                        Label("삭제", systemImage: "trash")
-                    }
-                    Button {
-                        Task { await notes.setPinned(id: note.id, isPinned: !note.isPinned) }
-                    } label: {
-                        Label(note.isPinned ? "고정 해제" : "고정", systemImage: "pin")
-                    }
-                    .tint(.orange)
-                }
+                noteRow(for: note)
             }
         }
         .padding(.horizontal, DropTheme.Spacing.comfortable)
         .padding(.vertical, DropTheme.Spacing.base)
+    }
+
+    private func noteRow(for note: Note) -> some View {
+        NoteCard(
+            note: note,
+            isSelected: notes.selectedIDs.contains(note.id),
+            isSelecting: notes.isSelecting,
+            attachmentURL: attachmentURL,
+            onOpenAttachment: { attachment in
+                viewingAttachments = AttachmentPresentation(
+                    attachments: note.attachments.filter { $0.isImage || $0.isVideo },
+                    current: attachment
+                )
+            }
+        )
+        .onTapGesture {
+            if notes.isSelecting {
+                notes.toggleSelection(id: note.id)
+            } else {
+                composer = .existing(note)
+            }
+        }
+        .onLongPressGesture {
+            notes.toggleSelection(id: note.id)
+        }
+        .swipeActionsCompat {
+            Button(role: .destructive) {
+                Task { await notes.moveToTrash(id: note.id) }
+            } label: {
+                Label("삭제", systemImage: "trash")
+            }
+            Button {
+                Task { await notes.setPinned(id: note.id, isPinned: !note.isPinned) }
+            } label: {
+                Label(note.isPinned ? "고정 해제" : "고정", systemImage: "pin")
+            }
+            .tint(.orange)
+        }
     }
 
     private var emptyState: some View {
