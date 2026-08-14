@@ -5,6 +5,10 @@ import SwiftUI
 
 /// `screens/home_screen.dart` 대응. 앱 사용 시간의 대부분이 여기다.
 struct HomeView: View {
+    /// 날짜 섹션 묶기는 DropCore의 순수 함수가 한다 — 자정·시간대 경계를
+    /// 화면 코드에 두면 검증할 방법이 없다.
+    private static let grouper = NoteDateGrouper()
+
     @Environment(AuthStore.self) private var auth
     @Environment(DropRouter.self) private var router
     @Environment(\.dropContainer) private var container
@@ -104,36 +108,56 @@ struct HomeView: View {
     }
 
     /// **스크롤 컨테이너는 항상 하나, 항상 여기 있다.**
-    /// 예전에는 로딩·빈 상태에서 ScrollView가 아예 없는 뷰(ProgressView / VStack)로
+    /// 예전에는 로딩·빈 상태에서 스크롤 컨테이너가 아예 없는 뷰(ProgressView / VStack)로
     /// 갈라졌고, `.refreshable`은 그 바깥에 붙어 있었다 — 당길 대상이 없으니
-    /// 새로고침이 아예 걸리지 않았다. 갈림길은 스크롤뷰 **안쪽**으로 옮긴다.
+    /// 새로고침이 아예 걸리지 않았다(PR #40). 갈림길은 컨테이너 **안쪽**에 둔다.
+    ///
+    /// 컨테이너가 ScrollView에서 List로 바뀌었을 뿐 그 불변식은 그대로다.
+    /// List로 옮긴 이유는 하나 — `.swipeActions`가 List 안에서만 동작하기 때문이다.
+    /// 예전에는 그래서 `contextMenu`로 흉내 냈고, 스와이프는 실제로 없었다.
     private var content: some View {
-        ScrollView {
+        List {
             if notes.isLoading, notes.visibleNotes.isEmpty {
                 ProgressView()
                     .frame(maxWidth: .infinity)
                     .containerRelativeFrame(.vertical)
+                    .plainListRow()
             } else if notes.visibleNotes.isEmpty {
                 emptyState
                     .containerRelativeFrame(.vertical)
+                    .plainListRow()
             } else {
-                noteList
+                noteSections
             }
         }
+        .listStyle(.plain)
+        // 한 줄 행은 기본 최소 높이(44)보다 낮다. 기본값이면 행 사이가 벌어진다.
+        .environment(\.defaultMinListRowHeight, 0)
         // 내용이 화면보다 짧아도 당길 수 있어야 한다 — 새로고침이 가장 필요한 곳이
         // 목록이 비어 보이는 순간이다. 기본값이면 짧은 내용에서 튐이 죽는다.
         .scrollBounceBehavior(.always, axes: .vertical)
         .refreshable { await notes.load() }
     }
 
-    private var noteList: some View {
-        LazyVStack(spacing: DropTheme.Spacing.base) {
-            ForEach(notes.visibleNotes) { note in
-                noteRow(for: note)
+    private var noteSections: some View {
+        ForEach(Self.grouper.sections(for: notes.visibleNotes)) { section in
+            Section {
+                ForEach(section.notes) { note in
+                    noteRow(for: note)
+                }
+            } header: {
+                Text(section.title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .textCase(nil)
+                    .listRowInsets(EdgeInsets(
+                        top: DropTheme.Spacing.base,
+                        leading: DropTheme.Spacing.comfortable,
+                        bottom: DropTheme.Spacing.tight,
+                        trailing: DropTheme.Spacing.comfortable
+                    ))
             }
         }
-        .padding(.horizontal, DropTheme.Spacing.comfortable)
-        .padding(.vertical, DropTheme.Spacing.base)
     }
 
     private func noteRow(for note: Note) -> some View {
@@ -156,10 +180,13 @@ struct HomeView: View {
                 composer = .existing(note)
             }
         }
+        // 롱프레스는 선택 모드 하나만 쓴다. 예전에는 같은 롱프레스를
+        // contextMenu(스와이프 대체)가 함께 노려 어느 쪽이 뜰지 들쭉날쭉했다.
         .onLongPressGesture {
             notes.toggleSelection(id: note.id)
         }
-        .swipeActionsCompat {
+        // 실수로 지우는 일이 없게 전체 스와이프는 막는다 — 휴지통이라도 한 번 더 확인이 낫다.
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button(role: .destructive) {
                 Task { await notes.moveToTrash(id: note.id) }
             } label: {
@@ -172,6 +199,14 @@ struct HomeView: View {
             }
             .tint(.orange)
         }
+        .plainListRow(
+            insets: EdgeInsets(
+                top: DropTheme.Spacing.tight / 2,
+                leading: DropTheme.Spacing.comfortable,
+                bottom: DropTheme.Spacing.tight / 2,
+                trailing: DropTheme.Spacing.comfortable
+            )
+        )
     }
 
     private var emptyState: some View {
@@ -376,11 +411,13 @@ struct AttachmentPresentation: Identifiable {
     var id: String { current.id }
 }
 
-/// iOS 17에서는 `swipeActions`가 `List` 안에서만 동작한다.
-/// 카드 레이아웃(LazyVStack)에서도 같은 동작을 주기 위해 컨텍스트 메뉴로 대체한다.
+/// List가 기본으로 그리는 구분선·행 배경·여백을 걷어낸다.
+/// 행의 둥근 배경은 `NoteCard`가 직접 그린다 — 둘이 겹치면 카드 밖에 회색 판이 하나 더 깔린다.
 private extension View {
-    func swipeActionsCompat<Content: View>(@ViewBuilder _ actions: () -> Content) -> some View {
-        contextMenu { actions() }
+    func plainListRow(insets: EdgeInsets = EdgeInsets()) -> some View {
+        listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+            .listRowInsets(insets)
     }
 }
 
