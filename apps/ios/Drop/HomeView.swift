@@ -104,7 +104,18 @@ struct HomeView: View {
     }
 
     private var title: String {
-        notes.isSelecting ? "\(notes.selectedIDs.count)개 선택됨" : "DROP"
+        if notes.isSelecting { return "\(notes.selectedIDs.count)개 선택됨" }
+        // 보기 전환이 ⋯ 메뉴로 들어가 화면에 안 보이므로, 지금 어디를 보고 있는지는
+        // 제목이 알려 준다. 안 그러면 휴지통에서 "노트가 사라졌다"고 읽힌다.
+        return switch notes.viewMode {
+        case .active: "DROP"
+        case .archived: "보관"
+        case .trash: "휴지통"
+        }
+    }
+
+    private var viewMode: Binding<NoteViewMode> {
+        Binding(get: { notes.viewMode }, set: { notes.viewMode = $0 })
     }
 
     /// **스크롤 컨테이너는 항상 하나, 항상 여기 있다.**
@@ -310,6 +321,15 @@ struct HomeView: View {
         } else {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    // 필터바에서 세그먼트를 걷어내고 여기로 옮겼다 — 보기 전환은
+                    // 하루에 몇 번 쓰지 않는데 목록 한 줄을 상시로 먹고 있었다.
+                    Picker("보기", selection: viewMode) {
+                        Label("노트", systemImage: "tray").tag(NoteViewMode.active)
+                        Label("보관", systemImage: "archivebox").tag(NoteViewMode.archived)
+                        Label("휴지통", systemImage: "trash").tag(NoteViewMode.trash)
+                    }
+                    .pickerStyle(.inline)
+
                     NavigationLink { TagsView(store: notes) } label: {
                         Label("태그", systemImage: "number")
                     }
