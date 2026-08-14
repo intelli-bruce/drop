@@ -1695,59 +1695,6 @@ body {
   color: var(--danger);
 }
 
-.tag-input-container {
-  position: relative;
-}
-
-.tag-input {
-  width: 90px;
-  padding: 5px 12px;
-  background: transparent;
-  border: 1px dashed var(--border-color);
-  border-radius: 20px;
-  color: var(--text-primary);
-  font-size: 12px;
-  transition: all var(--transition-normal);
-}
-
-.tag-input:focus {
-  border-style: solid;
-  border-color: var(--accent);
-  width: 140px;
-  background: var(--bg-secondary);
-  box-shadow: var(--shadow-glow);
-}
-
-.tag-input::placeholder {
-  color: var(--text-muted);
-  font-style: italic;
-}
-
-.tag-suggestions {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  min-width: 150px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  margin-top: 4px;
-  z-index: 100;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.tag-suggestion {
-  padding: 8px 12px;
-  font-size: 12px;
-  cursor: pointer;
-  color: var(--text-primary);
-}
-
-.tag-suggestion:hover,
-.tag-suggestion.selected {
-  background: var(--bg-secondary);
-}
-
 /* ============================================
    Filter Indicator - Compact Badge
    ============================================ */

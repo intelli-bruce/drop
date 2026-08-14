@@ -29,7 +29,6 @@ interface Props {
 
 export interface NoteCardHandle {
   focus: () => void
-  openTagList: () => void
 }
 
 export const NoteCard = memo(
@@ -105,10 +104,6 @@ export const NoteCard = memo(
           pendingFocusRef.current = true
           editorRef.current?.focus()
         },
-        // BRU-46에서 카드 안 태그 입력칸(TagInput)이 빠졌다. 태그 추가는 NoteFeed의
-        // t 단축키가 여는 TagDialog가 담당하므로 카드가 열 UI는 없다.
-        // 인터페이스는 호출부 호환을 위해 남긴다 — 태그 입력 재설계는 BRU-44.
-        openTagList: () => undefined,
       }))
 
       // 펼쳐진 뒤에 예약된 포커스를 소비한다
