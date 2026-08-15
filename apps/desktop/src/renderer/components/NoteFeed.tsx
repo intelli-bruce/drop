@@ -19,6 +19,7 @@ import { isTextInputTarget, getClosestNoteId } from '../lib/dom-utils'
 import { extractInstagramUrls } from '../lib/instagram-url-utils'
 import { buildDeleteConfirmMessage } from '../lib/delete-confirm'
 import { computeFeedScrollTop } from '../lib/feed-scroll'
+import { applyNoteFilters } from '../lib/note-filters'
 
 // 피드 상단에서 헤더에 가려지는 높이. 이만큼 여유를 두고 카드를 맞춘다.
 const FEED_TOP_INSET = 60
@@ -120,20 +121,7 @@ export function NoteFeed() {
 
   const filteredNotes = useMemo(() => {
     if (viewMode !== 'active') return baseNotes
-
-    let result = filterTag
-      ? baseNotes.filter((note) => note.tags.some((t) => t.name === filterTag))
-      : baseNotes
-
-    if (categoryFilter === 'link') {
-      result = result.filter((note) => note.hasLink)
-    } else if (categoryFilter === 'media') {
-      result = result.filter((note) => note.hasMedia)
-    } else if (categoryFilter === 'files') {
-      result = result.filter((note) => note.hasFiles)
-    }
-
-    return result
+    return applyNoteFilters(baseNotes, { filterTag, categoryFilter })
   }, [viewMode, baseNotes, filterTag, categoryFilter])
 
   // flatNotes 계산 (메모이제이션)
