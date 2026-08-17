@@ -4,12 +4,20 @@ import Foundation
 public struct NoteSection: Sendable, Equatable, Identifiable {
     public let id: String
     public let title: String
-    public let notes: [Note]
+    /// 들여쓰기까지 정해진 행. 화면은 이 순서대로 그린다.
+    public let rows: [NoteRow]
 
-    public init(id: String, title: String, notes: [Note]) {
+    /// 계층을 보지 않는 쪽(위젯·미리보기 등)을 위한 평평한 시선.
+    public var notes: [Note] { rows.map(\.note) }
+
+    public init(id: String, title: String, rows: [NoteRow]) {
         self.id = id
         self.title = title
-        self.notes = notes
+        self.rows = rows
+    }
+
+    public init(id: String, title: String, notes: [Note]) {
+        self.init(id: id, title: title, rows: notes.map { NoteRow(note: $0, depth: 0) })
     }
 }
 
