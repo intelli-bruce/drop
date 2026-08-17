@@ -52,7 +52,6 @@ export function NoteFeed() {
     inboxOnly,
     setInboxOnly,
     showExported,
-    clearNoteExport,
     lockNote,
     temporarilyUnlockNote,
     temporarilyUnlockAll,
